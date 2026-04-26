@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# El plugin oficial de Next.js se instala automáticamente al detectar
+# next.config.* en el repo. No es necesario declararlo aquí.

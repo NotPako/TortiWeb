@@ -55,5 +55,7 @@ export const typeDefs = gql`
   type Mutation {
     createTortilla(input: CreateTortillaInput!): Tortilla!
     castVote(input: CastVoteInput!): Vote!
+    """Elimina una tortilla y todos sus votos. Requiere contraseña de admin."""
+    deleteTortilla(id: ID!, adminPassword: String!): Boolean!
   }
 `;

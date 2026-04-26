@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useMutation } from '@apollo/client';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
+import { TortillaManager } from '@/components/TortillaManager';
 import {
   CREATE_TORTILLA_MUTATION,
   CURRENT_TORTILLA_QUERY,
   TORTILLAS_QUERY,
 } from '@/graphql/operations';
 
-const MAX_SIZE_BYTES = 8 * 1024 * 1024;
+const MAX_SIZE_BYTES = 4 * 1024 * 1024;
 
 function fileToBase64(file: File): Promise<{ base64: string; type: string }> {
   return new Promise((resolve, reject) => {
@@ -127,7 +128,7 @@ export default function AdminPage() {
   const isError = feedback?.startsWith(t('common.errorPrefix'));
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-6">
       <div className="card p-6">
         <h1 className="text-2xl font-bold text-tortilla-800 mb-1">
           {t('admin.title')}
@@ -235,6 +236,8 @@ export default function AdminPage() {
           ) : null}
         </form>
       </div>
+
+      <TortillaManager />
     </div>
   );
 }

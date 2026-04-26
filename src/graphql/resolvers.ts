@@ -149,8 +149,8 @@ export const resolvers = {
       if (buffer.length === 0) {
         throw new Error('La imagen está vacía o no es válida.');
       }
-      if (buffer.length > 8 * 1024 * 1024) {
-        throw new Error('La imagen no puede superar 8 MB.');
+      if (buffer.length > 4 * 1024 * 1024) {
+        throw new Error('La imagen no puede superar 4 MB.');
       }
 
       const doc = await Tortilla.create({
@@ -162,6 +162,34 @@ export const resolvers = {
       });
 
       return tortillaPayload(doc);
+    },
+
+    async deleteTortilla(
+      _: unknown,
+      args: { id: string; adminPassword: string }
+    ) {
+      await connectToDatabase();
+      const expected = process.env.ADMIN_PASSWORD;
+      if (!expected) {
+        throw new Error(
+          'ADMIN_PASSWORD no está configurada en el servidor.'
+        );
+      }
+      if (args.adminPassword !== expected) {
+        throw new Error('Contraseña de admin incorrecta.');
+      }
+      if (!Types.ObjectId.isValid(args.id)) {
+        throw new Error('ID de tortilla inválido.');
+      }
+
+      const tortilla = await Tortilla.findById(args.id).exec();
+      if (!tortilla) throw new Error('Tortilla no encontrada.');
+
+      // Borrar primero los votos asociados, luego la tortilla.
+      await Vote.deleteMany({ tortilla: tortilla._id }).exec();
+      await tortilla.deleteOne();
+
+      return true;
     },
 
     async castVote(

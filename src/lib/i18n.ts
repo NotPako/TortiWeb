@@ -80,10 +80,21 @@ const es = {
   'admin.creating': 'Creando…',
   'admin.submit': 'Crear tortilla',
   'admin.success': '¡Tortilla creada!',
-  'admin.errors.imageTooLarge': 'Error: la imagen no puede superar 8 MB.',
+  'admin.errors.imageTooLarge': 'Error: la imagen no puede superar 4 MB.',
   'admin.errors.imageRequired': 'Error: selecciona una imagen.',
   'admin.errors.nameRequired': 'Error: el nombre es obligatorio.',
   'admin.errors.passRequired': 'Error: introduce la contraseña de admin.',
+
+  'admin.manage.title': 'Tortillas existentes',
+  'admin.manage.subtitle':
+    'Aquí puedes eliminar cualquier tortilla previa. Al borrarla, también se eliminarán todos sus votos.',
+  'admin.manage.empty': 'Aún no hay tortillas registradas.',
+  'admin.manage.delete': 'Eliminar',
+  'admin.manage.deleting': 'Eliminando…',
+  'admin.manage.confirm':
+    '¿Seguro que quieres eliminar "{name}"? Esta acción no se puede deshacer y borrará también sus votos.',
+  'admin.manage.passwordPrompt': 'Introduce la contraseña de admin',
+  'admin.manage.deleted': '¡Tortilla eliminada!',
 
   'slider.label': 'Tu nota',
 
@@ -156,10 +167,21 @@ const ca: Record<DictKey, string> = {
   'admin.creating': 'Creant…',
   'admin.submit': 'Crear truita',
   'admin.success': 'Truita creada!',
-  'admin.errors.imageTooLarge': 'Error: la imatge no pot superar 8 MB.',
+  'admin.errors.imageTooLarge': 'Error: la imatge no pot superar 4 MB.',
   'admin.errors.imageRequired': 'Error: selecciona una imatge.',
   'admin.errors.nameRequired': 'Error: el nom és obligatori.',
   'admin.errors.passRequired': "Error: introdueix la contrasenya d'admin.",
+
+  'admin.manage.title': 'Truites existents',
+  'admin.manage.subtitle':
+    'Aquí pots eliminar qualsevol truita anterior. En esborrar-la, també s\'eliminaran tots els seus vots.',
+  'admin.manage.empty': 'Encara no hi ha truites registrades.',
+  'admin.manage.delete': 'Eliminar',
+  'admin.manage.deleting': 'Eliminant…',
+  'admin.manage.confirm':
+    'Segur que vols eliminar "{name}"? Aquesta acció no es pot desfer i també esborrarà els seus vots.',
+  'admin.manage.passwordPrompt': "Introdueix la contrasenya d'admin",
+  'admin.manage.deleted': 'Truita eliminada!',
 
   'slider.label': 'La teva nota',
 

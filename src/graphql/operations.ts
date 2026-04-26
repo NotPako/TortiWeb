@@ -76,3 +76,9 @@ export const CREATE_TORTILLA_MUTATION = gql`
     }
   }
 `;
+
+export const DELETE_TORTILLA_MUTATION = gql`
+  mutation DeleteTortilla($id: ID!, $adminPassword: String!) {
+    deleteTortilla(id: $id, adminPassword: $adminPassword)
+  }
+`;
