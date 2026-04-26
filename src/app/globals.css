@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: linear-gradient(180deg, #fff8e6 0%, #fff 60%);
+  color: #1f1300;
+  font-family: var(--font-sans, 'Segoe UI', system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-tortilla-500 text-white hover:bg-tortilla-600;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-tortilla-700 border border-tortilla-200 hover:bg-tortilla-50;
+  }
+  .card {
+    @apply rounded-2xl bg-white shadow-sm border border-tortilla-100 overflow-hidden;
+  }
+  .field-label {
+    @apply block text-sm font-medium text-tortilla-800 mb-1;
+  }
+  .text-input {
+    @apply w-full rounded-xl border border-tortilla-200 bg-white px-3 py-2 outline-none focus:border-tortilla-400 focus:ring-2 focus:ring-tortilla-200;
+  }
+}
