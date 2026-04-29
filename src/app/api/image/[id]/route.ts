@@ -32,9 +32,12 @@ export async function GET(
     if (!obj.Body) {
       return new NextResponse('Sin contenido', { status: 502 });
     }
-    const bytes = await obj.Body.transformToByteArray();
 
-    return new NextResponse(bytes, {
+    // Servimos directamente como ReadableStream — más eficiente y evita
+    // el problema de tipos con Uint8Array<ArrayBufferLike>.
+    const stream = obj.Body.transformToWebStream();
+
+    return new NextResponse(stream, {
       status: 200,
       headers: {
         'Content-Type':
