@@ -44,12 +44,8 @@ src/
    ```
 2. Copia el archivo de ejemplo y rellena las variables:
    ```bash
-   cp .env.local.example .env.local
-   ```
-   ```env
-   MONGODB_URI=mongodb://127.0.0.1:27017/tortiweb
-   ADMIN_PASSWORD=la-contraseña-que-quieras
-   ```
+   cp .env.local
+  
 
 ## Arrancar en desarrollo
 
