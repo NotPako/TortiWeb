@@ -1,8 +1,18 @@
 import { GraphQLScalarType, Kind } from 'graphql';
 import { Types } from 'mongoose';
+import { randomUUID } from 'crypto';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Tortilla, TortillaDocument } from '@/models/Tortilla';
 import { Vote, VoteDocument } from '@/models/Vote';
+import {
+  getR2BucketName,
+  getR2Client,
+  publicUrlFor,
+} from '@/lib/r2';
 
 const dateScalar = new GraphQLScalarType({
   name: 'Date',
@@ -31,10 +41,30 @@ function normalizeUserKey(name: string): string {
 }
 
 function decodeBase64Image(base64: string): Buffer {
-  // Acepta tanto "data:image/jpeg;base64,..." como solo el contenido base64.
   const match = base64.match(/^data:[^;]+;base64,(.+)$/);
   const raw = match ? match[1] : base64;
   return Buffer.from(raw, 'base64');
+}
+
+function inferExtension(contentType: string): string {
+  const map: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/heic': 'heic',
+    'image/heif': 'heif',
+    'image/avif': 'avif',
+  };
+  return map[contentType.toLowerCase()] ?? 'bin';
+}
+
+function buildImageUrl(doc: TortillaDocument): string {
+  const direct = publicUrlFor(doc.imageKey);
+  if (direct) return direct;
+  // Fallback: proxy a través de la API.
+  return `/api/image/${(doc._id as Types.ObjectId).toString()}`;
 }
 
 async function computeStats(tortillaId: Types.ObjectId) {
@@ -76,7 +106,7 @@ async function tortillaPayload(
     name: doc.name,
     description: doc.description ?? null,
     date: doc.date,
-    imageUrl: `/api/image/${(doc._id as Types.ObjectId).toString()}`,
+    imageUrl: buildImageUrl(doc),
     averageScore,
     voteCount,
     _id: doc._id, // se usa internamente para resolvers anidados
@@ -153,13 +183,44 @@ export const resolvers = {
         throw new Error('La imagen no puede superar 4 MB.');
       }
 
-      const doc = await Tortilla.create({
-        name: args.input.name.trim(),
-        description: args.input.description?.trim() || undefined,
-        date: args.input.date ? new Date(args.input.date) : new Date(),
-        imageData: buffer,
-        imageContentType: args.input.imageContentType,
-      });
+      // Subir primero a R2.
+      const ext = inferExtension(args.input.imageContentType);
+      const dateSegment = new Date().toISOString().slice(0, 10);
+      const imageKey = `tortillas/${dateSegment}-${randomUUID()}.${ext}`;
+
+      await getR2Client().send(
+        new PutObjectCommand({
+          Bucket: getR2BucketName(),
+          Key: imageKey,
+          Body: buffer,
+          ContentType: args.input.imageContentType,
+        })
+      );
+
+      // Luego persistir en Mongo.
+      let doc: TortillaDocument;
+      try {
+        doc = await Tortilla.create({
+          name: args.input.name.trim(),
+          description: args.input.description?.trim() || undefined,
+          date: args.input.date ? new Date(args.input.date) : new Date(),
+          imageKey,
+          imageContentType: args.input.imageContentType,
+        });
+      } catch (err) {
+        // Si Mongo falla, intentamos limpiar el objeto huérfano de R2.
+        try {
+          await getR2Client().send(
+            new DeleteObjectCommand({
+              Bucket: getR2BucketName(),
+              Key: imageKey,
+            })
+          );
+        } catch {
+          // ignore
+        }
+        throw err;
+      }
 
       return tortillaPayload(doc);
     },
@@ -185,8 +246,21 @@ export const resolvers = {
       const tortilla = await Tortilla.findById(args.id).exec();
       if (!tortilla) throw new Error('Tortilla no encontrada.');
 
-      // Borrar primero los votos asociados, luego la tortilla.
+      // Borrar primero los votos asociados.
       await Vote.deleteMany({ tortilla: tortilla._id }).exec();
+
+      // Borrar la imagen de R2 (best-effort: no bloqueamos si falla).
+      try {
+        await getR2Client().send(
+          new DeleteObjectCommand({
+            Bucket: getR2BucketName(),
+            Key: tortilla.imageKey,
+          })
+        );
+      } catch (err) {
+        console.warn('No se pudo eliminar el objeto de R2:', err);
+      }
+
       await tortilla.deleteOne();
 
       return true;
@@ -222,7 +296,7 @@ export const resolvers = {
         { tortilla: tortilla._id, userKey },
         {
           $set: {
-            score: Math.round(score * 10) / 10, // 1 decimal
+            score: Math.round(score * 10) / 10,
             userName: userName.trim(),
             userKey,
             tortilla: tortilla._id,

@@ -5,9 +5,11 @@ Aplicación web para puntuar las tortillas que cocináis cada miércoles. Los us
 ## Stack
 
 - **Next.js 14** (App Router) + **React 18** + **TypeScript**
-- **MongoDB** + **Mongoose** para persistencia (las imágenes se guardan como `Buffer` en Mongo)
+- **MongoDB** + **Mongoose** para metadatos (nombre, fecha, votos)
+- **Cloudflare R2** (S3-compatible) para almacenamiento de imágenes
 - **Apollo Server** sobre una API Route (`/api/graphql`) y **Apollo Client** en el frontend
 - **Tailwind CSS** para los estilos
+- **i18n** español + catalán con LanguageContext
 
 ## Estructura
 
@@ -73,7 +75,8 @@ npm run start
 
 ## Notas
 
-- Las imágenes se almacenan como `Buffer` en la colección `tortillas` (campos `imageData` + `imageContentType`). Se sirven con cache HTTP desde `/api/image/:id` para no inflar las respuestas GraphQL.
-- El tamaño máximo por imagen es **8 MB**. Cámbialo en `src/graphql/resolvers.ts` y `src/app/admin/page.tsx` si lo necesitas.
+- Las imágenes se almacenan en un bucket **Cloudflare R2** (S3-compatible). En MongoDB solo guardamos la `imageKey` (ruta del objeto en el bucket).
+- Si en el bucket has habilitado *Public Development URL* (R2.dev) o un dominio personalizado, configura `R2_PUBLIC_URL` y las imágenes se servirán **directamente desde Cloudflare** (más rápido, no consume invocaciones de Netlify). Si no, se proxean vía `/api/image/[id]` que descarga el objeto de R2.
+- El tamaño máximo por imagen es **4 MB** (límite alineado con los 6 MB de payload de Netlify Functions). Cámbialo en `src/graphql/resolvers.ts` y `src/app/admin/page.tsx` si lo necesitas.
 - La autenticación es deliberadamente simple (un nombre en `localStorage`); no es un sistema de seguridad real, sino una forma cómoda de identificar a cada votante. La unicidad del voto se basa en el nombre normalizado (minúsculas + trim).
 - Si despliegas en Vercel u otro entorno serverless, asegúrate de usar MongoDB Atlas (o un Mongo accesible vía red) y de configurar `MONGODB_URI` y `ADMIN_PASSWORD` como variables de entorno.
