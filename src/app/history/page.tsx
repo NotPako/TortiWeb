@@ -1,4 +1,4 @@
-import HistoryPage from '@/pages/HistoryPage';
+import HistoryPage from '@/views/HistoryPage';
 
 export default function Page() {
   return <HistoryPage />;

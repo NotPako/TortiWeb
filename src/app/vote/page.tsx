@@ -1,4 +1,4 @@
-import VotePage from '@/pages/VotePage';
+import VotePage from '@/views/VotePage';
 
 export default function Page() {
   return <VotePage />;

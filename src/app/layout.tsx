@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { ReactNode } from 'react';
 import './globals.css';
+
 import styles from './layout.module.css';
 import { ApolloWrapper } from '@/components/ApolloWrapper';
 import { UserProvider } from '@/components/UserContext';
