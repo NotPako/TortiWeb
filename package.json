@@ -9,10 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/nextjs-registry": "^1.0.2",
     "@apollo/client": "^3.11.8",
     "@apollo/server": "^4.11.0",
     "@as-integrations/next": "^3.2.0",
     "@aws-sdk/client-s3": "^3.658.1",
+    "antd": "^5.21.4",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "mongodb": "^7.2.0",

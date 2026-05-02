@@ -65,6 +65,65 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  padding: 0;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-tortilla-200);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-tortilla-500);
+  outline-offset: 2px;
+}
+
+.modalImageWrap {
+  width: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: var(--color-tortilla-100);
+}
+
+.modalImage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.modalDate {
+  font-size: 14px;
+  color: var(--color-tortilla-600);
+  text-transform: capitalize;
+  margin-bottom: 8px;
+}
+
+.modalDescription {
+  color: var(--color-tortilla-700);
+  margin-bottom: 12px;
+}
+
+.modalSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--color-tortilla-700);
+  margin-bottom: 16px;
+}
+
+.voteScore {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .image {

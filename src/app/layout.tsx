@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { ReactNode } from 'react';
+import { AntdRegistry } from '@ant-design/nextjs-registry';
 import './globals.css';
 
 import styles from './layout.module.css';
@@ -25,14 +26,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es">
       <body>
-        <ApolloWrapper>
-          <LanguageProvider>
-            <UserProvider>
-              <NavBar />
-              <main className={styles.main}>{children}</main>
-            </UserProvider>
-          </LanguageProvider>
-        </ApolloWrapper>
+        <AntdRegistry>
+          <ApolloWrapper>
+            <LanguageProvider>
+              <UserProvider>
+                <NavBar />
+                <main className={styles.main}>{children}</main>
+              </UserProvider>
+            </LanguageProvider>
+          </ApolloWrapper>
+        </AntdRegistry>
       </body>
     </html>
   );

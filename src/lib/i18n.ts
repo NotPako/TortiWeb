@@ -57,6 +57,9 @@ const es = {
 
   'history.title': 'Historial de tortillas',
   'history.loading': 'Cargando histórico…',
+  'history.individualVotes': 'Votos individuales',
+  'history.noVotesYet': 'Aún no hay votos para esta tortilla.',
+  'history.viewDetails': 'Ver votos',
   'history.empty.title': 'Todavía no hay tortillas registradas.',
   'history.empty.subtitle':
     'Cuando se añada la primera, aparecerá aquí con su nota media.',
@@ -144,6 +147,9 @@ const ca: Record<DictKey, string> = {
 
   'history.title': 'Històric de truites',
   'history.loading': 'Carregant històric…',
+  'history.individualVotes': 'Vots individuals',
+  'history.noVotesYet': 'Encara no hi ha vots per a aquesta truita.',
+  'history.viewDetails': 'Veure vots',
   'history.empty.title': 'Encara no hi ha truites registrades.',
   'history.empty.subtitle':
     "Quan s'afegeixi la primera, apareixerà aquí amb la seva nota mitjana.",

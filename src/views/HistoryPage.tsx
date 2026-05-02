@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
+import { Avatar, List, Modal, Tag } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
-import { TORTILLAS_QUERY } from '@/graphql/operations';
+import {
+  TORTILLAS_QUERY,
+  TORTILLA_DETAIL_QUERY,
+} from '@/graphql/operations';
 import styles from './HistoryPage.module.css';
 
 type Tortilla = {
@@ -17,6 +21,17 @@ type Tortilla = {
   averageScore: number | null;
   voteCount: number;
   myVote: { id: string; score: number } | null;
+};
+
+type Vote = {
+  id: string;
+  userName: string;
+  score: number;
+  createdAt: string;
+};
+
+type TortillaDetail = Tortilla & {
+  votes: Vote[];
 };
 
 function ScoreBadge({
@@ -44,10 +59,17 @@ function ScoreBadge({
   );
 }
 
+function tagColorForScore(score: number): string {
+  if (score >= 8) return 'green';
+  if (score >= 5) return 'gold';
+  return 'red';
+}
+
 export default function HistoryPage() {
   const { userName, isReady } = useUser();
   const { t, locale } = useLanguage();
   const router = useRouter();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isReady && !userName) router.replace('/');
@@ -57,6 +79,45 @@ export default function HistoryPage() {
     TORTILLAS_QUERY,
     { variables: { userName }, skip: !userName }
   );
+
+  const { data: detailData, loading: detailLoading } = useQuery<{
+    tortilla: TortillaDetail | null;
+  }>(TORTILLA_DETAIL_QUERY, {
+    variables: { id: selectedId, userName },
+    skip: !selectedId || !userName,
+  });
+
+  const detail = detailData?.tortilla ?? null;
+
+  const sortedVotes = useMemo(() => {
+    if (!detail?.votes) return [];
+    return [...detail.votes].sort((a, b) => b.score - a.score);
+  }, [detail?.votes]);
+
+  function formatDate(date: string) {
+    try {
+      return new Date(date).toLocaleDateString(locale, {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return date;
+    }
+  }
+
+  function formatLongDate(date: string) {
+    try {
+      return new Date(date).toLocaleDateString(locale, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return date;
+    }
+  }
 
   if (!isReady || !userName) return null;
 
@@ -81,24 +142,18 @@ export default function HistoryPage() {
     );
   }
 
-  function formatDate(date: string) {
-    try {
-      return new Date(date).toLocaleDateString(locale, {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
-    } catch {
-      return date;
-    }
-  }
-
   return (
     <div className={styles.wrap}>
       <h1 className={styles.title}>{t('history.title')}</h1>
       <div className={styles.grid}>
         {list.map((tortilla) => (
-          <article key={tortilla.id} className={styles.card}>
+          <button
+            key={tortilla.id}
+            type="button"
+            className={styles.card}
+            onClick={() => setSelectedId(tortilla.id)}
+            aria-label={`${t('history.viewDetails')} — ${tortilla.name}`}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={tortilla.imageUrl}
@@ -139,9 +194,82 @@ export default function HistoryPage() {
                 ) : null}
               </div>
             </div>
-          </article>
+          </button>
         ))}
       </div>
+
+      <Modal
+        open={!!selectedId}
+        onCancel={() => setSelectedId(null)}
+        footer={null}
+        title={detail?.name ?? ''}
+        width={520}
+        destroyOnClose
+      >
+        {detailLoading && !detail ? (
+          <p className={styles.statusText}>{t('common.loading')}</p>
+        ) : detail ? (
+          <div>
+            <div className={styles.modalImageWrap}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={detail.imageUrl}
+                alt={detail.name}
+                className={styles.modalImage}
+              />
+            </div>
+            <p className={styles.modalDate}>{formatLongDate(detail.date)}</p>
+            {detail.description ? (
+              <p className={styles.modalDescription}>{detail.description}</p>
+            ) : null}
+            <div className={styles.modalSummary}>
+              <span>
+                {t('vote.average')}{' '}
+                <strong className={styles.voteScore}>
+                  {detail.averageScore !== null
+                    ? detail.averageScore.toFixed(2)
+                    : '—'}
+                </strong>
+              </span>
+              <span>
+                {detail.voteCount}{' '}
+                {detail.voteCount === 1
+                  ? t('history.voteSingular')
+                  : t('history.votePlural')}
+              </span>
+            </div>
+            <List
+              header={<strong>{t('history.individualVotes')}</strong>}
+              dataSource={sortedVotes}
+              locale={{ emptyText: t('history.noVotesYet') }}
+              renderItem={(vote) => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar
+                        style={{
+                          backgroundColor: 'var(--color-tortilla-500)',
+                          color: 'white',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {vote.userName.charAt(0).toUpperCase()}
+                      </Avatar>
+                    }
+                    title={vote.userName}
+                  />
+                  <Tag
+                    color={tagColorForScore(vote.score)}
+                    style={{ fontVariantNumeric: 'tabular-nums', margin: 0 }}
+                  >
+                    {vote.score.toFixed(1)} / 10
+                  </Tag>
+                </List.Item>
+              )}
+            />
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }
