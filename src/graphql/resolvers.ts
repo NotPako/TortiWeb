@@ -40,6 +40,27 @@ function normalizeUserKey(name: string): string {
   return name.trim().toLowerCase();
 }
 
+/**
+ * Zona horaria de referencia para decidir qué día corre. La app vive en Madrid,
+ * pero el servidor (Netlify) corre en UTC: sin esto, en madrugada el servidor
+ * podría considerar "ya cambiamos de día" cuando en Madrid aún es ayer (o al
+ * revés). Si en algún momento se quisiera multi-zona, podría parametrizarse
+ * por usuario o por una env var.
+ */
+const APP_TIMEZONE = 'Europe/Madrid';
+
+/**
+ * Devuelve YYYY-MM-DD para una fecha en la zona horaria indicada.
+ * 'en-CA' produce el formato ISO directamente.
+ */
+function dayKey(d: Date, tz: string = APP_TIMEZONE): string {
+  return d.toLocaleDateString('en-CA', { timeZone: tz });
+}
+
+function isSameDay(a: Date, b: Date, tz: string = APP_TIMEZONE): boolean {
+  return dayKey(a, tz) === dayKey(b, tz);
+}
+
 function decodeBase64Image(base64: string): Buffer {
   const match = base64.match(/^data:[^;]+;base64,(.+)$/);
   const raw = match ? match[1] : base64;
@@ -146,6 +167,10 @@ export const resolvers = {
       await connectToDatabase();
       const doc = await Tortilla.findOne({}).sort({ date: -1 }).exec();
       if (!doc) return null;
+      // Solo se considera "tortilla actual" si es del día de hoy en Madrid.
+      // Una tortilla del día anterior ya no es votable: el frontend mostrará
+      // el estado vacío y los usuarios deberán esperar a la siguiente.
+      if (!isSameDay(doc.date, new Date())) return null;
       return tortillaPayload(doc, { userName: args.userName });
     },
   },
@@ -290,6 +315,13 @@ export const resolvers = {
 
       const tortilla = await Tortilla.findById(tortillaId).exec();
       if (!tortilla) throw new Error('Tortilla no encontrada.');
+
+      // La votación se cierra al cambiar de día (Europa/Madrid).
+      if (!isSameDay(tortilla.date, new Date())) {
+        throw new Error(
+          'La votación de esta tortilla ya está cerrada (es de otro día).'
+        );
+      }
 
       const userKey = normalizeUserKey(userName);
       const vote = await Vote.findOneAndUpdate(
