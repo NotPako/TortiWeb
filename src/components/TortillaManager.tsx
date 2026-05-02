@@ -9,6 +9,7 @@ import {
 } from '@/graphql/operations';
 import { useLanguage } from './LanguageContext';
 import { useUser } from './UserContext';
+import styles from './TortillaManager.module.css';
 
 type Tortilla = {
   id: string;
@@ -76,41 +77,32 @@ export function TortillaManager() {
   const list = data?.tortillas ?? [];
 
   return (
-    <section className="card p-6">
-      <h2 className="text-xl font-bold text-tortilla-800 mb-1">
-        {t('admin.manage.title')}
-      </h2>
-      <p className="text-sm text-tortilla-600 mb-4">
-        {t('admin.manage.subtitle')}
-      </p>
+    <section className={styles.section}>
+      <h2 className={styles.title}>{t('admin.manage.title')}</h2>
+      <p className={styles.subtitle}>{t('admin.manage.subtitle')}</p>
 
       {loading && !data ? (
-        <p className="text-tortilla-700">{t('common.loading')}</p>
+        <p className={styles.statusText}>{t('common.loading')}</p>
       ) : error ? (
-        <p className="text-red-700">
+        <p className={styles.errorText}>
           {t('common.errorPrefix')}: {error.message}
         </p>
       ) : list.length === 0 ? (
-        <p className="text-tortilla-600">{t('admin.manage.empty')}</p>
+        <p className={styles.emptyText}>{t('admin.manage.empty')}</p>
       ) : (
-        <ul className="divide-y divide-tortilla-100">
+        <ul className={styles.list}>
           {list.map((tortilla) => (
-            <li
-              key={tortilla.id}
-              className="py-3 flex items-center gap-3"
-            >
+            <li key={tortilla.id} className={styles.item}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={tortilla.imageUrl}
                 alt={tortilla.name}
-                className="w-14 h-14 rounded-lg object-cover bg-tortilla-100 flex-shrink-0"
+                className={styles.thumb}
                 loading="lazy"
               />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-tortilla-800 truncate">
-                  {tortilla.name}
-                </p>
-                <p className="text-xs text-tortilla-600">
+              <div className={styles.itemBody}>
+                <p className={styles.itemName}>{tortilla.name}</p>
+                <p className={styles.itemMeta}>
                   {formatDate(tortilla.date)} ·{' '}
                   {tortilla.averageScore !== null
                     ? tortilla.averageScore.toFixed(2)
@@ -125,7 +117,7 @@ export function TortillaManager() {
                 type="button"
                 onClick={() => handleDelete(tortilla)}
                 disabled={deletingId === tortilla.id}
-                className="btn-secondary !text-red-700 !border-red-200 hover:!bg-red-50 text-sm"
+                className={styles.deleteButton}
               >
                 {deletingId === tortilla.id
                   ? t('admin.manage.deleting')
@@ -139,7 +131,9 @@ export function TortillaManager() {
       {feedback ? (
         <p
           className={
-            'text-sm mt-3 ' + (isError ? 'text-red-700' : 'text-green-700')
+            isError
+              ? `${styles.feedback} ${styles.feedbackError}`
+              : `${styles.feedback} ${styles.feedbackSuccess}`
           }
         >
           {feedback}

@@ -1,0 +1,30 @@
+.group {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-tortilla-200);
+  background: white;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.button {
+  padding: 4px 8px;
+  color: var(--color-tortilla-700);
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.button:hover {
+  background: var(--color-tortilla-50);
+}
+
+.buttonActive {
+  background: var(--color-tortilla-500);
+  color: white;
+}
+
+.buttonActive:hover {
+  background: var(--color-tortilla-500);
+}

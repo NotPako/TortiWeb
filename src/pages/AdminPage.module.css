@@ -1,0 +1,143 @@
+.wrap {
+  max-width: 42rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--color-tortilla-100);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+}
+
+@media (min-width: 640px) {
+  .card {
+    padding: 24px;
+  }
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-tortilla-800);
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--color-tortilla-600);
+  margin-bottom: 24px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-tortilla-800);
+  margin-bottom: 4px;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-tortilla-200);
+  background: white;
+  outline: none;
+  font-size: 16px; /* anti-zoom en iOS */
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.input:focus {
+  border-color: var(--color-tortilla-400);
+  box-shadow: 0 0 0 2px var(--color-tortilla-200);
+}
+
+.textarea {
+  composes: input;
+  min-height: 96px;
+  resize: vertical;
+}
+
+.helper {
+  font-size: 12px;
+  color: var(--color-tortilla-600);
+  margin-top: 4px;
+}
+
+.fileInput {
+  display: block;
+  width: 100%;
+  font-size: 14px;
+  color: var(--color-tortilla-700);
+}
+
+.fileInput::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: var(--color-tortilla-100);
+  color: var(--color-tortilla-800);
+  cursor: pointer;
+}
+
+.fileInput::file-selector-button:hover {
+  background: var(--color-tortilla-200);
+}
+
+.preview {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-tortilla-100);
+  margin-top: 12px;
+}
+
+.submit {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-weight: 500;
+  background: var(--color-tortilla-500);
+  color: white;
+  transition: background-color 0.15s;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--color-tortilla-600);
+}
+
+.submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feedback {
+  font-size: 14px;
+}
+
+.feedbackError {
+  color: var(--color-danger-fg);
+}
+
+.feedbackSuccess {
+  color: var(--color-success-fg);
+}

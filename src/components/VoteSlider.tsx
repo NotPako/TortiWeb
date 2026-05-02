@@ -2,6 +2,7 @@
 
 import { ChangeEvent } from 'react';
 import { useLanguage } from './LanguageContext';
+import styles from './VoteSlider.module.css';
 
 type Props = {
   value: number;
@@ -23,12 +24,10 @@ export function VoteSlider({ value, onChange, disabled }: Props) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-end justify-between">
-        <span className="text-sm text-tortilla-700">{t('slider.label')}</span>
-        <span className="text-3xl font-bold text-tortilla-700 tabular-nums">
-          {value.toFixed(1)}
-        </span>
+    <div className={styles.root}>
+      <div className={styles.header}>
+        <span className={styles.label}>{t('slider.label')}</span>
+        <span className={styles.value}>{value.toFixed(1)}</span>
       </div>
       <input
         type="range"
@@ -38,9 +37,9 @@ export function VoteSlider({ value, onChange, disabled }: Props) {
         value={value}
         onChange={handleSlider}
         disabled={disabled}
-        className="w-full accent-tortilla-500"
+        className={styles.range}
       />
-      <div className="flex items-center gap-2">
+      <div className={styles.numberRow}>
         <input
           type="number"
           min={0}
@@ -49,9 +48,9 @@ export function VoteSlider({ value, onChange, disabled }: Props) {
           value={value}
           onChange={handleNumber}
           disabled={disabled}
-          className="text-input w-28 tabular-nums"
+          className={styles.numberInput}
         />
-        <span className="text-tortilla-700">/ 10</span>
+        <span className={styles.suffix}>/ 10</span>
       </div>
     </div>
   );

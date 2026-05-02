@@ -1,0 +1,122 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid var(--color-tortilla-100);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.inner {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--color-tortilla-700);
+  margin-right: auto; /* empuja el resto al lado contrario */
+}
+
+.brandIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.brandText {
+  font-size: 18px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navLink {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--color-tortilla-700);
+  white-space: nowrap;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.navLink:hover {
+  background: var(--color-tortilla-50);
+}
+
+.navLinkActive {
+  background: var(--color-tortilla-100);
+  color: var(--color-tortilla-800);
+}
+
+.right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.greeting {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userName {
+  color: var(--color-tortilla-800);
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkButton {
+  color: var(--color-tortilla-600);
+  padding: 6px 4px;
+  white-space: nowrap;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+/* === Mobile (<= 700px): los links de navegación pasan a una segunda fila === */
+@media (max-width: 700px) {
+  .nav {
+    order: 99;
+    width: 100%;
+    justify-content: space-around;
+    border-top: 1px solid var(--color-tortilla-100);
+    padding-top: 8px;
+    margin-top: 4px;
+    gap: 0;
+  }
+
+  .navLink {
+    flex: 1;
+    text-align: center;
+    padding: 8px 6px;
+  }
+
+  .userName {
+    display: none;
+  }
+
+  .brandText {
+    font-size: 16px;
+  }
+}

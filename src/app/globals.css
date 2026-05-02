@@ -1,40 +1,115 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* === Theme tokens (CSS custom properties) === */
 :root {
+  /* Tortilla palette */
+  --color-tortilla-50: #fff8e6;
+  --color-tortilla-100: #ffeec2;
+  --color-tortilla-200: #ffdb85;
+  --color-tortilla-300: #ffc347;
+  --color-tortilla-400: #ffae1f;
+  --color-tortilla-500: #f59300;
+  --color-tortilla-600: #cc7300;
+  --color-tortilla-700: #a25400;
+  --color-tortilla-800: #7a3e00;
+  --color-tortilla-900: #5a2d00;
+
+  /* Status colors */
+  --color-success-fg: #166534;
+  --color-success-bg: #dcfce7;
+  --color-warning-fg: #854d0e;
+  --color-warning-bg: #fef9c3;
+  --color-danger-fg: #991b1b;
+  --color-danger-bg: #fee2e2;
+  --color-danger-border: #fecaca;
+
+  /* Foundation */
+  --color-text: #1f1300;
+  --color-bg: #ffffff;
+  --font-sans: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto,
+    sans-serif;
+
+  /* Tokens */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
+
   color-scheme: light;
+}
+
+/* === Reset minimalista === */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 html,
 body {
   height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  /* Mejor experiencia en touch al hacer scroll dentro de elementos */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: linear-gradient(180deg, #fff8e6 0%, #fff 60%);
-  color: #1f1300;
-  font-family: var(--font-sans, 'Segoe UI', system-ui, sans-serif);
+  background: linear-gradient(
+    180deg,
+    var(--color-tortilla-50) 0%,
+    var(--color-bg) 60%
+  );
+  color: var(--color-text);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  font-size: 16px;
+  line-height: 1.5;
+  /* Evita rebote raro en iOS Safari */
+  overscroll-behavior-y: none;
 }
 
-@layer components {
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-  .btn-primary {
-    @apply btn bg-tortilla-500 text-white hover:bg-tortilla-600;
-  }
-  .btn-secondary {
-    @apply btn bg-white text-tortilla-700 border border-tortilla-200 hover:bg-tortilla-50;
-  }
-  .card {
-    @apply rounded-2xl bg-white shadow-sm border border-tortilla-100 overflow-hidden;
-  }
-  .field-label {
-    @apply block text-sm font-medium text-tortilla-800 mb-1;
-  }
-  .text-input {
-    @apply w-full rounded-xl border border-tortilla-200 bg-white px-3 py-2 outline-none focus:border-tortilla-400 focus:ring-2 focus:ring-tortilla-200;
-  }
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }

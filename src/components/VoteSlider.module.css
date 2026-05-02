@@ -1,0 +1,59 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: 14px;
+  color: var(--color-tortilla-700);
+}
+
+.value {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--color-tortilla-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.range {
+  width: 100%;
+  accent-color: var(--color-tortilla-500);
+  height: 24px;
+  cursor: pointer;
+}
+
+.numberRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.numberInput {
+  width: 112px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-tortilla-200);
+  background: white;
+  outline: none;
+  font-size: 16px; /* anti-zoom en iOS */
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.numberInput:focus {
+  border-color: var(--color-tortilla-400);
+  box-shadow: 0 0 0 2px var(--color-tortilla-200);
+}
+
+.suffix {
+  color: var(--color-tortilla-700);
+}
