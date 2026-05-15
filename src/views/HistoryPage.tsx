@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
-import { Avatar, List, Modal, Segmented, Tag } from 'antd';
+import { Avatar, List, Modal, Segmented, Skeleton, Tag } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import {
@@ -136,7 +136,7 @@ export default function HistoryPage() {
   if (!isReady || !userName) return null;
 
   if (loading && !data) {
-    return <p className={styles.statusText}>{t('history.loading')}</p>;
+    return <Skeleton active paragraph={{ rows: 8 }} />;
   }
   if (error) {
     return (
@@ -230,7 +230,7 @@ export default function HistoryPage() {
         destroyOnClose
       >
         {detailLoading && !detail ? (
-          <p className={styles.statusText}>{t('common.loading')}</p>
+          <Skeleton active avatar paragraph={{ rows: 4 }} />
         ) : detail ? (
           <div>
             <div className={styles.modalImageWrap}>

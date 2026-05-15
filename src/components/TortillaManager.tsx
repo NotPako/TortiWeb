@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
+import { Skeleton } from 'antd';
 import {
   CURRENT_TORTILLA_QUERY,
   DELETE_TORTILLA_MUTATION,
@@ -79,7 +80,7 @@ export function TortillaManager() {
       <p className={styles.subtitle}>{t('admin.manage.subtitle')}</p>
 
       {loading && !data ? (
-        <p className={styles.statusText}>{t('common.loading')}</p>
+        <Skeleton active avatar paragraph={{ rows: 3 }} />
       ) : error ? (
         <p className={styles.errorText}>
           {t('common.errorPrefix')}: {error.message}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@apollo/client';
+import { Skeleton } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { VoteSlider } from '@/components/VoteSlider';
@@ -88,7 +89,7 @@ export default function VotePage() {
   if (!isReady || !userName) return null;
 
   if (loading && !data) {
-    return <p className={styles.statusText}>{t('common.loading')}</p>;
+    return <Skeleton active paragraph={{ rows: 6 }} />;
   }
   if (error) {
     return (
