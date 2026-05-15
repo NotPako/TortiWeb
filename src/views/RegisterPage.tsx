@@ -5,18 +5,22 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@apollo/client';
 import { signIn, useSession } from 'next-auth/react';
+import { Alert, Button, Form, Input } from 'antd';
 import { useLanguage } from '@/components/LanguageContext';
 import { REGISTER_MUTATION } from '@/graphql/operations';
 import styles from './LoginPage.module.css';
+
+type RegisterValues = {
+  username: string;
+  email: string;
+  password: string;
+};
 
 export default function RegisterPage() {
   const { t } = useLanguage();
   const { status, data } = useSession();
   const router = useRouter();
 
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [register, { loading }] = useMutation(REGISTER_MUTATION);
 
@@ -30,22 +34,21 @@ export default function RegisterPage() {
     }
   }, [status, data, router]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(values: RegisterValues) {
     setError(null);
     try {
       await register({
         variables: {
           input: {
-            username: username.trim(),
-            email: email.trim(),
-            password,
+            username: values.username.trim(),
+            email: values.email.trim(),
+            password: values.password,
           },
         },
       });
       const res = await signIn('credentials', {
-        username: username.trim(),
-        password,
+        username: values.username.trim(),
+        password: values.password,
         redirect: false,
       });
       if (res?.error) {
@@ -69,61 +72,49 @@ export default function RegisterPage() {
         </div>
         <p className={styles.subtitle}>{t('auth.register.subtitle')}</p>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div>
-            <label htmlFor="username" className={styles.label}>
-              {t('auth.usernameLabel')}
-            </label>
-            <input
-              id="username"
-              className={styles.input}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-              required
-              autoFocus
-            />
-          </div>
-          <div>
-            <label htmlFor="email" className={styles.label}>
-              {t('auth.emailLabel')}
-            </label>
-            <input
-              id="email"
-              type="email"
-              className={styles.input}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className={styles.label}>
-              {t('auth.passwordLabel')}
-            </label>
-            <input
-              id="password"
-              type="password"
-              className={styles.input}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              required
-              minLength={8}
-            />
-          </div>
-          {error ? <p className={styles.error}>{error}</p> : null}
-          <button
-            type="submit"
-            className={styles.button}
-            disabled={
-              loading || !username.trim() || !email.trim() || password.length < 8
-            }
+        <Form<RegisterValues>
+          layout="vertical"
+          onFinish={handleSubmit}
+          requiredMark={false}
+        >
+          <Form.Item
+            label={t('auth.usernameLabel')}
+            name="username"
+            rules={[{ required: true, message: t('auth.usernameLabel') }]}
           >
-            {loading ? t('common.loading') : t('auth.register.submit')}
-          </button>
-        </form>
+            <Input autoComplete="username" autoFocus />
+          </Form.Item>
+          <Form.Item
+            label={t('auth.emailLabel')}
+            name="email"
+            rules={[
+              { required: true, message: t('auth.emailLabel') },
+              { type: 'email', message: t('auth.emailLabel') },
+            ]}
+          >
+            <Input type="email" autoComplete="email" />
+          </Form.Item>
+          <Form.Item
+            label={t('auth.passwordLabel')}
+            name="password"
+            rules={[
+              { required: true, message: t('auth.passwordLabel') },
+              { min: 8, message: t('auth.passwordLabel') },
+            ]}
+          >
+            <Input.Password autoComplete="new-password" />
+          </Form.Item>
+          {error ? (
+            <Form.Item>
+              <Alert type="error" message={error} showIcon />
+            </Form.Item>
+          ) : null}
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block loading={loading}>
+              {t('auth.register.submit')}
+            </Button>
+          </Form.Item>
+        </Form>
 
         <p className={styles.footer}>
           {t('auth.register.haveAccount')}{' '}

@@ -4,8 +4,14 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
+import { Alert, Button, Divider, Form, Input } from 'antd';
 import { useLanguage } from '@/components/LanguageContext';
 import styles from './LoginPage.module.css';
+
+type LoginValues = {
+  username: string;
+  password: string;
+};
 
 export default function LoginPage() {
   const { t } = useLanguage();
@@ -14,8 +20,6 @@ export default function LoginPage() {
   const params = useSearchParams();
   const callbackUrl = params.get('callbackUrl') ?? '/vote';
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,21 +33,18 @@ export default function LoginPage() {
     }
   }, [status, data, router, callbackUrl]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!username.trim() || !password) return;
+  async function handleSubmit(values: LoginValues) {
     setSubmitting(true);
     setError(null);
     try {
       const res = await signIn('credentials', {
-        username: username.trim(),
-        password,
+        username: values.username.trim(),
+        password: values.password,
         redirect: false,
       });
       if (res?.error) {
         setError(t('auth.errors.invalidCredentials'));
       }
-      // El effect se encarga de redirigir cuando el status cambia.
     } finally {
       setSubmitting(false);
     }
@@ -64,54 +65,42 @@ export default function LoginPage() {
         </div>
         <p className={styles.subtitle}>{t('auth.login.subtitle')}</p>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div>
-            <label htmlFor="username" className={styles.label}>
-              {t('auth.usernameLabel')}
-            </label>
-            <input
-              id="username"
-              className={styles.input}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-              autoFocus
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className={styles.label}>
-              {t('auth.passwordLabel')}
-            </label>
-            <input
-              id="password"
-              type="password"
-              className={styles.input}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </div>
-          {error ? <p className={styles.error}>{error}</p> : null}
-          <button
-            type="submit"
-            className={styles.button}
-            disabled={submitting || !username.trim() || !password}
-          >
-            {submitting ? t('common.loading') : t('auth.login.submit')}
-          </button>
-        </form>
-
-        <div className={styles.divider}>
-          <span>{t('auth.or')}</span>
-        </div>
-
-        <button
-          type="button"
-          className={styles.googleButton}
-          onClick={handleGoogle}
+        <Form<LoginValues>
+          layout="vertical"
+          onFinish={handleSubmit}
+          requiredMark={false}
         >
+          <Form.Item
+            label={t('auth.usernameLabel')}
+            name="username"
+            rules={[{ required: true, message: t('auth.usernameLabel') }]}
+          >
+            <Input autoComplete="username" autoFocus />
+          </Form.Item>
+          <Form.Item
+            label={t('auth.passwordLabel')}
+            name="password"
+            rules={[{ required: true, message: t('auth.passwordLabel') }]}
+          >
+            <Input.Password autoComplete="current-password" />
+          </Form.Item>
+          {error ? (
+            <Form.Item>
+              <Alert type="error" message={error} showIcon />
+            </Form.Item>
+          ) : null}
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block loading={submitting}>
+              {t('auth.login.submit')}
+            </Button>
+          </Form.Item>
+        </Form>
+
+        <Divider plain>{t('auth.or')}</Divider>
+
+        <Button block onClick={handleGoogle}>
           {t('auth.google.signIn')}
-        </button>
+        </Button>
 
         <p className={styles.footer}>
           {t('auth.login.noAccount')}{' '}
