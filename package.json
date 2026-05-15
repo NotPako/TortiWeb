@@ -15,15 +15,18 @@
     "@as-integrations/next": "^3.2.0",
     "@aws-sdk/client-s3": "^3.658.1",
     "antd": "^5.21.4",
+    "bcryptjs": "^2.4.3",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "mongodb": "^7.2.0",
     "mongoose": "^8.7.0",
     "next": "14.2.13",
+    "next-auth": "^4.24.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.16.10",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",

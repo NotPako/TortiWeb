@@ -32,13 +32,12 @@ export default function VotePage() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isReady && !userName) router.replace('/');
+    if (isReady && !userName) router.replace('/login');
   }, [isReady, userName, router]);
 
   const { data, loading, error, refetch } = useQuery<{
     currentTortilla: Tortilla | null;
   }>(CURRENT_TORTILLA_QUERY, {
-    variables: { userName },
     skip: !userName,
   });
 
@@ -50,8 +49,8 @@ export default function VotePage() {
 
   const [castVote, { loading: voting }] = useMutation(CAST_VOTE_MUTATION, {
     refetchQueries: [
-      { query: CURRENT_TORTILLA_QUERY, variables: { userName } },
-      { query: TORTILLAS_QUERY, variables: { userName } },
+      { query: CURRENT_TORTILLA_QUERY },
+      { query: TORTILLAS_QUERY },
     ],
     awaitRefetchQueries: true,
   });
@@ -76,7 +75,7 @@ export default function VotePage() {
     try {
       await castVote({
         variables: {
-          input: { tortillaId: tortilla.id, userName, score },
+          input: { tortillaId: tortilla.id, score },
         },
       });
       setFeedback(t('vote.success'));

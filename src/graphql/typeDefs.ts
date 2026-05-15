@@ -24,13 +24,22 @@ export const typeDefs = gql`
     createdAt: Date!
   }
 
+  """Usuario autenticado."""
+  type User {
+    id: ID!
+    username: String!
+    email: String!
+  }
+
   type Query {
     """Lista de todas las tortillas, ordenadas por fecha descendente."""
-    tortillas(userName: String): [Tortilla!]!
+    tortillas: [Tortilla!]!
     """Una tortilla concreta por ID."""
-    tortilla(id: ID!, userName: String): Tortilla
+    tortilla(id: ID!): Tortilla
     """La tortilla más reciente (la del miércoles actual)."""
-    currentTortilla(userName: String): Tortilla
+    currentTortilla: Tortilla
+    """Información del usuario autenticado, o null si no hay sesión."""
+    me: User
   }
 
   input CreateTortillaInput {
@@ -48,8 +57,13 @@ export const typeDefs = gql`
 
   input CastVoteInput {
     tortillaId: ID!
-    userName: String!
     score: Float!
+  }
+
+  input RegisterInput {
+    username: String!
+    email: String!
+    password: String!
   }
 
   type Mutation {
@@ -57,5 +71,9 @@ export const typeDefs = gql`
     castVote(input: CastVoteInput!): Vote!
     """Elimina una tortilla y todos sus votos. Requiere contraseña de admin."""
     deleteTortilla(id: ID!, adminPassword: String!): Boolean!
+    """Crea una cuenta con usuario+contraseña. Devuelve el usuario."""
+    register(input: RegisterInput!): User!
+    """Asigna un username a un usuario autenticado por Google sin username."""
+    setUsername(username: String!): User!
   }
 `;

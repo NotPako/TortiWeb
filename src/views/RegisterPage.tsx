@@ -2,39 +2,47 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useMutation } from '@apollo/client';
 import { signIn, useSession } from 'next-auth/react';
 import { useLanguage } from '@/components/LanguageContext';
+import { REGISTER_MUTATION } from '@/graphql/operations';
 import styles from './LoginPage.module.css';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const { t } = useLanguage();
   const { status, data } = useSession();
   const router = useRouter();
-  const params = useSearchParams();
-  const callbackUrl = params.get('callbackUrl') ?? '/vote';
 
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [register, { loading }] = useMutation(REGISTER_MUTATION);
 
   useEffect(() => {
     if (status === 'authenticated') {
       if (data?.user?.needsUsername) {
         router.replace('/auth/setup-username');
       } else {
-        router.replace(callbackUrl);
+        router.replace('/vote');
       }
     }
-  }, [status, data, router, callbackUrl]);
+  }, [status, data, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!username.trim() || !password) return;
-    setSubmitting(true);
     setError(null);
     try {
+      await register({
+        variables: {
+          input: {
+            username: username.trim(),
+            email: email.trim(),
+            password,
+          },
+        },
+      });
       const res = await signIn('credentials', {
         username: username.trim(),
         password,
@@ -42,15 +50,12 @@ export default function LoginPage() {
       });
       if (res?.error) {
         setError(t('auth.errors.invalidCredentials'));
+      } else {
+        router.replace('/vote');
       }
-      // El effect se encarga de redirigir cuando el status cambia.
-    } finally {
-      setSubmitting(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.errorPrefix'));
     }
-  }
-
-  function handleGoogle() {
-    signIn('google', { callbackUrl: '/auth/setup-username' });
   }
 
   return (
@@ -60,9 +65,9 @@ export default function LoginPage() {
           <span className={styles.icon} aria-hidden>
             🍳
           </span>
-          <h1 className={styles.title}>{t('app.title')}</h1>
+          <h1 className={styles.title}>{t('auth.register.title')}</h1>
         </div>
-        <p className={styles.subtitle}>{t('auth.login.subtitle')}</p>
+        <p className={styles.subtitle}>{t('auth.register.subtitle')}</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div>
@@ -75,7 +80,22 @@ export default function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
+              required
               autoFocus
+            />
+          </div>
+          <div>
+            <label htmlFor="email" className={styles.label}>
+              {t('auth.emailLabel')}
+            </label>
+            <input
+              id="email"
+              type="email"
+              className={styles.input}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
             />
           </div>
           <div>
@@ -88,35 +108,27 @@ export default function LoginPage() {
               className={styles.input}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete="new-password"
+              required
+              minLength={8}
             />
           </div>
           {error ? <p className={styles.error}>{error}</p> : null}
           <button
             type="submit"
             className={styles.button}
-            disabled={submitting || !username.trim() || !password}
+            disabled={
+              loading || !username.trim() || !email.trim() || password.length < 8
+            }
           >
-            {submitting ? t('common.loading') : t('auth.login.submit')}
+            {loading ? t('common.loading') : t('auth.register.submit')}
           </button>
         </form>
 
-        <div className={styles.divider}>
-          <span>{t('auth.or')}</span>
-        </div>
-
-        <button
-          type="button"
-          className={styles.googleButton}
-          onClick={handleGoogle}
-        >
-          {t('auth.google.signIn')}
-        </button>
-
         <p className={styles.footer}>
-          {t('auth.login.noAccount')}{' '}
-          <Link href="/register" className={styles.link}>
-            {t('auth.login.registerLink')}
+          {t('auth.register.haveAccount')}{' '}
+          <Link href="/login" className={styles.link}>
+            {t('auth.register.loginLink')}
           </Link>
         </p>
       </div>

@@ -40,7 +40,7 @@ export function NavBar() {
               </button>
             </div>
           ) : (
-            <Link href="/" className={styles.linkButton}>
+            <Link href="/login" className={styles.linkButton}>
               {t('nav.signIn')}
             </Link>
           )}

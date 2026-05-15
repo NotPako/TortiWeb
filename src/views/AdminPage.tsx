@@ -47,7 +47,7 @@ export default function AdminPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isReady && !userName) router.replace('/');
+    if (isReady && !userName) router.replace('/login');
   }, [isReady, userName, router]);
 
   useEffect(() => {
@@ -64,8 +64,8 @@ export default function AdminPage() {
     CREATE_TORTILLA_MUTATION,
     {
       refetchQueries: [
-        { query: CURRENT_TORTILLA_QUERY, variables: { userName } },
-        { query: TORTILLAS_QUERY, variables: { userName } },
+        { query: CURRENT_TORTILLA_QUERY },
+        { query: TORTILLAS_QUERY },
       ],
       awaitRefetchQueries: true,
     }

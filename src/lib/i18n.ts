@@ -35,6 +35,28 @@ const es = {
   'login.namePlaceholder': 'Ej: Pako',
   'login.submit': 'Entrar',
 
+  'auth.usernameLabel': 'Usuario',
+  'auth.emailLabel': 'Email',
+  'auth.passwordLabel': 'Contraseña',
+  'auth.or': 'o',
+  'auth.login.subtitle':
+    'Inicia sesión con tu usuario o con Google para votar.',
+  'auth.login.submit': 'Iniciar sesión',
+  'auth.login.noAccount': '¿No tienes cuenta?',
+  'auth.login.registerLink': 'Regístrate',
+  'auth.register.title': 'Crear cuenta',
+  'auth.register.subtitle':
+    'Elige un usuario. Si ya votaste antes con ese nombre, mantendrás tu historial.',
+  'auth.register.submit': 'Crear cuenta',
+  'auth.register.haveAccount': '¿Ya tienes cuenta?',
+  'auth.register.loginLink': 'Inicia sesión',
+  'auth.google.signIn': 'Continuar con Google',
+  'auth.setupUsername.title': 'Elige tu usuario',
+  'auth.setupUsername.subtitle':
+    'Para terminar, elige un nombre de usuario. Si ya votaste antes con ese nombre, mantendrás tu historial.',
+  'auth.setupUsername.submit': 'Guardar',
+  'auth.errors.invalidCredentials': 'Usuario o contraseña incorrectos.',
+
   'common.loading': 'Cargando…',
   'common.retry': 'reintentar',
   'common.errorPrefix': 'Error',
@@ -126,6 +148,28 @@ const ca: Record<DictKey, string> = {
   'login.nameLabel': 'El teu nom',
   'login.namePlaceholder': 'Ex: Pako',
   'login.submit': 'Entrar',
+
+  'auth.usernameLabel': 'Usuari',
+  'auth.emailLabel': 'Email',
+  'auth.passwordLabel': 'Contrasenya',
+  'auth.or': 'o',
+  'auth.login.subtitle':
+    'Inicia sessió amb el teu usuari o amb Google per votar.',
+  'auth.login.submit': 'Iniciar sessió',
+  'auth.login.noAccount': 'No tens compte?',
+  'auth.login.registerLink': 'Registra\'t',
+  'auth.register.title': 'Crear compte',
+  'auth.register.subtitle':
+    'Tria un usuari. Si ja vas votar abans amb aquest nom, mantindràs el teu històric.',
+  'auth.register.submit': 'Crear compte',
+  'auth.register.haveAccount': 'Ja tens compte?',
+  'auth.register.loginLink': 'Inicia sessió',
+  'auth.google.signIn': 'Continuar amb Google',
+  'auth.setupUsername.title': 'Tria el teu usuari',
+  'auth.setupUsername.subtitle':
+    'Per acabar, tria un nom d\'usuari. Si ja vas votar abans amb aquest nom, mantindràs el teu històric.',
+  'auth.setupUsername.submit': 'Desar',
+  'auth.errors.invalidCredentials': 'Usuari o contrasenya incorrectes.',
 
   'common.loading': 'Carregant…',
   'common.retry': 'tornar a intentar',
