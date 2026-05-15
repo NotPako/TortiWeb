@@ -73,18 +73,18 @@ export default function HistoryPage() {
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
 
   useEffect(() => {
-    if (isReady && !userName) router.replace('/');
+    if (isReady && !userName) router.replace('/login');
   }, [isReady, userName, router]);
 
   const { data, loading, error } = useQuery<{ tortillas: Tortilla[] }>(
     TORTILLAS_QUERY,
-    { variables: { userName }, skip: !userName }
+    { skip: !userName }
   );
 
   const { data: detailData, loading: detailLoading } = useQuery<{
     tortilla: TortillaDetail | null;
   }>(TORTILLA_DETAIL_QUERY, {
-    variables: { id: selectedId, userName },
+    variables: { id: selectedId },
     skip: !selectedId || !userName,
   });
 

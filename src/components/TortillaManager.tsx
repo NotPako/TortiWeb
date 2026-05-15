@@ -8,7 +8,6 @@ import {
   TORTILLAS_QUERY,
 } from '@/graphql/operations';
 import { useLanguage } from './LanguageContext';
-import { useUser } from './UserContext';
 import styles from './TortillaManager.module.css';
 
 type Tortilla = {
@@ -22,19 +21,17 @@ type Tortilla = {
 
 export function TortillaManager() {
   const { t, locale } = useLanguage();
-  const { userName } = useUser();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data, loading, error } = useQuery<{ tortillas: Tortilla[] }>(
-    TORTILLAS_QUERY,
-    { variables: { userName } }
+    TORTILLAS_QUERY
   );
 
   const [deleteTortilla] = useMutation(DELETE_TORTILLA_MUTATION, {
     refetchQueries: [
-      { query: TORTILLAS_QUERY, variables: { userName } },
-      { query: CURRENT_TORTILLA_QUERY, variables: { userName } },
+      { query: TORTILLAS_QUERY },
+      { query: CURRENT_TORTILLA_QUERY },
     ],
     awaitRefetchQueries: true,
   });

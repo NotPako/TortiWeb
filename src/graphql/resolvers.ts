@@ -1,6 +1,7 @@
 import { GraphQLScalarType, Kind } from 'graphql';
 import { Types } from 'mongoose';
 import { randomUUID } from 'crypto';
+import bcrypt from 'bcryptjs';
 import {
   DeleteObjectCommand,
   PutObjectCommand,
@@ -9,10 +10,16 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Tortilla, TortillaDocument } from '@/models/Tortilla';
 import { Vote, VoteDocument } from '@/models/Vote';
 import {
+  User,
+  normalizeEmail,
+  normalizeUsername,
+} from '@/models/User';
+import {
   getR2BucketName,
   getR2Client,
   publicUrlFor,
 } from '@/lib/r2';
+import type { Session } from 'next-auth';
 
 const dateScalar = new GraphQLScalarType({
   name: 'Date',
@@ -36,23 +43,8 @@ const dateScalar = new GraphQLScalarType({
   },
 });
 
-function normalizeUserKey(name: string): string {
-  return name.trim().toLowerCase();
-}
-
-/**
- * Zona horaria de referencia para decidir qué día corre. La app vive en Madrid,
- * pero el servidor (Netlify) corre en UTC: sin esto, en madrugada el servidor
- * podría considerar "ya cambiamos de día" cuando en Madrid aún es ayer (o al
- * revés). Si en algún momento se quisiera multi-zona, podría parametrizarse
- * por usuario o por una env var.
- */
 const APP_TIMEZONE = 'Europe/Madrid';
 
-/**
- * Devuelve YYYY-MM-DD para una fecha en la zona horaria indicada.
- * 'en-CA' produce el formato ISO directamente.
- */
 function dayKey(d: Date, tz: string = APP_TIMEZONE): string {
   return d.toLocaleDateString('en-CA', { timeZone: tz });
 }
@@ -84,7 +76,6 @@ function inferExtension(contentType: string): string {
 function buildImageUrl(doc: TortillaDocument): string {
   const direct = publicUrlFor(doc.imageKey);
   if (direct) return direct;
-  // Fallback: proxy a través de la API.
   return `/api/image/${(doc._id as Types.ObjectId).toString()}`;
 }
 
@@ -111,13 +102,19 @@ async function computeStats(tortillaId: Types.ObjectId) {
   };
 }
 
-type TortillaContext = {
-  userName?: string | null;
+export type GqlContext = {
+  session: Session | null;
 };
+
+function sessionUserKey(session: Session | null): string | null {
+  if (!session?.user?.usernameKey) return null;
+  if (session.user.needsUsername) return null;
+  return session.user.usernameKey;
+}
 
 async function tortillaPayload(
   doc: TortillaDocument,
-  ctx: TortillaContext = {}
+  userKey: string | null
 ) {
   const { averageScore, voteCount } = await computeStats(
     doc._id as Types.ObjectId
@@ -130,48 +127,68 @@ async function tortillaPayload(
     imageUrl: buildImageUrl(doc),
     averageScore,
     voteCount,
-    _id: doc._id, // se usa internamente para resolvers anidados
-    _ctxUserName: ctx.userName ?? null,
+    _id: doc._id,
+    _ctxUserKey: userKey,
   };
 }
 
 type ResolvedTortilla = Awaited<ReturnType<typeof tortillaPayload>>;
 
+// Username: 2-20 caracteres, letras/números/_-.
+const USERNAME_RE = /^[A-Za-z0-9._-]{2,20}$/;
+// Password: mínimo 8 caracteres.
+const MIN_PASSWORD_LENGTH = 8;
+// Email mínimo razonable.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateUsername(username: string): string {
+  const trimmed = username.trim();
+  if (!USERNAME_RE.test(trimmed)) {
+    throw new Error(
+      'El usuario debe tener entre 2 y 20 caracteres y solo letras, números, _, - o .'
+    );
+  }
+  return trimmed;
+}
+
 export const resolvers = {
   Date: dateScalar,
 
   Query: {
-    async tortillas(_: unknown, args: { userName?: string | null }) {
+    async tortillas(_: unknown, __: unknown, ctx: GqlContext) {
       await connectToDatabase();
       const docs = await Tortilla.find({}).sort({ date: -1 }).exec();
-      return Promise.all(
-        docs.map((d) => tortillaPayload(d, { userName: args.userName }))
-      );
+      const userKey = sessionUserKey(ctx.session);
+      return Promise.all(docs.map((d) => tortillaPayload(d, userKey)));
     },
 
     async tortilla(
       _: unknown,
-      args: { id: string; userName?: string | null }
+      args: { id: string },
+      ctx: GqlContext
     ) {
       await connectToDatabase();
       if (!Types.ObjectId.isValid(args.id)) return null;
       const doc = await Tortilla.findById(args.id).exec();
       if (!doc) return null;
-      return tortillaPayload(doc, { userName: args.userName });
+      return tortillaPayload(doc, sessionUserKey(ctx.session));
     },
 
-    async currentTortilla(
-      _: unknown,
-      args: { userName?: string | null }
-    ) {
+    async currentTortilla(_: unknown, __: unknown, ctx: GqlContext) {
       await connectToDatabase();
       const doc = await Tortilla.findOne({}).sort({ date: -1 }).exec();
       if (!doc) return null;
-      // Solo se considera "tortilla actual" si es del día de hoy en Madrid.
-      // Una tortilla del día anterior ya no es votable: el frontend mostrará
-      // el estado vacío y los usuarios deberán esperar a la siguiente.
       if (!isSameDay(doc.date, new Date())) return null;
-      return tortillaPayload(doc, { userName: args.userName });
+      return tortillaPayload(doc, sessionUserKey(ctx.session));
+    },
+
+    async me(_: unknown, __: unknown, ctx: GqlContext) {
+      if (!ctx.session?.user) return null;
+      return {
+        id: ctx.session.user.id,
+        username: ctx.session.user.username,
+        email: ctx.session.user.email,
+      };
     },
   },
 
@@ -208,7 +225,6 @@ export const resolvers = {
         throw new Error('La imagen no puede superar 4 MB.');
       }
 
-      // Subir primero a R2.
       const ext = inferExtension(args.input.imageContentType);
       const dateSegment = new Date().toISOString().slice(0, 10);
       const imageKey = `tortillas/${dateSegment}-${randomUUID()}.${ext}`;
@@ -222,7 +238,6 @@ export const resolvers = {
         })
       );
 
-      // Luego persistir en Mongo.
       let doc: TortillaDocument;
       try {
         doc = await Tortilla.create({
@@ -233,7 +248,6 @@ export const resolvers = {
           imageContentType: args.input.imageContentType,
         });
       } catch (err) {
-        // Si Mongo falla, intentamos limpiar el objeto huérfano de R2.
         try {
           await getR2Client().send(
             new DeleteObjectCommand({
@@ -247,7 +261,7 @@ export const resolvers = {
         throw err;
       }
 
-      return tortillaPayload(doc);
+      return tortillaPayload(doc, null);
     },
 
     async deleteTortilla(
@@ -271,10 +285,8 @@ export const resolvers = {
       const tortilla = await Tortilla.findById(args.id).exec();
       if (!tortilla) throw new Error('Tortilla no encontrada.');
 
-      // Borrar primero los votos asociados.
       await Vote.deleteMany({ tortilla: tortilla._id }).exec();
 
-      // Borrar la imagen de R2 (best-effort: no bloqueamos si falla).
       try {
         await getR2Client().send(
           new DeleteObjectCommand({
@@ -287,20 +299,21 @@ export const resolvers = {
       }
 
       await tortilla.deleteOne();
-
       return true;
     },
 
     async castVote(
       _: unknown,
-      args: {
-        input: { tortillaId: string; userName: string; score: number };
-      }
+      args: { input: { tortillaId: string; score: number } },
+      ctx: GqlContext
     ) {
       await connectToDatabase();
 
-      const { tortillaId, userName, score } = args.input;
-      if (!userName.trim()) throw new Error('El nombre es obligatorio.');
+      if (!ctx.session?.user || ctx.session.user.needsUsername) {
+        throw new Error('Debes iniciar sesión para votar.');
+      }
+
+      const { tortillaId, score } = args.input;
       if (!Types.ObjectId.isValid(tortillaId)) {
         throw new Error('ID de tortilla inválido.');
       }
@@ -316,20 +329,21 @@ export const resolvers = {
       const tortilla = await Tortilla.findById(tortillaId).exec();
       if (!tortilla) throw new Error('Tortilla no encontrada.');
 
-      // La votación se cierra al cambiar de día (Europa/Madrid).
       if (!isSameDay(tortilla.date, new Date())) {
         throw new Error(
           'La votación de esta tortilla ya está cerrada (es de otro día).'
         );
       }
 
-      const userKey = normalizeUserKey(userName);
+      const userKey = ctx.session.user.usernameKey;
+      const userName = ctx.session.user.username;
+
       const vote = await Vote.findOneAndUpdate(
         { tortilla: tortilla._id, userKey },
         {
           $set: {
             score: Math.round(score * 10) / 10,
-            userName: userName.trim(),
+            userName,
             userKey,
             tortilla: tortilla._id,
           },
@@ -342,6 +356,81 @@ export const resolvers = {
         userName: vote.userName,
         score: vote.score,
         createdAt: vote.createdAt,
+      };
+    },
+
+    async register(
+      _: unknown,
+      args: { input: { username: string; email: string; password: string } }
+    ) {
+      await connectToDatabase();
+      const username = validateUsername(args.input.username);
+      const usernameKey = normalizeUsername(username);
+      const email = args.input.email.trim();
+      if (!EMAIL_RE.test(email)) {
+        throw new Error('El email no es válido.');
+      }
+      if (args.input.password.length < MIN_PASSWORD_LENGTH) {
+        throw new Error(
+          `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+        );
+      }
+
+      const emailKey = normalizeEmail(email);
+      const [existingByUsername, existingByEmail] = await Promise.all([
+        User.findOne({ usernameKey }).exec(),
+        User.findOne({ emailKey }).exec(),
+      ]);
+      if (existingByUsername) throw new Error('Ese usuario ya existe.');
+      if (existingByEmail) throw new Error('Ese email ya está registrado.');
+
+      const passwordHash = await bcrypt.hash(args.input.password, 10);
+      const doc = await User.create({
+        username,
+        usernameKey,
+        email,
+        emailKey,
+        passwordHash,
+      });
+
+      return {
+        id: (doc._id as Types.ObjectId).toString(),
+        username: doc.username,
+        email: doc.email,
+      };
+    },
+
+    async setUsername(
+      _: unknown,
+      args: { username: string },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      if (!ctx.session?.user) {
+        throw new Error('Debes iniciar sesión.');
+      }
+      const username = validateUsername(args.username);
+      const usernameKey = normalizeUsername(username);
+
+      const existing = await User.findOne({ usernameKey }).exec();
+      if (
+        existing &&
+        (existing._id as Types.ObjectId).toString() !== ctx.session.user.id
+      ) {
+        throw new Error('Ese usuario ya existe.');
+      }
+
+      const user = await User.findById(ctx.session.user.id).exec();
+      if (!user) throw new Error('Usuario no encontrado.');
+
+      user.username = username;
+      user.usernameKey = usernameKey;
+      await user.save();
+
+      return {
+        id: (user._id as Types.ObjectId).toString(),
+        username: user.username,
+        email: user.email,
       };
     },
   },
@@ -361,10 +450,9 @@ export const resolvers = {
     },
 
     async myVote(parent: ResolvedTortilla) {
-      const userName = parent._ctxUserName;
-      if (!userName) return null;
+      const userKey = parent._ctxUserKey;
+      if (!userKey) return null;
       await connectToDatabase();
-      const userKey = normalizeUserKey(userName);
       const v = await Vote.findOne({
         tortilla: parent._id,
         userKey,

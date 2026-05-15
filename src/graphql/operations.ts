@@ -14,8 +14,8 @@ export const TORTILLA_FIELDS = gql`
 
 export const CURRENT_TORTILLA_QUERY = gql`
   ${TORTILLA_FIELDS}
-  query CurrentTortilla($userName: String) {
-    currentTortilla(userName: $userName) {
+  query CurrentTortilla {
+    currentTortilla {
       ...TortillaFields
       myVote {
         id
@@ -27,8 +27,8 @@ export const CURRENT_TORTILLA_QUERY = gql`
 
 export const TORTILLAS_QUERY = gql`
   ${TORTILLA_FIELDS}
-  query Tortillas($userName: String) {
-    tortillas(userName: $userName) {
+  query Tortillas {
+    tortillas {
       ...TortillaFields
       myVote {
         id
@@ -40,8 +40,8 @@ export const TORTILLAS_QUERY = gql`
 
 export const TORTILLA_DETAIL_QUERY = gql`
   ${TORTILLA_FIELDS}
-  query TortillaDetail($id: ID!, $userName: String) {
-    tortilla(id: $id, userName: $userName) {
+  query TortillaDetail($id: ID!) {
+    tortilla(id: $id) {
       ...TortillaFields
       myVote {
         id
@@ -80,5 +80,25 @@ export const CREATE_TORTILLA_MUTATION = gql`
 export const DELETE_TORTILLA_MUTATION = gql`
   mutation DeleteTortilla($id: ID!, $adminPassword: String!) {
     deleteTortilla(id: $id, adminPassword: $adminPassword)
+  }
+`;
+
+export const REGISTER_MUTATION = gql`
+  mutation Register($input: RegisterInput!) {
+    register(input: $input) {
+      id
+      username
+      email
+    }
+  }
+`;
+
+export const SET_USERNAME_MUTATION = gql`
+  mutation SetUsername($username: String!) {
+    setUsername(username: $username) {
+      id
+      username
+      email
+    }
   }
 `;

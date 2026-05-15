@@ -5,7 +5,7 @@ import './globals.css';
 
 import styles from './layout.module.css';
 import { ApolloWrapper } from '@/components/ApolloWrapper';
-import { UserProvider } from '@/components/UserContext';
+import { SessionWrapper } from '@/components/SessionWrapper';
 import { LanguageProvider } from '@/components/LanguageContext';
 import { NavBar } from '@/components/NavBar';
 
@@ -27,14 +27,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="es">
       <body>
         <AntdRegistry>
-          <ApolloWrapper>
-            <LanguageProvider>
-              <UserProvider>
+          <SessionWrapper>
+            <ApolloWrapper>
+              <LanguageProvider>
                 <NavBar />
                 <main className={styles.main}>{children}</main>
-              </UserProvider>
-            </LanguageProvider>
-          </ApolloWrapper>
+              </LanguageProvider>
+            </ApolloWrapper>
+          </SessionWrapper>
         </AntdRegistry>
       </body>
     </html>
