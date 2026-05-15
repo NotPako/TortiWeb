@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
-import { Avatar, List, Modal, Tag } from 'antd';
+import { Avatar, List, Modal, Segmented, Tag } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import {
@@ -70,6 +70,7 @@ export default function HistoryPage() {
   const { t, locale } = useLanguage();
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
 
   useEffect(() => {
     if (isReady && !userName) router.replace('/');
@@ -132,7 +133,18 @@ export default function HistoryPage() {
     );
   }
 
-  const list = data?.tortillas ?? [];
+  const rawList = data?.tortillas ?? [];
+  const list = useMemo(() => {
+    if (sortBy === 'score') {
+      return [...rawList].sort((a, b) => {
+        if (a.averageScore === null && b.averageScore === null) return 0;
+        if (a.averageScore === null) return 1;
+        if (b.averageScore === null) return -1;
+        return b.averageScore - a.averageScore;
+      });
+    }
+    return rawList;
+  }, [rawList, sortBy]);
   if (list.length === 0) {
     return (
       <div className={styles.emptyCard}>
@@ -144,7 +156,17 @@ export default function HistoryPage() {
 
   return (
     <div className={styles.wrap}>
-      <h1 className={styles.title}>{t('history.title')}</h1>
+      <div className={styles.titleRow}>
+        <h1 className={styles.title}>{t('history.title')}</h1>
+        <Segmented
+          value={sortBy}
+          onChange={(v) => setSortBy(v as 'date' | 'score')}
+          options={[
+            { label: t('history.sortByDate'), value: 'date' },
+            { label: t('history.sortByScore'), value: 'score' },
+          ]}
+        />
+      </div>
       <div className={styles.grid}>
         {list.map((tortilla) => (
           <button
