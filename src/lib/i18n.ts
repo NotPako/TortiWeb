@@ -67,6 +67,8 @@ const es = {
   'history.voteSingular': 'voto',
   'history.votePlural': 'votos',
   'history.yourScore': 'Tu nota:',
+  'history.sortByDate': 'Por fecha',
+  'history.sortByScore': 'Por puntuación',
 
   'admin.title': 'Crear tortilla del miércoles',
   'admin.subtitle':
@@ -157,6 +159,8 @@ const ca: Record<DictKey, string> = {
   'history.voteSingular': 'vot',
   'history.votePlural': 'vots',
   'history.yourScore': 'La teva nota:',
+  'history.sortByDate': 'Per data',
+  'history.sortByScore': 'Per puntuació',
 
   'admin.title': 'Crear truita del dimecres',
   'admin.subtitle':
