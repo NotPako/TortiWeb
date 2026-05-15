@@ -95,6 +95,19 @@ export default function HistoryPage() {
     return [...detail.votes].sort((a, b) => b.score - a.score);
   }, [detail?.votes]);
 
+  const rawList = data?.tortillas ?? [];
+  const list = useMemo(() => {
+    if (sortBy === 'score') {
+      return [...rawList].sort((a, b) => {
+        if (a.averageScore === null && b.averageScore === null) return 0;
+        if (a.averageScore === null) return 1;
+        if (b.averageScore === null) return -1;
+        return b.averageScore - a.averageScore;
+      });
+    }
+    return rawList;
+  }, [rawList, sortBy]);
+
   function formatDate(date: string) {
     try {
       return new Date(date).toLocaleDateString(locale, {
@@ -133,18 +146,6 @@ export default function HistoryPage() {
     );
   }
 
-  const rawList = data?.tortillas ?? [];
-  const list = useMemo(() => {
-    if (sortBy === 'score') {
-      return [...rawList].sort((a, b) => {
-        if (a.averageScore === null && b.averageScore === null) return 0;
-        if (a.averageScore === null) return 1;
-        if (b.averageScore === null) return -1;
-        return b.averageScore - a.averageScore;
-      });
-    }
-    return rawList;
-  }, [rawList, sortBy]);
   if (list.length === 0) {
     return (
       <div className={styles.emptyCard}>
