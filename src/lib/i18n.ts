@@ -258,7 +258,7 @@ const ca: Record<DictKey, string> = {
 
   'reaction.label': 'Reacció ràpida (opcional)',
   'reaction.fire': 'Perfecta',
-  'reaction.yummy': 'Molt rica',
+  'reaction.yummy': 'Molt bona',
   'reaction.meh': 'Normaleta',
   'reaction.cringe': 'Millorable',
 

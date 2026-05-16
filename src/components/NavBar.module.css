@@ -88,6 +88,18 @@
   text-decoration: underline;
 }
 
+.avatarLink {
+  display: none;
+  align-items: center;
+  line-height: 0;
+  border-radius: var(--radius-full);
+  transition: opacity 0.15s;
+}
+
+.avatarLink:hover {
+  opacity: 0.85;
+}
+
 .linkButton {
   color: var(--color-tortilla-600);
   padding: 6px 4px;
@@ -118,6 +130,10 @@
 
   .userName {
     display: none;
+  }
+
+  .avatarLink {
+    display: inline-flex;
   }
 
   .brandText {
