@@ -1,5 +1,17 @@
 # FeatControl
 
+## [2026-05-16] - Perfiles públicos reutilizables
+**Descripción**: `ProfilePage` se reutiliza para mostrar el perfil de cualquier usuario, no solo el propio. Nueva ruta dinámica `/profile/[username]` que renderiza el mismo componente pasando el username como prop. En el modal de votos del historial, el avatar y el nombre de cada votante son ahora links al perfil de ese usuario (cierran el modal al navegar). Para usuarios sin cuenta (legacy votes), el resolver cae al `userName` guardado en el primer voto.
+**Archivos principales**:
+- `src/app/profile/[username]/page.tsx` (ruta dinámica)
+- `src/views/ProfilePage.tsx` (prop `username?`, branch `myStats` vs `userStats`)
+- `src/graphql/typeDefs.ts` (campo `username` en `UserStats`, query `userStats(username)`)
+- `src/graphql/resolvers.ts` (helper `computeUserStats(userKey)`, resolver `userStats`)
+- `src/graphql/operations.ts` (`USER_STATS_FIELDS` compartido, `USER_STATS_QUERY`)
+- `src/views/HistoryPage.tsx` (avatar y nombre como `Link`)
+- `src/lib/i18n.ts` (`profile.titleFor`, `profile.noVotesOther`, etiquetas neutralizadas)
+**Tecnologías**: Next.js dynamic routes, GraphQL queries parametrizadas
+
 ## [2026-05-15] - Login con usuario+contraseña y Google
 **Descripción**: Migración del login simple por nombre (localStorage) a autenticación real con NextAuth. Soporta credenciales (usuario+contraseña+email) y Google OAuth. Los usuarios de Google eligen su username en `/auth/setup-username`. Los votos antiguos se asocian automáticamente al registrarse con el mismo username gracias a `Vote.userKey`.
 **Archivos principales**:

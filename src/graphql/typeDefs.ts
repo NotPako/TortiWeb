@@ -56,8 +56,10 @@ export const typeDefs = gql`
     tortilla: TortillaSummary!
   }
 
-  """Estadísticas personales del usuario autenticado."""
+  """Estadísticas personales de un usuario."""
   type UserStats {
+    """Nombre del usuario (preserva mayúsculas/minúsculas del registro original)."""
+    username: String!
     totalVotes: Int!
     averageGiven: Float
     """Tortillas consecutivas votadas hasta la fecha (sin contar la de hoy si aún no se votó)."""
@@ -79,6 +81,8 @@ export const typeDefs = gql`
     me: User
     """Estadísticas y votos del usuario autenticado."""
     myStats: UserStats
+    """Estadísticas y votos de cualquier usuario por nombre de usuario."""
+    userStats(username: String!): UserStats
   }
 
   input CreateTortillaInput {

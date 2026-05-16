@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
 import { Avatar, List, Modal, Segmented, Skeleton, Tag } from 'antd';
@@ -275,37 +276,58 @@ export default function HistoryPage() {
               header={<strong>{t('history.individualVotes')}</strong>}
               dataSource={sortedVotes}
               locale={{ emptyText: t('history.noVotesYet') }}
-              renderItem={(vote) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        style={{
-                          backgroundColor: 'var(--color-tortilla-500)',
-                          color: 'white',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {vote.userName.charAt(0).toUpperCase()}
-                      </Avatar>
-                    }
-                    title={vote.userName}
-                  />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {vote.reaction ? (
-                      <span style={{ fontSize: 18 }}>
-                        {REACTION_EMOJI[vote.reaction]}
-                      </span>
-                    ) : null}
-                    <Tag
-                      color={tagColorForScore(vote.score)}
-                      style={{ fontVariantNumeric: 'tabular-nums', margin: 0 }}
+              renderItem={(vote) => {
+                const profileHref = `/profile/${encodeURIComponent(vote.userName)}`;
+                return (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={
+                        <Link
+                          href={profileHref}
+                          onClick={() => setSelectedId(null)}
+                          aria-label={vote.userName}
+                        >
+                          <Avatar
+                            style={{
+                              backgroundColor: 'var(--color-tortilla-500)',
+                              color: 'white',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {vote.userName.charAt(0).toUpperCase()}
+                          </Avatar>
+                        </Link>
+                      }
+                      title={
+                        <Link
+                          href={profileHref}
+                          onClick={() => setSelectedId(null)}
+                          className={styles.voterLink}
+                          style={{ color: 'inherit', textDecoration: 'none' }}
+                        >
+                          {vote.userName}
+                        </Link>
+                      }
+                    />
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                     >
-                      {vote.score.toFixed(1)} / 10
-                    </Tag>
-                  </div>
-                </List.Item>
-              )}
+                      {vote.reaction ? (
+                        <span style={{ fontSize: 18 }}>
+                          {REACTION_EMOJI[vote.reaction]}
+                        </span>
+                      ) : null}
+                      <Tag
+                        color={tagColorForScore(vote.score)}
+                        style={{ fontVariantNumeric: 'tabular-nums', margin: 0 }}
+                      >
+                        {vote.score.toFixed(1)} / 10
+                      </Tag>
+                    </div>
+                  </List.Item>
+                );
+              }}
             />
           </div>
         ) : null}
