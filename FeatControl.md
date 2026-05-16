@@ -11,6 +11,31 @@
 **Tecnologías**: NextAuth v4, bcryptjs, Google OAuth, Mongoose
 **Notas**: Vars de entorno nuevas: `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (ver `.env.example`).
 
+## [2026-05-16] - Perfil de usuario con estadísticas personales
+**Descripción**: Nueva página `/profile` accesible haciendo clic en el nombre de usuario de la navbar. Muestra el total de tortillas votadas, la nota media que da el usuario, la mejor tortilla votada y el historial completo de votos con imagen, nombre y fecha de cada tortilla.
+**Archivos principales**:
+- `src/app/profile/page.tsx`
+- `src/views/ProfilePage.tsx`, `ProfilePage.module.css`
+- `src/graphql/typeDefs.ts` (tipos `UserStats`, `PersonalVote`, `TortillaSummary`, query `myStats`)
+- `src/graphql/resolvers.ts` (resolver `myStats` con populate)
+- `src/graphql/operations.ts` (query `MY_STATS_QUERY`)
+- `src/components/NavBar.tsx` (username → link a /profile)
+- `src/lib/i18n.ts` (claves `profile.*`)
+**Tecnologías**: Apollo Client + GraphQL, Mongoose populate, ANTD Statistic/List/Avatar
+
+## [2026-05-16] - Reacciones rápidas en los votos
+**Descripción**: Al votar aparecen 4 botones de reacción rápida opcionales (🔥 Perfecta, 😋 Muy rica, 😐 Normalita, 😬 Mejorable). La reacción se guarda junto al voto y se muestra en el modal de votos del historial y en el perfil de usuario.
+**Archivos principales**:
+- `src/models/Vote.ts` (campo `reaction` opcional, enum)
+- `src/components/features/ReactionPicker.tsx`, `ReactionPicker.module.css`
+- `src/graphql/typeDefs.ts` (enum `Reaction`, campo en `Vote` y `CastVoteInput`)
+- `src/graphql/resolvers.ts` (castVote actualizado)
+- `src/graphql/operations.ts` (mutation y queries actualizados)
+- `src/views/VotePage.tsx` (integración ReactionPicker)
+- `src/views/HistoryPage.tsx` (emoji en lista de votos)
+- `src/lib/i18n.ts` (claves `reaction.*`)
+**Tecnologías**: Mongoose enum field, ANTD Tag
+
 ## [2026-05-15] - Ordenación del historial por puntuación
 **Descripción**: Control `Segmented` en la cabecera del historial para ordenar las tortillas por fecha (defecto) o por puntuación media descendente.
 **Archivos principales**:

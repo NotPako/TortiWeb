@@ -7,6 +7,8 @@ import { Skeleton } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { VoteSlider } from '@/components/VoteSlider';
+import { ReactionPicker } from '@/components/features/ReactionPicker';
+import type { Reaction } from '@/models/Vote';
 import {
   CAST_VOTE_MUTATION,
   CURRENT_TORTILLA_QUERY,
@@ -22,7 +24,7 @@ type Tortilla = {
   imageUrl: string;
   averageScore: number | null;
   voteCount: number;
-  myVote: { id: string; score: number } | null;
+  myVote: { id: string; score: number; reaction?: Reaction | null } | null;
 };
 
 export default function VotePage() {
@@ -30,6 +32,7 @@ export default function VotePage() {
   const { t, locale } = useLanguage();
   const router = useRouter();
   const [score, setScore] = useState(7);
+  const [reaction, setReaction] = useState<Reaction | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,7 +48,10 @@ export default function VotePage() {
   const tortilla = data?.currentTortilla ?? null;
 
   useEffect(() => {
-    if (tortilla?.myVote) setScore(tortilla.myVote.score);
+    if (tortilla?.myVote) {
+      setScore(tortilla.myVote.score);
+      setReaction(tortilla.myVote.reaction ?? null);
+    }
   }, [tortilla?.id, tortilla?.myVote]);
 
   const [castVote, { loading: voting }] = useMutation(CAST_VOTE_MUTATION, {
@@ -76,7 +82,7 @@ export default function VotePage() {
     try {
       await castVote({
         variables: {
-          input: { tortillaId: tortilla.id, score },
+          input: { tortillaId: tortilla.id, score, reaction },
         },
       });
       setFeedback(t('vote.success'));
@@ -155,6 +161,7 @@ export default function VotePage() {
           <p className={styles.voteHelper}>{t('vote.helper')}</p>
         )}
         <VoteSlider value={score} onChange={setScore} disabled={voting} />
+        <ReactionPicker value={reaction} onChange={setReaction} disabled={voting} />
         <button
           className={styles.voteButton}
           onClick={handleSubmit}

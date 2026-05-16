@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Avatar } from 'antd';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -9,7 +10,7 @@ import styles from './NavBar.module.css';
 
 export function NavBar() {
   const pathname = usePathname();
-  const { userName, signOut, isReady } = useUser();
+  const { userName, userImage, signOut, isReady } = useUser();
   const { t } = useLanguage();
 
   const links = [
@@ -32,9 +33,26 @@ export function NavBar() {
           <LanguageSwitcher />
           {isReady && userName ? (
             <div className={styles.greeting}>
-              <span className={styles.userName}>
+              <Link href="/profile" className={styles.userName}>
                 {t('nav.greetingPrefix')} <strong>{userName}</strong>
-              </span>
+              </Link>
+              <Link
+                href="/profile"
+                className={styles.avatarLink}
+                aria-label={t('profile.title')}
+              >
+                <Avatar
+                  src={userImage ?? undefined}
+                  size={32}
+                  style={{
+                    backgroundColor: 'var(--color-tortilla-500)',
+                    color: 'white',
+                    fontWeight: 600,
+                  }}
+                >
+                  {userName.charAt(0).toUpperCase()}
+                </Avatar>
+              </Link>
               <button onClick={signOut} className={styles.linkButton}>
                 {t('nav.signOut')}
               </button>

@@ -8,7 +8,8 @@ import {
 } from '@aws-sdk/client-s3';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Tortilla, TortillaDocument } from '@/models/Tortilla';
-import { Vote, VoteDocument } from '@/models/Vote';
+import { Vote, VoteDocument, REACTIONS } from '@/models/Vote';
+import type { Reaction } from '@/models/Vote';
 import {
   User,
   normalizeEmail,
@@ -190,6 +191,49 @@ export const resolvers = {
         email: ctx.session.user.email,
       };
     },
+
+    async myStats(_: unknown, __: unknown, ctx: GqlContext) {
+      const userKey = sessionUserKey(ctx.session);
+      if (!userKey) return null;
+      await connectToDatabase();
+
+      const voteDocs = await Vote.find({ userKey })
+        .sort({ createdAt: -1 })
+        .populate<{ tortilla: TortillaDocument }>('tortilla')
+        .exec();
+
+      const totalVotes = voteDocs.length;
+      const averageGiven =
+        totalVotes > 0
+          ? Number(
+              (
+                voteDocs.reduce((s, v) => s + v.score, 0) / totalVotes
+              ).toFixed(2)
+            )
+          : null;
+
+      const votes = voteDocs
+        .filter((v) => v.tortilla)
+        .map((v) => ({
+          id: (v._id as Types.ObjectId).toString(),
+          score: v.score,
+          reaction: v.reaction ?? null,
+          createdAt: v.createdAt,
+          tortilla: {
+            id: (v.tortilla._id as Types.ObjectId).toString(),
+            name: v.tortilla.name,
+            date: v.tortilla.date,
+            imageUrl: buildImageUrl(v.tortilla),
+          },
+        }));
+
+      const bestVote =
+        votes.length > 0
+          ? [...votes].sort((a, b) => b.score - a.score)[0]
+          : null;
+
+      return { totalVotes, averageGiven, bestVote, votes };
+    },
   },
 
   Mutation: {
@@ -304,7 +348,7 @@ export const resolvers = {
 
     async castVote(
       _: unknown,
-      args: { input: { tortillaId: string; score: number } },
+      args: { input: { tortillaId: string; score: number; reaction?: Reaction | null } },
       ctx: GqlContext
     ) {
       await connectToDatabase();
@@ -313,7 +357,7 @@ export const resolvers = {
         throw new Error('Debes iniciar sesión para votar.');
       }
 
-      const { tortillaId, score } = args.input;
+      const { tortillaId, score, reaction } = args.input;
       if (!Types.ObjectId.isValid(tortillaId)) {
         throw new Error('ID de tortilla inválido.');
       }
@@ -324,6 +368,9 @@ export const resolvers = {
         score > 10
       ) {
         throw new Error('La puntuación debe estar entre 0 y 10.');
+      }
+      if (reaction != null && !REACTIONS.includes(reaction)) {
+        throw new Error('Reacción no válida.');
       }
 
       const tortilla = await Tortilla.findById(tortillaId).exec();
@@ -338,6 +385,11 @@ export const resolvers = {
       const userKey = ctx.session.user.usernameKey;
       const userName = ctx.session.user.username;
 
+      const reactionUpdate: Record<string, unknown> =
+        reaction != null
+          ? { reaction }
+          : {};
+
       const vote = await Vote.findOneAndUpdate(
         { tortilla: tortilla._id, userKey },
         {
@@ -346,6 +398,7 @@ export const resolvers = {
             userName,
             userKey,
             tortilla: tortilla._id,
+            ...reactionUpdate,
           },
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -355,6 +408,7 @@ export const resolvers = {
         id: (vote._id as Types.ObjectId).toString(),
         userName: vote.userName,
         score: vote.score,
+        reaction: vote.reaction ?? null,
         createdAt: vote.createdAt,
       };
     },
@@ -445,6 +499,7 @@ export const resolvers = {
         id: (v._id as Types.ObjectId).toString(),
         userName: v.userName,
         score: v.score,
+        reaction: v.reaction ?? null,
         createdAt: v.createdAt,
       }));
     },
@@ -462,6 +517,7 @@ export const resolvers = {
         id: (v._id as Types.ObjectId).toString(),
         userName: v.userName,
         score: v.score,
+        reaction: v.reaction ?? null,
         createdAt: v.createdAt,
       };
     },

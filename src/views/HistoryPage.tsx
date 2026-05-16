@@ -23,10 +23,20 @@ type Tortilla = {
   myVote: { id: string; score: number } | null;
 };
 
+type Reaction = 'fire' | 'yummy' | 'meh' | 'cringe';
+
+const REACTION_EMOJI: Record<Reaction, string> = {
+  fire: '🔥',
+  yummy: '😋',
+  meh: '😐',
+  cringe: '😬',
+};
+
 type Vote = {
   id: string;
   userName: string;
   score: number;
+  reaction?: Reaction | null;
   createdAt: string;
 };
 
@@ -281,12 +291,19 @@ export default function HistoryPage() {
                     }
                     title={vote.userName}
                   />
-                  <Tag
-                    color={tagColorForScore(vote.score)}
-                    style={{ fontVariantNumeric: 'tabular-nums', margin: 0 }}
-                  >
-                    {vote.score.toFixed(1)} / 10
-                  </Tag>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {vote.reaction ? (
+                      <span style={{ fontSize: 18 }}>
+                        {REACTION_EMOJI[vote.reaction]}
+                      </span>
+                    ) : null}
+                    <Tag
+                      color={tagColorForScore(vote.score)}
+                      style={{ fontVariantNumeric: 'tabular-nums', margin: 0 }}
+                    >
+                      {vote.score.toFixed(1)} / 10
+                    </Tag>
+                  </div>
                 </List.Item>
               )}
             />

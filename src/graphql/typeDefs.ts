@@ -16,11 +16,19 @@ export const typeDefs = gql`
     myVote: Vote
   }
 
+  enum Reaction {
+    fire
+    yummy
+    meh
+    cringe
+  }
+
   """Voto de un usuario sobre una tortilla."""
   type Vote {
     id: ID!
     userName: String!
     score: Float!
+    reaction: Reaction
     createdAt: Date!
   }
 
@@ -29,6 +37,31 @@ export const typeDefs = gql`
     id: ID!
     username: String!
     email: String!
+  }
+
+  """Resumen de tortilla para el perfil de usuario."""
+  type TortillaSummary {
+    id: ID!
+    name: String!
+    date: Date!
+    imageUrl: String!
+  }
+
+  """Voto personal con información de la tortilla."""
+  type PersonalVote {
+    id: ID!
+    score: Float!
+    reaction: Reaction
+    createdAt: Date!
+    tortilla: TortillaSummary!
+  }
+
+  """Estadísticas personales del usuario autenticado."""
+  type UserStats {
+    totalVotes: Int!
+    averageGiven: Float
+    bestVote: PersonalVote
+    votes: [PersonalVote!]!
   }
 
   type Query {
@@ -40,6 +73,8 @@ export const typeDefs = gql`
     currentTortilla: Tortilla
     """Información del usuario autenticado, o null si no hay sesión."""
     me: User
+    """Estadísticas y votos del usuario autenticado."""
+    myStats: UserStats
   }
 
   input CreateTortillaInput {
@@ -58,6 +93,7 @@ export const typeDefs = gql`
   input CastVoteInput {
     tortillaId: ID!
     score: Float!
+    reaction: Reaction
   }
 
   input RegisterInput {

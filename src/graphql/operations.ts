@@ -20,6 +20,7 @@ export const CURRENT_TORTILLA_QUERY = gql`
       myVote {
         id
         score
+        reaction
       }
     }
   }
@@ -33,6 +34,7 @@ export const TORTILLAS_QUERY = gql`
       myVote {
         id
         score
+        reaction
       }
     }
   }
@@ -46,11 +48,13 @@ export const TORTILLA_DETAIL_QUERY = gql`
       myVote {
         id
         score
+        reaction
       }
       votes {
         id
         userName
         score
+        reaction
         createdAt
       }
     }
@@ -63,7 +67,41 @@ export const CAST_VOTE_MUTATION = gql`
       id
       userName
       score
+      reaction
       createdAt
+    }
+  }
+`;
+
+export const MY_STATS_QUERY = gql`
+  query MyStats {
+    myStats {
+      totalVotes
+      averageGiven
+      bestVote {
+        id
+        score
+        reaction
+        createdAt
+        tortilla {
+          id
+          name
+          date
+          imageUrl
+        }
+      }
+      votes {
+        id
+        score
+        reaction
+        createdAt
+        tortilla {
+          id
+          name
+          date
+          imageUrl
+        }
+      }
     }
   }
 `;

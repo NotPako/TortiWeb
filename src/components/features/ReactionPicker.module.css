@@ -1,0 +1,33 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--color-tortilla-600);
+}
+
+.btn {
+  flex: 1;
+  height: auto !important;
+  padding: 8px 4px !important;
+  display: inline-flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  white-space: normal;
+}
+
+.emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.btnLabel {
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+}
