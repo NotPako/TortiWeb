@@ -78,6 +78,8 @@ export const MY_STATS_QUERY = gql`
     myStats {
       totalVotes
       averageGiven
+      currentStreak
+      bestStreak
       bestVote {
         id
         score

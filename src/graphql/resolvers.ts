@@ -232,7 +232,54 @@ export const resolvers = {
           ? [...votes].sort((a, b) => b.score - a.score)[0]
           : null;
 
-      return { totalVotes, averageGiven, bestVote, votes };
+      const tortillaList = await Tortilla.find({})
+        .sort({ date: -1 })
+        .select('_id date')
+        .exec();
+
+      const votedIds = new Set(
+        voteDocs
+          .filter((v) => v.tortilla)
+          .map((v) => (v.tortilla._id as Types.ObjectId).toString())
+      );
+
+      // Si la tortilla más reciente es de hoy y aún no se votó, no rompe la racha.
+      let startIndex = 0;
+      if (tortillaList.length > 0) {
+        const first = tortillaList[0];
+        const firstId = (first._id as Types.ObjectId).toString();
+        if (isSameDay(first.date, new Date()) && !votedIds.has(firstId)) {
+          startIndex = 1;
+        }
+      }
+
+      let currentStreak = 0;
+      let bestStreak = 0;
+      let runLength = 0;
+      let foundFirstGap = false;
+      for (let i = startIndex; i < tortillaList.length; i++) {
+        const tid = (tortillaList[i]._id as Types.ObjectId).toString();
+        if (votedIds.has(tid)) {
+          runLength++;
+          if (runLength > bestStreak) bestStreak = runLength;
+        } else {
+          if (!foundFirstGap) {
+            currentStreak = runLength;
+            foundFirstGap = true;
+          }
+          runLength = 0;
+        }
+      }
+      if (!foundFirstGap) currentStreak = runLength;
+
+      return {
+        totalVotes,
+        averageGiven,
+        currentStreak,
+        bestStreak,
+        bestVote,
+        votes,
+      };
     },
   },
 

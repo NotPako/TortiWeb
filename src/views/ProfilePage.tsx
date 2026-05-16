@@ -36,6 +36,8 @@ type PersonalVote = {
 type UserStats = {
   totalVotes: number;
   averageGiven: number | null;
+  currentStreak: number;
+  bestStreak: number;
   bestVote: PersonalVote | null;
   votes: PersonalVote[];
 };
@@ -121,6 +123,24 @@ export default function ProfilePage() {
             suffix="/ 10"
             valueStyle={{ color: 'var(--color-tortilla-700)', fontWeight: 700 }}
           />
+        </div>
+        <div className={`${styles.statCard} ${styles.streakCard}`}>
+          <Statistic
+            title={t('profile.currentStreak')}
+            value={stats.currentStreak}
+            prefix={<span className={styles.streakEmoji}>🔥</span>}
+            suffix={
+              stats.currentStreak === 1
+                ? t('profile.streakUnitSingular')
+                : t('profile.streakUnit')
+            }
+            valueStyle={{ color: 'var(--color-tortilla-700)', fontWeight: 700 }}
+          />
+          {stats.bestStreak > 0 && stats.bestStreak > stats.currentStreak ? (
+            <p className={styles.streakBest}>
+              {t('profile.bestStreak', { n: stats.bestStreak })}
+            </p>
+          ) : null}
         </div>
       </div>
 
