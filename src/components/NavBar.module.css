@@ -84,6 +84,10 @@
   white-space: nowrap;
 }
 
+.userName:hover {
+  text-decoration: underline;
+}
+
 .linkButton {
   color: var(--color-tortilla-600);
   padding: 6px 4px;

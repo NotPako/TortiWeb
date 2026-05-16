@@ -32,9 +32,9 @@ export function NavBar() {
           <LanguageSwitcher />
           {isReady && userName ? (
             <div className={styles.greeting}>
-              <span className={styles.userName}>
+              <Link href="/profile" className={styles.userName}>
                 {t('nav.greetingPrefix')} <strong>{userName}</strong>
-              </span>
+              </Link>
               <button onClick={signOut} className={styles.linkButton}>
                 {t('nav.signOut')}
               </button>

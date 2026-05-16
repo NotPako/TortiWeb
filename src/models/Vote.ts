@@ -1,10 +1,15 @@
 import mongoose, { Schema, Model, Document, Types } from 'mongoose';
 
+export type Reaction = 'fire' | 'yummy' | 'meh' | 'cringe';
+
+export const REACTIONS: Reaction[] = ['fire', 'yummy', 'meh', 'cringe'];
+
 export interface VoteDocument extends Document {
   tortilla: Types.ObjectId;
   userName: string;
   userKey: string; // nombre normalizado (lower-case, trim) para evitar duplicados
   score: number; // 0..10 con decimales
+  reaction?: Reaction;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +33,11 @@ const VoteSchema = new Schema<VoteDocument>(
         validator: (v: number) => Number.isFinite(v) && v >= 0 && v <= 10,
         message: 'La puntuación debe estar entre 0 y 10.',
       },
+    },
+    reaction: {
+      type: String,
+      enum: REACTIONS,
+      required: false,
     },
   },
   { timestamps: true }

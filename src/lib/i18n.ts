@@ -126,6 +126,21 @@ const es = {
   'slider.label': 'Tu nota',
 
   'lang.label': 'Idioma',
+
+  'reaction.label': 'Reacción rápida (opcional)',
+  'reaction.fire': 'Perfecta',
+  'reaction.yummy': 'Muy rica',
+  'reaction.meh': 'Normalita',
+  'reaction.cringe': 'Mejorable',
+
+  'profile.title': 'Mi perfil',
+  'profile.loading': 'Cargando perfil…',
+  'profile.totalVotes': 'Tortillas votadas',
+  'profile.averageGiven': 'Nota media que das',
+  'profile.noVotes': 'Todavía no has votado ninguna tortilla.',
+  'profile.bestTortilla': 'Tu mejor tortilla',
+  'profile.voteHistory': 'Historial de votos',
+  'profile.yourScore': 'Tu nota',
 } as const;
 
 type DictKey = keyof typeof es;
@@ -240,6 +255,21 @@ const ca: Record<DictKey, string> = {
   'slider.label': 'La teva nota',
 
   'lang.label': 'Idioma',
+
+  'reaction.label': 'Reacció ràpida (opcional)',
+  'reaction.fire': 'Perfecta',
+  'reaction.yummy': 'Molt rica',
+  'reaction.meh': 'Normaleta',
+  'reaction.cringe': 'Millorable',
+
+  'profile.title': 'El meu perfil',
+  'profile.loading': 'Carregant perfil…',
+  'profile.totalVotes': 'Truites votades',
+  'profile.averageGiven': 'Nota mitjana que dones',
+  'profile.noVotes': 'Encara no has votat cap truita.',
+  'profile.bestTortilla': 'La teva millor truita',
+  'profile.voteHistory': 'Historial de vots',
+  'profile.yourScore': 'La teva nota',
 };
 
 export const dictionaries: Record<Language, Record<DictKey, string>> = {
