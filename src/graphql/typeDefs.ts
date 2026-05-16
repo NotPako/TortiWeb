@@ -60,6 +60,10 @@ export const typeDefs = gql`
   type UserStats {
     totalVotes: Int!
     averageGiven: Float
+    """Tortillas consecutivas votadas hasta la fecha (sin contar la de hoy si aún no se votó)."""
+    currentStreak: Int!
+    """Mejor racha histórica de tortillas consecutivas votadas."""
+    bestStreak: Int!
     bestVote: PersonalVote
     votes: [PersonalVote!]!
   }
