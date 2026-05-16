@@ -6,7 +6,7 @@ import { useQuery } from '@apollo/client';
 import { Avatar, List, Skeleton, Statistic, Tag } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
-import { MY_STATS_QUERY } from '@/graphql/operations';
+import { MY_STATS_QUERY, USER_STATS_QUERY } from '@/graphql/operations';
 import styles from './ProfilePage.module.css';
 
 type Reaction = 'fire' | 'yummy' | 'meh' | 'cringe';
@@ -34,6 +34,7 @@ type PersonalVote = {
 };
 
 type UserStats = {
+  username: string;
   totalVotes: number;
   averageGiven: number | null;
   currentStreak: number;
@@ -42,27 +43,43 @@ type UserStats = {
   votes: PersonalVote[];
 };
 
+type Props = {
+  /** Si se proporciona, muestra el perfil de ese usuario. Si no, el del usuario autenticado. */
+  username?: string;
+};
+
 function tagColorForScore(score: number): string {
   if (score >= 8) return 'green';
   if (score >= 5) return 'gold';
   return 'red';
 }
 
-export default function ProfilePage() {
+export default function ProfilePage({ username }: Props = {}) {
   const { userName, isReady } = useUser();
   const { t, locale } = useLanguage();
   const router = useRouter();
+  const isOwn = !username;
 
   useEffect(() => {
-    if (isReady && !userName) router.replace('/login');
-  }, [isReady, userName, router]);
+    if (isOwn && isReady && !userName) router.replace('/login');
+  }, [isOwn, isReady, userName, router]);
 
-  const { data, loading } = useQuery<{ myStats: UserStats | null }>(
-    MY_STATS_QUERY,
-    { skip: !userName }
-  );
+  const { data: ownData, loading: ownLoading } = useQuery<{
+    myStats: UserStats | null;
+  }>(MY_STATS_QUERY, { skip: !isOwn || !userName });
 
-  const stats = data?.myStats ?? null;
+  const { data: otherData, loading: otherLoading } = useQuery<{
+    userStats: UserStats | null;
+  }>(USER_STATS_QUERY, {
+    variables: { username: username ?? '' },
+    skip: isOwn,
+  });
+
+  const stats = isOwn
+    ? ownData?.myStats ?? null
+    : otherData?.userStats ?? null;
+  const loading = isOwn ? ownLoading : otherLoading;
+  const data = isOwn ? ownData : otherData;
 
   const sortedVotes = useMemo(() => {
     if (!stats?.votes) return [];
@@ -83,18 +100,27 @@ export default function ProfilePage() {
     }
   }
 
-  if (!isReady || !userName) return null;
+  if (isOwn && (!isReady || !userName)) return null;
 
   if (loading && !data) {
     return <Skeleton active paragraph={{ rows: 8 }} />;
   }
 
+  const displayName = stats?.username ?? username ?? '';
+  const title = isOwn
+    ? t('profile.title')
+    : t('profile.titleFor', { name: displayName });
+
   if (!stats || stats.totalVotes === 0) {
     return (
       <div className={styles.wrap}>
-        <h1 className={styles.title}>{t('profile.title')}</h1>
+        <h1 className={styles.title}>{title}</h1>
         <div className={styles.emptyCard}>
-          <p className={styles.emptyText}>{t('profile.noVotes')}</p>
+          <p className={styles.emptyText}>
+            {isOwn
+              ? t('profile.noVotes')
+              : t('profile.noVotesOther', { name: displayName })}
+          </p>
         </div>
       </div>
     );
@@ -102,7 +128,7 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.wrap}>
-      <h1 className={styles.title}>{t('profile.title')}</h1>
+      <h1 className={styles.title}>{title}</h1>
 
       <div className={styles.statsRow}>
         <div className={styles.statCard}>

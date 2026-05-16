@@ -73,37 +73,50 @@ export const CAST_VOTE_MUTATION = gql`
   }
 `;
 
+const USER_STATS_FIELDS = `
+  username
+  totalVotes
+  averageGiven
+  currentStreak
+  bestStreak
+  bestVote {
+    id
+    score
+    reaction
+    createdAt
+    tortilla {
+      id
+      name
+      date
+      imageUrl
+    }
+  }
+  votes {
+    id
+    score
+    reaction
+    createdAt
+    tortilla {
+      id
+      name
+      date
+      imageUrl
+    }
+  }
+`;
+
 export const MY_STATS_QUERY = gql`
   query MyStats {
     myStats {
-      totalVotes
-      averageGiven
-      currentStreak
-      bestStreak
-      bestVote {
-        id
-        score
-        reaction
-        createdAt
-        tortilla {
-          id
-          name
-          date
-          imageUrl
-        }
-      }
-      votes {
-        id
-        score
-        reaction
-        createdAt
-        tortilla {
-          id
-          name
-          date
-          imageUrl
-        }
-      }
+      ${USER_STATS_FIELDS}
+    }
+  }
+`;
+
+export const USER_STATS_QUERY = gql`
+  query UserStats($username: String!) {
+    userStats(username: $username) {
+      ${USER_STATS_FIELDS}
     }
   }
 `;

@@ -4,6 +4,11 @@
   gap: 16px;
 }
 
+.voterLink:hover {
+  color: var(--color-tortilla-600) !important;
+  text-decoration: underline !important;
+}
+
 .statusText {
   color: var(--color-tortilla-700);
 }

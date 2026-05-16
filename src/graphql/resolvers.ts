@@ -152,6 +152,102 @@ function validateUsername(username: string): string {
   return trimmed;
 }
 
+async function computeUserStats(userKey: string) {
+  const voteDocs = await Vote.find({ userKey })
+    .sort({ createdAt: -1 })
+    .populate<{ tortilla: TortillaDocument }>('tortilla')
+    .exec();
+
+  // Display name: prefer canonical User.username; fallback al primer vote.userName.
+  let username = userKey;
+  const userDoc = await User.findOne({ usernameKey: userKey })
+    .select('username')
+    .exec();
+  if (userDoc) {
+    username = userDoc.username;
+  } else if (voteDocs.length > 0) {
+    username = voteDocs[0].userName;
+  }
+
+  const totalVotes = voteDocs.length;
+  const averageGiven =
+    totalVotes > 0
+      ? Number(
+          (voteDocs.reduce((s, v) => s + v.score, 0) / totalVotes).toFixed(2)
+        )
+      : null;
+
+  const votes = voteDocs
+    .filter((v) => v.tortilla)
+    .map((v) => ({
+      id: (v._id as Types.ObjectId).toString(),
+      score: v.score,
+      reaction: v.reaction ?? null,
+      createdAt: v.createdAt,
+      tortilla: {
+        id: (v.tortilla._id as Types.ObjectId).toString(),
+        name: v.tortilla.name,
+        date: v.tortilla.date,
+        imageUrl: buildImageUrl(v.tortilla),
+      },
+    }));
+
+  const bestVote =
+    votes.length > 0
+      ? [...votes].sort((a, b) => b.score - a.score)[0]
+      : null;
+
+  const tortillaList = await Tortilla.find({})
+    .sort({ date: -1 })
+    .select('_id date')
+    .exec();
+
+  const votedIds = new Set(
+    voteDocs
+      .filter((v) => v.tortilla)
+      .map((v) => (v.tortilla._id as Types.ObjectId).toString())
+  );
+
+  // Si la tortilla más reciente es de hoy y aún no se votó, no rompe la racha.
+  let startIndex = 0;
+  if (tortillaList.length > 0) {
+    const first = tortillaList[0];
+    const firstId = (first._id as Types.ObjectId).toString();
+    if (isSameDay(first.date, new Date()) && !votedIds.has(firstId)) {
+      startIndex = 1;
+    }
+  }
+
+  let currentStreak = 0;
+  let bestStreak = 0;
+  let runLength = 0;
+  let foundFirstGap = false;
+  for (let i = startIndex; i < tortillaList.length; i++) {
+    const tid = (tortillaList[i]._id as Types.ObjectId).toString();
+    if (votedIds.has(tid)) {
+      runLength++;
+      if (runLength > bestStreak) bestStreak = runLength;
+    } else {
+      if (!foundFirstGap) {
+        currentStreak = runLength;
+        foundFirstGap = true;
+      }
+      runLength = 0;
+    }
+  }
+  if (!foundFirstGap) currentStreak = runLength;
+
+  return {
+    username,
+    totalVotes,
+    averageGiven,
+    currentStreak,
+    bestStreak,
+    bestVote,
+    votes,
+  };
+}
+
 export const resolvers = {
   Date: dateScalar,
 
@@ -196,90 +292,14 @@ export const resolvers = {
       const userKey = sessionUserKey(ctx.session);
       if (!userKey) return null;
       await connectToDatabase();
+      return computeUserStats(userKey);
+    },
 
-      const voteDocs = await Vote.find({ userKey })
-        .sort({ createdAt: -1 })
-        .populate<{ tortilla: TortillaDocument }>('tortilla')
-        .exec();
-
-      const totalVotes = voteDocs.length;
-      const averageGiven =
-        totalVotes > 0
-          ? Number(
-              (
-                voteDocs.reduce((s, v) => s + v.score, 0) / totalVotes
-              ).toFixed(2)
-            )
-          : null;
-
-      const votes = voteDocs
-        .filter((v) => v.tortilla)
-        .map((v) => ({
-          id: (v._id as Types.ObjectId).toString(),
-          score: v.score,
-          reaction: v.reaction ?? null,
-          createdAt: v.createdAt,
-          tortilla: {
-            id: (v.tortilla._id as Types.ObjectId).toString(),
-            name: v.tortilla.name,
-            date: v.tortilla.date,
-            imageUrl: buildImageUrl(v.tortilla),
-          },
-        }));
-
-      const bestVote =
-        votes.length > 0
-          ? [...votes].sort((a, b) => b.score - a.score)[0]
-          : null;
-
-      const tortillaList = await Tortilla.find({})
-        .sort({ date: -1 })
-        .select('_id date')
-        .exec();
-
-      const votedIds = new Set(
-        voteDocs
-          .filter((v) => v.tortilla)
-          .map((v) => (v.tortilla._id as Types.ObjectId).toString())
-      );
-
-      // Si la tortilla más reciente es de hoy y aún no se votó, no rompe la racha.
-      let startIndex = 0;
-      if (tortillaList.length > 0) {
-        const first = tortillaList[0];
-        const firstId = (first._id as Types.ObjectId).toString();
-        if (isSameDay(first.date, new Date()) && !votedIds.has(firstId)) {
-          startIndex = 1;
-        }
-      }
-
-      let currentStreak = 0;
-      let bestStreak = 0;
-      let runLength = 0;
-      let foundFirstGap = false;
-      for (let i = startIndex; i < tortillaList.length; i++) {
-        const tid = (tortillaList[i]._id as Types.ObjectId).toString();
-        if (votedIds.has(tid)) {
-          runLength++;
-          if (runLength > bestStreak) bestStreak = runLength;
-        } else {
-          if (!foundFirstGap) {
-            currentStreak = runLength;
-            foundFirstGap = true;
-          }
-          runLength = 0;
-        }
-      }
-      if (!foundFirstGap) currentStreak = runLength;
-
-      return {
-        totalVotes,
-        averageGiven,
-        currentStreak,
-        bestStreak,
-        bestVote,
-        votes,
-      };
+    async userStats(_: unknown, args: { username: string }) {
+      await connectToDatabase();
+      const usernameKey = normalizeUsername(args.username);
+      if (!usernameKey) return null;
+      return computeUserStats(usernameKey);
     },
   },
 
