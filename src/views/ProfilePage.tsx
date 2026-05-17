@@ -3,9 +3,12 @@
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
-import { Avatar, List, Skeleton, Statistic, Tag } from 'antd';
+import { Avatar, Button, List, Skeleton, Statistic, Tag, Upload, message } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import type { RcFile } from 'antd/es/upload/interface';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
+import { useProfileImageUpload } from '@/hooks/useProfileImageUpload';
 import { MY_STATS_QUERY, USER_STATS_QUERY } from '@/graphql/operations';
 import styles from './ProfilePage.module.css';
 
@@ -35,6 +38,7 @@ type PersonalVote = {
 
 type UserStats = {
   username: string;
+  imageUrl: string | null;
   totalVotes: number;
   averageGiven: number | null;
   currentStreak: number;
@@ -59,6 +63,7 @@ export default function ProfilePage({ username }: Props = {}) {
   const { t, locale } = useLanguage();
   const router = useRouter();
   const isOwn = !username;
+  const { upload, uploading } = useProfileImageUpload();
 
   useEffect(() => {
     if (isOwn && isReady && !userName) router.replace('/login');
@@ -111,10 +116,57 @@ export default function ProfilePage({ username }: Props = {}) {
     ? t('profile.title')
     : t('profile.titleFor', { name: displayName });
 
+  async function handleBeforeUpload(file: RcFile): Promise<boolean> {
+    const ok = await upload(file as File);
+    if (ok) {
+      message.success(t('profile.uploadSuccess'));
+    } else {
+      message.error(t('profile.uploadError'));
+    }
+    return false; // Evita la subida automática de antd; ya la hizo el hook.
+  }
+
+  const header = (
+    <header className={styles.header}>
+      <Avatar
+        src={stats?.imageUrl ?? undefined}
+        size={88}
+        style={{
+          backgroundColor: 'var(--color-tortilla-500)',
+          color: 'white',
+          fontWeight: 700,
+          fontSize: 36,
+          flexShrink: 0,
+        }}
+      >
+        {displayName.charAt(0).toUpperCase()}
+      </Avatar>
+      <div className={styles.headerText}>
+        <h1 className={styles.title}>{title}</h1>
+        {isOwn ? (
+          <Upload
+            accept="image/*"
+            showUploadList={false}
+            beforeUpload={handleBeforeUpload}
+            disabled={uploading}
+          >
+            <Button
+              size="small"
+              icon={<UploadOutlined />}
+              loading={uploading}
+            >
+              {t('profile.changePhoto')}
+            </Button>
+          </Upload>
+        ) : null}
+      </div>
+    </header>
+  );
+
   if (!stats || stats.totalVotes === 0) {
     return (
       <div className={styles.wrap}>
-        <h1 className={styles.title}>{title}</h1>
+        {header}
         <div className={styles.emptyCard}>
           <p className={styles.emptyText}>
             {isOwn
@@ -128,7 +180,7 @@ export default function ProfilePage({ username }: Props = {}) {
 
   return (
     <div className={styles.wrap}>
-      <h1 className={styles.title}>{title}</h1>
+      {header}
 
       <div className={styles.statsRow}>
         <div className={styles.statCard}>

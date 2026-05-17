@@ -56,6 +56,7 @@ export const TORTILLA_DETAIL_QUERY = gql`
         score
         reaction
         createdAt
+        imageUrl
       }
     }
   }
@@ -75,6 +76,7 @@ export const CAST_VOTE_MUTATION = gql`
 
 const USER_STATS_FIELDS = `
   username
+  imageUrl
   totalVotes
   averageGiven
   currentStreak
@@ -152,6 +154,17 @@ export const SET_USERNAME_MUTATION = gql`
       id
       username
       email
+    }
+  }
+`;
+
+export const SET_PROFILE_IMAGE_MUTATION = gql`
+  mutation SetProfileImage($input: SetProfileImageInput!) {
+    setProfileImage(input: $input) {
+      id
+      username
+      email
+      imageUrl
     }
   }
 `;

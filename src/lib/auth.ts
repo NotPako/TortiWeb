@@ -8,6 +8,7 @@ import {
   User,
   normalizeEmail,
   normalizeUsername,
+  userImageUrl,
 } from '@/models/User';
 
 export const authOptions: NextAuthOptions = {
@@ -91,6 +92,7 @@ export const authOptions: NextAuthOptions = {
             token.usernameKey = doc.usernameKey;
             token.email = doc.email;
             token.needsUsername = doc.usernameKey.startsWith('g_');
+            token.picture = userImageUrl(doc) ?? undefined;
           }
         }
       }
@@ -103,6 +105,7 @@ export const authOptions: NextAuthOptions = {
         session.user.usernameKey = token.usernameKey as string;
         session.user.needsUsername = Boolean(token.needsUsername);
         session.user.email = token.email as string;
+        session.user.image = (token.picture as string | undefined) ?? null;
       }
       return session;
     },

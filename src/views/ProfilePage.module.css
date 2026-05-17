@@ -4,10 +4,24 @@
   gap: 20px;
 }
 
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
 .title {
   font-size: 24px;
   font-weight: 700;
   color: var(--color-tortilla-800);
+  margin: 0;
 }
 
 .statsRow {

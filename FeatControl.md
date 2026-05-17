@@ -1,5 +1,20 @@
 # FeatControl
 
+## [2026-05-17] - Foto de perfil subible por el usuario
+**Descripción**: El usuario puede subir y reemplazar su foto de perfil desde `/profile`, mediante un control de ANTD `Upload` situado junto al avatar grande de la cabecera. La imagen se almacena en R2 (clave `users/<userId>-<uuid>.<ext>`), se sirve directamente desde `R2_PUBLIC_URL` o como fallback a través de `/api/user-image/[id]`. La nueva URL aparece automáticamente en: el avatar del NavBar (vía refresh de sesión de NextAuth), la cabecera del perfil (propio y ajeno) y los avatares del modal de votos del historial. Si el usuario es de Google y no ha subido nada, se sigue usando la URL del avatar de Google como fallback.
+**Archivos principales**:
+- `src/models/User.ts` (campos `imageKey`, `imageContentType`; helper `userImageUrl`)
+- `src/app/api/user-image/[id]/route.ts` (proxy R2 para avatares)
+- `src/graphql/typeDefs.ts` (campos `imageUrl` en `User`, `UserStats`, `Vote`; input y mutation `setProfileImage`)
+- `src/graphql/resolvers.ts` (resolver `setProfileImage` con upload a R2 y limpieza del anterior; batch lookup de imágenes en `Tortilla.votes`)
+- `src/graphql/operations.ts` (`SET_PROFILE_IMAGE_MUTATION`, `imageUrl` en queries)
+- `src/lib/auth.ts` (`token.picture` y `session.user.image` se rellenan desde DB)
+- `src/hooks/useProfileImageUpload.ts` (hook encapsula validación, base64, mutación y refresh de sesión)
+- `src/views/ProfilePage.tsx` (cabecera con `Avatar` + `Upload`)
+- `src/views/HistoryPage.tsx` (avatar del modal usa `vote.imageUrl`)
+- `src/lib/i18n.ts` (`profile.changePhoto`, `profile.uploadSuccess`, `profile.uploadError`)
+**Tecnologías**: Cloudflare R2 (AWS SDK S3), ANTD Upload/Avatar/Button, NextAuth `update()`, Apollo refetchQueries
+
 ## [2026-05-16] - Perfiles públicos reutilizables
 **Descripción**: `ProfilePage` se reutiliza para mostrar el perfil de cualquier usuario, no solo el propio. Nueva ruta dinámica `/profile/[username]` que renderiza el mismo componente pasando el username como prop. En el modal de votos del historial, el avatar y el nombre de cada votante son ahora links al perfil de ese usuario (cierran el modal al navegar). Para usuarios sin cuenta (legacy votes), el resolver cae al `userName` guardado en el primer voto.
 **Archivos principales**:

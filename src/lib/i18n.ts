@@ -147,6 +147,9 @@ const es = {
   'profile.bestTortilla': 'Mejor tortilla',
   'profile.voteHistory': 'Historial de votos',
   'profile.yourScore': 'Tu nota',
+  'profile.changePhoto': 'Cambiar foto',
+  'profile.uploadSuccess': '¡Foto de perfil actualizada!',
+  'profile.uploadError': 'No se pudo actualizar la foto.',
 } as const;
 
 type DictKey = keyof typeof es;
@@ -282,6 +285,9 @@ const ca: Record<DictKey, string> = {
   'profile.bestTortilla': 'Millor truita',
   'profile.voteHistory': 'Historial de vots',
   'profile.yourScore': 'La teva nota',
+  'profile.changePhoto': 'Canviar foto',
+  'profile.uploadSuccess': 'Foto de perfil actualitzada!',
+  'profile.uploadError': 'No s\'ha pogut actualitzar la foto.',
 };
 
 export const dictionaries: Record<Language, Record<DictKey, string>> = {

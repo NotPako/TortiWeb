@@ -14,6 +14,7 @@ import {
   User,
   normalizeEmail,
   normalizeUsername,
+  userImageUrl,
 } from '@/models/User';
 import {
   getR2BucketName,
@@ -160,11 +161,13 @@ async function computeUserStats(userKey: string) {
 
   // Display name: prefer canonical User.username; fallback al primer vote.userName.
   let username = userKey;
+  let imageUrl: string | null = null;
   const userDoc = await User.findOne({ usernameKey: userKey })
-    .select('username')
+    .select('username image imageKey')
     .exec();
   if (userDoc) {
     username = userDoc.username;
+    imageUrl = userImageUrl(userDoc);
   } else if (voteDocs.length > 0) {
     username = voteDocs[0].userName;
   }
@@ -239,6 +242,7 @@ async function computeUserStats(userKey: string) {
 
   return {
     username,
+    imageUrl,
     totalVotes,
     averageGiven,
     currentStreak,
@@ -281,10 +285,16 @@ export const resolvers = {
 
     async me(_: unknown, __: unknown, ctx: GqlContext) {
       if (!ctx.session?.user) return null;
+      await connectToDatabase();
+      const doc = await User.findById(ctx.session.user.id)
+        .select('username email image imageKey')
+        .exec();
+      const imageUrl = doc ? userImageUrl(doc) : null;
       return {
         id: ctx.session.user.id,
         username: ctx.session.user.username,
         email: ctx.session.user.email,
+        imageUrl,
       };
     },
 
@@ -552,6 +562,72 @@ export const resolvers = {
         id: (user._id as Types.ObjectId).toString(),
         username: user.username,
         email: user.email,
+        imageUrl: userImageUrl(user),
+      };
+    },
+
+    async setProfileImage(
+      _: unknown,
+      args: {
+        input: { imageBase64: string; imageContentType: string };
+      },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      if (!ctx.session?.user || ctx.session.user.needsUsername) {
+        throw new Error('Debes iniciar sesión.');
+      }
+      if (!args.input.imageContentType.startsWith('image/')) {
+        throw new Error('El archivo debe ser una imagen.');
+      }
+
+      const buffer = decodeBase64Image(args.input.imageBase64);
+      if (buffer.length === 0) {
+        throw new Error('La imagen está vacía o no es válida.');
+      }
+      if (buffer.length > 2 * 1024 * 1024) {
+        throw new Error('La imagen no puede superar 2 MB.');
+      }
+
+      const user = await User.findById(ctx.session.user.id).exec();
+      if (!user) throw new Error('Usuario no encontrado.');
+
+      const ext = inferExtension(args.input.imageContentType);
+      const newKey = `users/${(user._id as Types.ObjectId).toString()}-${randomUUID()}.${ext}`;
+
+      await getR2Client().send(
+        new PutObjectCommand({
+          Bucket: getR2BucketName(),
+          Key: newKey,
+          Body: buffer,
+          ContentType: args.input.imageContentType,
+        })
+      );
+
+      const oldKey = user.imageKey;
+      user.imageKey = newKey;
+      user.imageContentType = args.input.imageContentType;
+      await user.save();
+
+      // Limpiamos la imagen anterior (si la había). Errores no son críticos.
+      if (oldKey && oldKey !== newKey) {
+        try {
+          await getR2Client().send(
+            new DeleteObjectCommand({
+              Bucket: getR2BucketName(),
+              Key: oldKey,
+            })
+          );
+        } catch (err) {
+          console.warn('No se pudo eliminar avatar anterior de R2:', err);
+        }
+      }
+
+      return {
+        id: (user._id as Types.ObjectId).toString(),
+        username: user.username,
+        email: user.email,
+        imageUrl: userImageUrl(user),
       };
     },
   },
@@ -562,12 +638,22 @@ export const resolvers = {
       const docs = await Vote.find({ tortilla: parent._id })
         .sort({ createdAt: -1 })
         .exec();
+      const keys = Array.from(new Set(docs.map((v) => v.userKey)));
+      const users = keys.length
+        ? await User.find({ usernameKey: { $in: keys } })
+            .select('usernameKey image imageKey')
+            .exec()
+        : [];
+      const imageByKey = new Map<string, string | null>(
+        users.map((u) => [u.usernameKey, userImageUrl(u)])
+      );
       return docs.map((v: VoteDocument) => ({
         id: (v._id as Types.ObjectId).toString(),
         userName: v.userName,
         score: v.score,
         reaction: v.reaction ?? null,
         createdAt: v.createdAt,
+        imageUrl: imageByKey.get(v.userKey) ?? null,
       }));
     },
 

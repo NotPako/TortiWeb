@@ -1,4 +1,5 @@
-import mongoose, { Schema, Model, Document } from 'mongoose';
+import mongoose, { Schema, Model, Document, Types } from 'mongoose';
+import { publicUrlFor } from '@/lib/r2';
 
 export interface UserDocument extends Document {
   username: string;
@@ -7,7 +8,9 @@ export interface UserDocument extends Document {
   emailKey: string; // normalizado para unicidad case-insensitive
   passwordHash?: string;
   googleId?: string;
-  image?: string;
+  image?: string; // URL externa (Google) — fallback si no hay imageKey
+  imageKey?: string; // Key en R2 de la foto de perfil subida por el usuario
+  imageContentType?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +38,8 @@ const UserSchema = new Schema<UserDocument>(
     passwordHash: { type: String },
     googleId: { type: String, sparse: true, index: true },
     image: { type: String },
+    imageKey: { type: String },
+    imageContentType: { type: String },
   },
   { timestamps: true }
 );
@@ -45,6 +50,21 @@ export function normalizeUsername(name: string): string {
 
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+/**
+ * URL pública de la foto de perfil. Prioriza la imagen subida por el usuario
+ * (servida desde R2) sobre la externa (Google).
+ */
+export function userImageUrl(
+  doc: Pick<UserDocument, '_id' | 'image' | 'imageKey'>
+): string | null {
+  if (doc.imageKey) {
+    const direct = publicUrlFor(doc.imageKey);
+    if (direct) return direct;
+    return `/api/user-image/${(doc._id as Types.ObjectId).toString()}`;
+  }
+  return doc.image ?? null;
 }
 
 export const User: Model<UserDocument> =
