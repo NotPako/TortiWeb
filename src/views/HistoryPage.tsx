@@ -39,6 +39,7 @@ type Vote = {
   score: number;
   reaction?: Reaction | null;
   createdAt: string;
+  imageUrl: string | null;
 };
 
 type TortillaDetail = Tortilla & {
@@ -288,6 +289,7 @@ export default function HistoryPage() {
                           aria-label={vote.userName}
                         >
                           <Avatar
+                            src={vote.imageUrl ?? undefined}
                             style={{
                               backgroundColor: 'var(--color-tortilla-500)',
                               color: 'white',

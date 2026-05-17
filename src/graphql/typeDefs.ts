@@ -30,6 +30,8 @@ export const typeDefs = gql`
     score: Float!
     reaction: Reaction
     createdAt: Date!
+    """URL del avatar del votante, si está disponible."""
+    imageUrl: String
   }
 
   """Usuario autenticado."""
@@ -37,6 +39,8 @@ export const typeDefs = gql`
     id: ID!
     username: String!
     email: String!
+    """URL del avatar (subido por el usuario o externo de Google)."""
+    imageUrl: String
   }
 
   """Resumen de tortilla para el perfil de usuario."""
@@ -60,6 +64,8 @@ export const typeDefs = gql`
   type UserStats {
     """Nombre del usuario (preserva mayúsculas/minúsculas del registro original)."""
     username: String!
+    """URL del avatar del usuario, si está disponible."""
+    imageUrl: String
     totalVotes: Int!
     averageGiven: Float
     """Tortillas consecutivas votadas hasta la fecha (sin contar la de hoy si aún no se votó)."""
@@ -110,6 +116,13 @@ export const typeDefs = gql`
     password: String!
   }
 
+  input SetProfileImageInput {
+    """Imagen en base64 (data URL o cadena pura)."""
+    imageBase64: String!
+    """Tipo MIME de la imagen, ej. image/jpeg."""
+    imageContentType: String!
+  }
+
   type Mutation {
     createTortilla(input: CreateTortillaInput!): Tortilla!
     castVote(input: CastVoteInput!): Vote!
@@ -119,5 +132,7 @@ export const typeDefs = gql`
     register(input: RegisterInput!): User!
     """Asigna un username a un usuario autenticado por Google sin username."""
     setUsername(username: String!): User!
+    """Sube y asigna una foto de perfil al usuario autenticado."""
+    setProfileImage(input: SetProfileImageInput!): User!
   }
 `;
