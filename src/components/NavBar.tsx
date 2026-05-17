@@ -2,16 +2,30 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useQuery } from '@apollo/client';
 import { Avatar } from 'antd';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { ME_QUERY } from '@/graphql/operations';
 import styles from './NavBar.module.css';
+
+type MeQueryResult = {
+  me: { id: string; username: string; imageUrl: string | null } | null;
+};
 
 export function NavBar() {
   const pathname = usePathname();
   const { userName, userImage, signOut, isReady } = useUser();
   const { t } = useLanguage();
+
+  // La sesión JWT puede tener la imagen desactualizada (no se refresca en cada
+  // request). Consultamos `me` para obtener siempre la imagen vigente en DB.
+  const { data: meData } = useQuery<MeQueryResult>(ME_QUERY, {
+    skip: !isReady || !userName,
+    fetchPolicy: 'cache-and-network',
+  });
+  const avatarSrc = meData?.me?.imageUrl ?? userImage ?? undefined;
 
   const links = [
     { href: '/vote', labelKey: 'nav.vote' as const },
@@ -42,7 +56,7 @@ export function NavBar() {
                 aria-label={t('profile.title')}
               >
                 <Avatar
-                  src={userImage ?? undefined}
+                  src={avatarSrc}
                   size={32}
                   style={{
                     backgroundColor: 'var(--color-tortilla-500)',

@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { useSession } from 'next-auth/react';
 import {
+  ME_QUERY,
   MY_STATS_QUERY,
   SET_PROFILE_IMAGE_MUTATION,
 } from '@/graphql/operations';
@@ -36,7 +37,7 @@ export function useProfileImageUpload(): UseProfileImageUploadResult {
   const [setProfileImage] = useMutation<{
     setProfileImage: { imageUrl: string | null };
   }>(SET_PROFILE_IMAGE_MUTATION, {
-    refetchQueries: [{ query: MY_STATS_QUERY }],
+    refetchQueries: [{ query: MY_STATS_QUERY }, { query: ME_QUERY }],
     awaitRefetchQueries: true,
   });
 

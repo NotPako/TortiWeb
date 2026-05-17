@@ -1,5 +1,15 @@
 import { gql } from '@apollo/client';
 
+export const ME_QUERY = gql`
+  query Me {
+    me {
+      id
+      username
+      imageUrl
+    }
+  }
+`;
+
 export const TORTILLA_FIELDS = gql`
   fragment TortillaFields on Tortilla {
     id

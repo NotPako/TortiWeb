@@ -1,5 +1,13 @@
 # FeatControl
 
+## [2026-05-17] - Fix: avatar de NavBar no mostraba la foto en sesiones antiguas
+**Descripción**: El avatar del NavBar (visible en móvil) leía la imagen de `session.user.image`, que se rellena desde `token.picture` en el JWT callback. Como ese callback sólo recarga de DB en login, `update()` o sesiones sin `usernameKey`, las sesiones creadas antes de la feature de foto de perfil tenían `token.picture` indefinido y se quedaban mostrando la inicial. Ahora el NavBar consulta `me` por GraphQL (con `cache-and-network`) como fuente de verdad para la imagen, con fallback a la sesión durante la primera carga. Tras subir una foto, también se refresca esta query además de las existentes.
+**Archivos principales**:
+- `src/graphql/operations.ts` (nueva `ME_QUERY`)
+- `src/components/NavBar.tsx` (usa `me.imageUrl` para el avatar)
+- `src/hooks/useProfileImageUpload.ts` (refetchea también `ME_QUERY`)
+**Tecnologías**: Apollo Client `cache-and-network`
+
 ## [2026-05-17] - Foto de perfil subible por el usuario
 **Descripción**: El usuario puede subir y reemplazar su foto de perfil desde `/profile`, mediante un control de ANTD `Upload` situado junto al avatar grande de la cabecera. La imagen se almacena en R2 (clave `users/<userId>-<uuid>.<ext>`), se sirve directamente desde `R2_PUBLIC_URL` o como fallback a través de `/api/user-image/[id]`. La nueva URL aparece automáticamente en: el avatar del NavBar (vía refresh de sesión de NextAuth), la cabecera del perfil (propio y ajeno) y los avatares del modal de votos del historial. Si el usuario es de Google y no ha subido nada, se sigue usando la URL del avatar de Google como fallback.
 **Archivos principales**:
