@@ -277,9 +277,11 @@ export const resolvers = {
 
     async currentTortilla(_: unknown, __: unknown, ctx: GqlContext) {
       await connectToDatabase();
+      // La tortilla "actual" es siempre la más reciente subida. La votación se
+      // cierra cuando se sube una nueva (no por fecha): así evitamos depender
+      // de la zona horaria del servidor y de cómo el admin rellena la fecha.
       const doc = await Tortilla.findOne({}).sort({ date: -1 }).exec();
       if (!doc) return null;
-      if (!isSameDay(doc.date, new Date())) return null;
       return tortillaPayload(doc, sessionUserKey(ctx.session));
     },
 
@@ -453,9 +455,16 @@ export const resolvers = {
       const tortilla = await Tortilla.findById(tortillaId).exec();
       if (!tortilla) throw new Error('Tortilla no encontrada.');
 
-      if (!isSameDay(tortilla.date, new Date())) {
+      // Solo se permite votar la tortilla más reciente: cuando se sube una
+      // nueva, las anteriores quedan cerradas automáticamente.
+      const latest = await Tortilla.findOne({}).sort({ date: -1 }).exec();
+      if (
+        !latest ||
+        (latest._id as Types.ObjectId).toString() !==
+          (tortilla._id as Types.ObjectId).toString()
+      ) {
         throw new Error(
-          'La votación de esta tortilla ya está cerrada (es de otro día).'
+          'La votación de esta tortilla ya está cerrada (hay una más reciente).'
         );
       }
 
