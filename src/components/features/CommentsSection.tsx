@@ -3,14 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation } from '@apollo/client';
-import { Avatar, Button, Input, List, Popconfirm, message } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import { Avatar, Button, Input, List, message } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
-import {
-  ADD_COMMENT_MUTATION,
-  DELETE_COMMENT_MUTATION,
-} from '@/graphql/operations';
+import { ADD_COMMENT_MUTATION } from '@/graphql/operations';
 import styles from './CommentsSection.module.css';
 
 export type CommentItem = {
@@ -36,7 +32,7 @@ export function CommentsSection({ tortillaId, comments, onChanged }: Props) {
   const { t, locale } = useLanguage();
   const [draft, setDraft] = useState('');
   const [addComment, { loading: adding }] = useMutation(ADD_COMMENT_MUTATION);
-  const [deleteComment] = useMutation(DELETE_COMMENT_MUTATION);
+  // El borrado de comentarios se reactivará cuando exista el rol admin.
 
   async function handleSubmit() {
     const text = draft.trim();
@@ -47,16 +43,6 @@ export function CommentsSection({ tortillaId, comments, onChanged }: Props) {
       await onChanged();
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('comments.errorPost');
-      message.error(msg);
-    }
-  }
-
-  async function handleDelete(id: string) {
-    try {
-      await deleteComment({ variables: { id } });
-      await onChanged();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : t('comments.errorDelete');
       message.error(msg);
     }
   }
@@ -87,29 +73,7 @@ export function CommentsSection({ tortillaId, comments, onChanged }: Props) {
         renderItem={(c) => {
           const profileHref = `/profile/${encodeURIComponent(c.userName)}`;
           return (
-            <List.Item
-              className={styles.item}
-              actions={
-                c.isMine
-                  ? [
-                      <Popconfirm
-                        key="del"
-                        title={t('comments.deleteConfirm')}
-                        okText={t('comments.deleteOk')}
-                        cancelText={t('comments.deleteCancel')}
-                        onConfirm={() => handleDelete(c.id)}
-                      >
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          aria-label={t('comments.deleteOk')}
-                        />
-                      </Popconfirm>,
-                    ]
-                  : undefined
-              }
-            >
+            <List.Item className={styles.item}>
               <List.Item.Meta
                 avatar={
                   <Link href={profileHref} aria-label={c.userName}>
@@ -151,18 +115,21 @@ export function CommentsSection({ tortillaId, comments, onChanged }: Props) {
             placeholder={t('comments.placeholder')}
             autoSize={{ minRows: 2, maxRows: 5 }}
             maxLength={MAX_LENGTH}
-            showCount
             disabled={adding}
           />
-          <Button
-            type="primary"
-            onClick={handleSubmit}
-            loading={adding}
-            disabled={!draft.trim()}
-            className={styles.submit}
-          >
-            {t('comments.post')}
-          </Button>
+          <div className={styles.formActions}>
+            <span className={styles.charCount}>
+              {draft.length}/{MAX_LENGTH}
+            </span>
+            <Button
+              type="primary"
+              onClick={handleSubmit}
+              loading={adding}
+              disabled={!draft.trim()}
+            >
+              {t('comments.post')}
+            </Button>
+          </div>
         </div>
       ) : (
         <p className={styles.loginHint}>{t('comments.loginToPost')}</p>
