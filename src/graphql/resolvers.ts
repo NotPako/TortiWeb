@@ -121,6 +121,12 @@ async function tortillaPayload(
   const { averageScore, voteCount } = await computeStats(
     doc._id as Types.ObjectId
   );
+  const closedAt = doc.closedAt ?? null;
+  // En el modelo del proyecto la votación está abierta mientras la tortilla
+  // siga siendo la última y no se haya cerrado manualmente. La condición de
+  // "ser la última" se aplica en `currentTortilla` y `castVote`; aquí sólo
+  // expresamos si está cerrada por el admin.
+  const votingOpen = !closedAt;
   return {
     id: (doc._id as Types.ObjectId).toString(),
     name: doc.name,
@@ -129,6 +135,8 @@ async function tortillaPayload(
     imageUrl: buildImageUrl(doc),
     averageScore,
     voteCount,
+    closedAt,
+    votingOpen,
     _id: doc._id,
     _ctxUserKey: userKey,
   };
@@ -280,8 +288,10 @@ export const resolvers = {
       // La tortilla "actual" es siempre la más reciente subida. La votación se
       // cierra cuando se sube una nueva (no por fecha): así evitamos depender
       // de la zona horaria del servidor y de cómo el admin rellena la fecha.
+      // Si el admin la cierra manualmente, también desaparece de /vote (sigue
+      // accesible en el histórico).
       const doc = await Tortilla.findOne({}).sort({ date: -1 }).exec();
-      if (!doc) return null;
+      if (!doc || doc.closedAt) return null;
       return tortillaPayload(doc, sessionUserKey(ctx.session));
     },
 
@@ -425,6 +435,38 @@ export const resolvers = {
       return true;
     },
 
+    async closeTortillaVoting(
+      _: unknown,
+      args: { id: string; adminPassword: string },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      const expected = process.env.ADMIN_PASSWORD;
+      if (!expected) {
+        throw new Error(
+          'ADMIN_PASSWORD no está configurada en el servidor.'
+        );
+      }
+      if (args.adminPassword !== expected) {
+        throw new Error('Contraseña de admin incorrecta.');
+      }
+      if (!Types.ObjectId.isValid(args.id)) {
+        throw new Error('ID de tortilla inválido.');
+      }
+
+      const tortilla = await Tortilla.findById(args.id).exec();
+      if (!tortilla) throw new Error('Tortilla no encontrada.');
+      if (tortilla.closedAt) {
+        // Idempotente: si ya está cerrada, devolvemos el estado actual.
+        return tortillaPayload(tortilla, sessionUserKey(ctx.session));
+      }
+
+      tortilla.closedAt = new Date();
+      await tortilla.save();
+
+      return tortillaPayload(tortilla, sessionUserKey(ctx.session));
+    },
+
     async castVote(
       _: unknown,
       args: { input: { tortillaId: string; score: number; reaction?: Reaction | null } },
@@ -465,6 +507,13 @@ export const resolvers = {
       ) {
         throw new Error(
           'La votación de esta tortilla ya está cerrada (hay una más reciente).'
+        );
+      }
+
+      // Cierre manual por el admin.
+      if (tortilla.closedAt) {
+        throw new Error(
+          'La votación de esta tortilla está cerrada por el admin.'
         );
       }
 

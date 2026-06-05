@@ -7,6 +7,8 @@ export interface TortillaDocument extends Document {
   /** Key del objeto en el bucket R2, p.ej. "tortillas/2026-04-29-uuid.jpg". */
   imageKey: string;
   imageContentType: string;
+  /** Si está definido, la votación se cerró manualmente por el admin a esta hora. */
+  closedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,6 +20,7 @@ const TortillaSchema = new Schema<TortillaDocument>(
     date: { type: Date, required: true, default: () => new Date() },
     imageKey: { type: String, required: true },
     imageContentType: { type: String, required: true },
+    closedAt: { type: Date },
   },
   { timestamps: true }
 );

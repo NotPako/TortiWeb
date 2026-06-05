@@ -11,6 +11,7 @@ import { ReactionPicker } from '@/components/features/ReactionPicker';
 import type { Reaction } from '@/models/Vote';
 import {
   CAST_VOTE_MUTATION,
+  CLOSE_TORTILLA_VOTING_MUTATION,
   CURRENT_TORTILLA_QUERY,
   TORTILLAS_QUERY,
 } from '@/graphql/operations';
@@ -25,6 +26,8 @@ type Tortilla = {
   averageScore: number | null;
   voteCount: number;
   myVote: { id: string; score: number; reaction?: Reaction | null } | null;
+  closedAt: string | null;
+  votingOpen: boolean;
 };
 
 export default function VotePage() {
@@ -61,6 +64,33 @@ export default function VotePage() {
     ],
     awaitRefetchQueries: true,
   });
+
+  const [closeVoting, { loading: closing }] = useMutation(
+    CLOSE_TORTILLA_VOTING_MUTATION,
+    {
+      refetchQueries: [
+        { query: CURRENT_TORTILLA_QUERY },
+        { query: TORTILLAS_QUERY },
+      ],
+      awaitRefetchQueries: true,
+    }
+  );
+
+  async function handleClose() {
+    if (!tortilla) return;
+    const password = window.prompt(t('vote.close.passwordPrompt'));
+    if (!password) return;
+    setFeedback(null);
+    try {
+      await closeVoting({
+        variables: { id: tortilla.id, adminPassword: password },
+      });
+      setFeedback(t('vote.close.success'));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      setFeedback(`${t('common.errorPrefix')}: ${msg}`);
+    }
+  }
 
   const formattedDate = useMemo(() => {
     if (!tortilla) return '';
@@ -151,28 +181,55 @@ export default function VotePage() {
 
       <div className={styles.voteCard}>
         <h3 className={styles.voteTitle}>{t('vote.title')}</h3>
-        {tortilla.myVote ? (
-          <p className={styles.voteHelper}>
-            {t('vote.alreadyVoted', {
-              score: tortilla.myVote.score.toFixed(1),
-            })}
-          </p>
+        {tortilla.votingOpen ? (
+          <>
+            {tortilla.myVote ? (
+              <p className={styles.voteHelper}>
+                {t('vote.alreadyVoted', {
+                  score: tortilla.myVote.score.toFixed(1),
+                })}
+              </p>
+            ) : (
+              <p className={styles.voteHelper}>{t('vote.helper')}</p>
+            )}
+            <VoteSlider value={score} onChange={setScore} disabled={voting} />
+            <ReactionPicker
+              value={reaction}
+              onChange={setReaction}
+              disabled={voting}
+            />
+            <button
+              className={styles.voteButton}
+              onClick={handleSubmit}
+              disabled={voting}
+            >
+              {voting
+                ? t('vote.submitting')
+                : tortilla.myVote
+                  ? t('vote.update')
+                  : t('vote.send')}
+            </button>
+            <button
+              type="button"
+              className={styles.closeLink}
+              onClick={handleClose}
+              disabled={closing}
+            >
+              {closing ? t('vote.close.closing') : t('vote.close.button')}
+            </button>
+          </>
         ) : (
-          <p className={styles.voteHelper}>{t('vote.helper')}</p>
+          <div className={styles.closedNotice}>
+            <p className={styles.closedTitle}>{t('vote.close.closedTitle')}</p>
+            {tortilla.myVote ? (
+              <p className={styles.voteHelper}>
+                {t('vote.close.yourFinalScore', {
+                  score: tortilla.myVote.score.toFixed(1),
+                })}
+              </p>
+            ) : null}
+          </div>
         )}
-        <VoteSlider value={score} onChange={setScore} disabled={voting} />
-        <ReactionPicker value={reaction} onChange={setReaction} disabled={voting} />
-        <button
-          className={styles.voteButton}
-          onClick={handleSubmit}
-          disabled={voting}
-        >
-          {voting
-            ? t('vote.submitting')
-            : tortilla.myVote
-              ? t('vote.update')
-              : t('vote.send')}
-        </button>
         {feedback ? (
           <p
             className={

@@ -1,5 +1,17 @@
 # FeatControl
 
+## [2026-05-17] - Cierre manual de votación por el admin
+**Descripción**: El admin puede cerrar la votación de la tortilla actual en cualquier momento desde `/vote`. La tortilla guarda un timestamp `closedAt`; mientras está abierta se muestran los controles habituales y un enlace discreto "Cerrar votación" al pie de la tarjeta de voto; al pulsarlo, `window.prompt` pide la contraseña (misma UX que el borrado en `TortillaManager`). Una vez cerrada, **la tortilla desaparece de `/vote`** (la vista vuelve al estado "aún no hay tortilla") pero permanece en el histórico con todos sus datos, comentarios y reacciones. El backend rechaza nuevos votos en tortillas con `closedAt`. La mutation es idempotente. `votingOpen` queda definido sólo en función de `closedAt` (no de la fecha), coherente con el modelo "última subida = abierta hasta cerrar manualmente o subir otra" ya existente.
+**Archivos principales**:
+- `src/models/Tortilla.ts` (campo opcional `closedAt: Date`)
+- `src/graphql/typeDefs.ts` (campos `closedAt`, `votingOpen` en `Tortilla`; mutation `closeTortillaVoting`)
+- `src/graphql/resolvers.ts` (resolver `closeTortillaVoting` con check de contraseña, guard en `castVote`, `votingOpen` calculado en `tortillaPayload`)
+- `src/graphql/operations.ts` (campos en `TORTILLA_FIELDS`, `CLOSE_TORTILLA_VOTING_MUTATION`)
+- `src/views/VotePage.tsx` (controles condicionados a `votingOpen`, botón de cierre, aviso de cerrado)
+- `src/views/VotePage.module.css` (estilos `.closeLink` y `.closedNotice`)
+- `src/lib/i18n.ts` (claves `vote.close.*`, ES + CA)
+**Tecnologías**: Mongoose, Apollo `refetchQueries`, `window.prompt` (siguiendo convención de `TortillaManager`)
+
 ## [2026-05-17] - Fix: avatar de NavBar no mostraba la foto en sesiones antiguas
 **Descripción**: El avatar del NavBar (visible en móvil) leía la imagen de `session.user.image`, que se rellena desde `token.picture` en el JWT callback. Como ese callback sólo recarga de DB en login, `update()` o sesiones sin `usernameKey`, las sesiones creadas antes de la feature de foto de perfil tenían `token.picture` indefinido y se quedaban mostrando la inicial. Ahora el NavBar consulta `me` por GraphQL (con `cache-and-network`) como fuente de verdad para la imagen, con fallback a la sesión durante la primera carga. Tras subir una foto, también se refresca esta query además de las existentes.
 **Archivos principales**:
