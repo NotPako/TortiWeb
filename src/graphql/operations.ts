@@ -22,8 +22,20 @@ export const TORTILLA_FIELDS = gql`
   }
 `;
 
+export const COMMENT_FIELDS = gql`
+  fragment CommentFields on Comment {
+    id
+    userName
+    text
+    createdAt
+    imageUrl
+    isMine
+  }
+`;
+
 export const CURRENT_TORTILLA_QUERY = gql`
   ${TORTILLA_FIELDS}
+  ${COMMENT_FIELDS}
   query CurrentTortilla {
     currentTortilla {
       ...TortillaFields
@@ -31,6 +43,9 @@ export const CURRENT_TORTILLA_QUERY = gql`
         id
         score
         reaction
+      }
+      comments {
+        ...CommentFields
       }
     }
   }
@@ -52,6 +67,7 @@ export const TORTILLAS_QUERY = gql`
 
 export const TORTILLA_DETAIL_QUERY = gql`
   ${TORTILLA_FIELDS}
+  ${COMMENT_FIELDS}
   query TortillaDetail($id: ID!) {
     tortilla(id: $id) {
       ...TortillaFields
@@ -67,6 +83,9 @@ export const TORTILLA_DETAIL_QUERY = gql`
         reaction
         createdAt
         imageUrl
+      }
+      comments {
+        ...CommentFields
       }
     }
   }
@@ -114,6 +133,11 @@ const USER_STATS_FIELDS = `
       date
       imageUrl
     }
+  }
+  achievements {
+    id
+    emoji
+    unlocked
   }
 `;
 
@@ -176,5 +200,20 @@ export const SET_PROFILE_IMAGE_MUTATION = gql`
       email
       imageUrl
     }
+  }
+`;
+
+export const ADD_COMMENT_MUTATION = gql`
+  ${COMMENT_FIELDS}
+  mutation AddComment($input: AddCommentInput!) {
+    addComment(input: $input) {
+      ...CommentFields
+    }
+  }
+`;
+
+export const DELETE_COMMENT_MUTATION = gql`
+  mutation DeleteComment($id: ID!) {
+    deleteComment(id: $id)
   }
 `;

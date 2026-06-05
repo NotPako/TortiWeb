@@ -10,6 +10,8 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Tortilla, TortillaDocument } from '@/models/Tortilla';
 import { Vote, VoteDocument, REACTIONS } from '@/models/Vote';
 import type { Reaction } from '@/models/Vote';
+import { Comment, CommentDocument } from '@/models/Comment';
+import { computeAchievements, type VoteForAchievements } from '@/lib/achievements';
 import {
   User,
   normalizeEmail,
@@ -240,6 +242,32 @@ async function computeUserStats(userKey: string) {
   }
   if (!foundFirstGap) currentStreak = runLength;
 
+  // Logros: necesitamos min/max por tortilla en las que votó el usuario.
+  const userTortillaIds = voteDocs
+    .filter((v) => v.tortilla)
+    .map((v) => v.tortilla._id as Types.ObjectId);
+  const userVotes: VoteForAchievements[] = voteDocs
+    .filter((v) => v.tortilla)
+    .map((v) => ({
+      tortillaId: (v.tortilla._id as Types.ObjectId).toString(),
+      score: v.score,
+    }));
+  const allRelevantVotesRaw = userTortillaIds.length
+    ? await Vote.find({ tortilla: { $in: userTortillaIds } })
+        .select('tortilla score')
+        .exec()
+    : [];
+  const allRelevantVotes = allRelevantVotesRaw.map((v) => ({
+    tortillaId: (v.tortilla as Types.ObjectId).toString(),
+    score: v.score,
+  }));
+  const achievements = computeAchievements({
+    totalVotes,
+    bestStreak,
+    userVotes,
+    allRelevantVotes,
+  });
+
   return {
     username,
     imageUrl,
@@ -249,6 +277,7 @@ async function computeUserStats(userKey: string) {
     bestStreak,
     bestVote,
     votes,
+    achievements,
   };
 }
 
@@ -409,6 +438,7 @@ export const resolvers = {
       if (!tortilla) throw new Error('Tortilla no encontrada.');
 
       await Vote.deleteMany({ tortilla: tortilla._id }).exec();
+      await Comment.deleteMany({ tortilla: tortilla._id }).exec();
 
       try {
         await getR2Client().send(
@@ -639,6 +669,76 @@ export const resolvers = {
         imageUrl: userImageUrl(user),
       };
     },
+
+    async addComment(
+      _: unknown,
+      args: { input: { tortillaId: string; text: string } },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      if (!ctx.session?.user || ctx.session.user.needsUsername) {
+        throw new Error('Debes iniciar sesión para comentar.');
+      }
+      if (!Types.ObjectId.isValid(args.input.tortillaId)) {
+        throw new Error('ID de tortilla inválido.');
+      }
+      const text = args.input.text.trim();
+      if (!text) throw new Error('El comentario no puede estar vacío.');
+      if (text.length > 500) {
+        throw new Error('El comentario no puede superar 500 caracteres.');
+      }
+
+      const tortilla = await Tortilla.findById(args.input.tortillaId)
+        .select('_id')
+        .exec();
+      if (!tortilla) throw new Error('Tortilla no encontrada.');
+
+      const userKey = ctx.session.user.usernameKey;
+      const userName = ctx.session.user.username;
+
+      const doc = await Comment.create({
+        tortilla: tortilla._id,
+        userKey,
+        userName,
+        text,
+      });
+
+      // Resolvemos la imagen del autor para mantener simetría con el resolver.
+      const userDoc = await User.findOne({ usernameKey: userKey })
+        .select('image imageKey')
+        .exec();
+      const imageUrl = userDoc ? userImageUrl(userDoc) : null;
+
+      return {
+        id: (doc._id as Types.ObjectId).toString(),
+        userName: doc.userName,
+        text: doc.text,
+        createdAt: doc.createdAt,
+        imageUrl,
+        isMine: true,
+      };
+    },
+
+    async deleteComment(
+      _: unknown,
+      args: { id: string },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      if (!ctx.session?.user || ctx.session.user.needsUsername) {
+        throw new Error('Debes iniciar sesión.');
+      }
+      if (!Types.ObjectId.isValid(args.id)) {
+        throw new Error('ID de comentario inválido.');
+      }
+      const doc = await Comment.findById(args.id).exec();
+      if (!doc) throw new Error('Comentario no encontrado.');
+      if (doc.userKey !== ctx.session.user.usernameKey) {
+        throw new Error('Sólo puedes borrar tus propios comentarios.');
+      }
+      await doc.deleteOne();
+      return true;
+    },
   },
 
   Tortilla: {
@@ -682,6 +782,31 @@ export const resolvers = {
         reaction: v.reaction ?? null,
         createdAt: v.createdAt,
       };
+    },
+
+    async comments(parent: ResolvedTortilla) {
+      await connectToDatabase();
+      const docs = await Comment.find({ tortilla: parent._id })
+        .sort({ createdAt: 1 })
+        .exec();
+      const keys = Array.from(new Set(docs.map((c) => c.userKey)));
+      const users = keys.length
+        ? await User.find({ usernameKey: { $in: keys } })
+            .select('usernameKey image imageKey')
+            .exec()
+        : [];
+      const imageByKey = new Map<string, string | null>(
+        users.map((u) => [u.usernameKey, userImageUrl(u)])
+      );
+      const myKey = parent._ctxUserKey;
+      return docs.map((c: CommentDocument) => ({
+        id: (c._id as Types.ObjectId).toString(),
+        userName: c.userName,
+        text: c.text,
+        createdAt: c.createdAt,
+        imageUrl: imageByKey.get(c.userKey) ?? null,
+        isMine: myKey === c.userKey,
+      }));
     },
   },
 };

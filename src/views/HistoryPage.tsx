@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
+import {
+  CommentsSection,
+  type CommentItem,
+} from '@/components/features/CommentsSection';
 import { Avatar, List, Modal, Segmented, Skeleton, Tag } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
@@ -44,6 +48,7 @@ type Vote = {
 
 type TortillaDetail = Tortilla & {
   votes: Vote[];
+  comments: CommentItem[];
 };
 
 function ScoreBadge({
@@ -93,7 +98,11 @@ export default function HistoryPage() {
     { skip: !userName }
   );
 
-  const { data: detailData, loading: detailLoading } = useQuery<{
+  const {
+    data: detailData,
+    loading: detailLoading,
+    refetch: refetchDetail,
+  } = useQuery<{
     tortilla: TortillaDetail | null;
   }>(TORTILLA_DETAIL_QUERY, {
     variables: { id: selectedId },
@@ -331,6 +340,13 @@ export default function HistoryPage() {
                 );
               }}
             />
+            <div className={styles.modalCommentsWrap}>
+              <CommentsSection
+                tortillaId={detail.id}
+                comments={detail.comments}
+                onChanged={() => refetchDetail()}
+              />
+            </div>
           </div>
         ) : null}
       </Modal>

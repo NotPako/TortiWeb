@@ -9,6 +9,10 @@ import type { RcFile } from 'antd/es/upload/interface';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { useProfileImageUpload } from '@/hooks/useProfileImageUpload';
+import {
+  AchievementsGrid,
+  type AchievementItem,
+} from '@/components/features/AchievementsGrid';
 import { MY_STATS_QUERY, USER_STATS_QUERY } from '@/graphql/operations';
 import styles from './ProfilePage.module.css';
 
@@ -45,6 +49,7 @@ type UserStats = {
   bestStreak: number;
   bestVote: PersonalVote | null;
   votes: PersonalVote[];
+  achievements: AchievementItem[];
 };
 
 type Props = {
@@ -221,6 +226,10 @@ export default function ProfilePage({ username }: Props = {}) {
           ) : null}
         </div>
       </div>
+
+      {stats.achievements.length > 0 ? (
+        <AchievementsGrid achievements={stats.achievements} />
+      ) : null}
 
       {stats.bestVote ? (
         <div className={styles.bestCard}>

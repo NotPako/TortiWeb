@@ -9,6 +9,10 @@
   text-decoration: underline !important;
 }
 
+.modalCommentsWrap {
+  margin-top: 16px;
+}
+
 .statusText {
   color: var(--color-tortilla-700);
 }

@@ -14,6 +14,19 @@ export const typeDefs = gql`
     voteCount: Int!
     votes: [Vote!]!
     myVote: Vote
+    comments: [Comment!]!
+  }
+
+  """Comentario de un usuario sobre una tortilla."""
+  type Comment {
+    id: ID!
+    userName: String!
+    text: String!
+    createdAt: Date!
+    """URL del avatar del autor, si está disponible."""
+    imageUrl: String
+    """True si el comentario lo escribió el usuario autenticado (puede borrarlo)."""
+    isMine: Boolean!
   }
 
   enum Reaction {
@@ -74,6 +87,17 @@ export const typeDefs = gql`
     bestStreak: Int!
     bestVote: PersonalVote
     votes: [PersonalVote!]!
+    """Lista de logros (siempre completa: incluye desbloqueados y bloqueados)."""
+    achievements: [Achievement!]!
+  }
+
+  """Logro desbloqueable por el usuario."""
+  type Achievement {
+    """Identificador estable para el frontend (clave i18n y emoji)."""
+    id: String!
+    """Emoji representativo."""
+    emoji: String!
+    unlocked: Boolean!
   }
 
   type Query {
@@ -123,6 +147,11 @@ export const typeDefs = gql`
     imageContentType: String!
   }
 
+  input AddCommentInput {
+    tortillaId: ID!
+    text: String!
+  }
+
   type Mutation {
     createTortilla(input: CreateTortillaInput!): Tortilla!
     castVote(input: CastVoteInput!): Vote!
@@ -134,5 +163,9 @@ export const typeDefs = gql`
     setUsername(username: String!): User!
     """Sube y asigna una foto de perfil al usuario autenticado."""
     setProfileImage(input: SetProfileImageInput!): User!
+    """Añade un comentario a una tortilla. Requiere sesión."""
+    addComment(input: AddCommentInput!): Comment!
+    """Elimina un comentario propio."""
+    deleteComment(id: ID!): Boolean!
   }
 `;
