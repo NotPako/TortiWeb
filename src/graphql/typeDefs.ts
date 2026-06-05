@@ -14,6 +14,10 @@ export const typeDefs = gql`
     voteCount: Int!
     votes: [Vote!]!
     myVote: Vote
+    """Fecha en que el admin cerró la votación manualmente (null si no se cerró)."""
+    closedAt: Date
+    """True si todavía se puede votar (mismo día y sin cierre manual)."""
+    votingOpen: Boolean!
     comments: [Comment!]!
   }
 
@@ -157,6 +161,8 @@ export const typeDefs = gql`
     castVote(input: CastVoteInput!): Vote!
     """Elimina una tortilla y todos sus votos. Requiere contraseña de admin."""
     deleteTortilla(id: ID!, adminPassword: String!): Boolean!
+    """Cierra manualmente la votación de una tortilla. Requiere contraseña de admin."""
+    closeTortillaVoting(id: ID!, adminPassword: String!): Tortilla!
     """Crea una cuenta con usuario+contraseña. Devuelve el usuario."""
     register(input: RegisterInput!): User!
     """Asigna un username a un usuario autenticado por Google sin username."""

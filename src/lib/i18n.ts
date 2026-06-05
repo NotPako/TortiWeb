@@ -76,6 +76,13 @@ const es = {
   'vote.update': 'Actualizar voto',
   'vote.send': 'Enviar voto',
   'vote.success': '¡Voto registrado!',
+  'vote.close.button': 'Cerrar votación',
+  'vote.close.closing': 'Cerrando…',
+  'vote.close.passwordPrompt':
+    'Introduce la contraseña de admin para cerrar la votación',
+  'vote.close.success': 'Votación cerrada.',
+  'vote.close.closedTitle': 'La votación está cerrada.',
+  'vote.close.yourFinalScore': 'Tu nota final fue {score}.',
 
   'history.title': 'Historial de tortillas',
   'history.loading': 'Cargando histórico…',
@@ -250,6 +257,13 @@ const ca: Record<DictKey, string> = {
   'vote.update': 'Actualitzar vot',
   'vote.send': 'Enviar vot',
   'vote.success': 'Vot registrat!',
+  'vote.close.button': 'Tancar votació',
+  'vote.close.closing': 'Tancant…',
+  'vote.close.passwordPrompt':
+    'Introdueix la contrasenya d\'admin per tancar la votació',
+  'vote.close.success': 'Votació tancada.',
+  'vote.close.closedTitle': 'La votació està tancada.',
+  'vote.close.yourFinalScore': 'La teva nota final va ser {score}.',
 
   'history.title': 'Històric de truites',
   'history.loading': 'Carregant històric…',

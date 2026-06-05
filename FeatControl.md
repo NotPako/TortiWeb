@@ -1,5 +1,16 @@
 # FeatControl
 
+## [2026-05-17] - Cierre manual de votación por el admin
+**Descripción**: El admin puede cerrar la votación de la tortilla actual en cualquier momento desde `/vote`. La tortilla guarda un timestamp `closedAt`; mientras está abierta se muestran los controles habituales y un enlace discreto "Cerrar votación" al pie de la tarjeta de voto; al pulsarlo, `window.prompt` pide la contraseña (misma UX que el borrado en `TortillaManager`). Una vez cerrada, **la tortilla desaparece de `/vote`** (la vista vuelve al estado "aún no hay tortilla") pero permanece en el histórico con todos sus datos, comentarios y reacciones. El backend rechaza nuevos votos en tortillas con `closedAt`. La mutation es idempotente. `votingOpen` queda definido sólo en función de `closedAt` (no de la fecha), coherente con el modelo "última subida = abierta hasta cerrar manualmente o subir otra" ya existente.
+**Archivos principales**:
+- `src/models/Tortilla.ts` (campo opcional `closedAt: Date`)
+- `src/graphql/typeDefs.ts` (campos `closedAt`, `votingOpen` en `Tortilla`; mutation `closeTortillaVoting`)
+- `src/graphql/resolvers.ts` (resolver `closeTortillaVoting` con check de contraseña, guard en `castVote`, `votingOpen` calculado en `tortillaPayload`)
+- `src/graphql/operations.ts` (campos en `TORTILLA_FIELDS`, `CLOSE_TORTILLA_VOTING_MUTATION`)
+- `src/views/VotePage.tsx` (controles condicionados a `votingOpen`, botón de cierre, aviso de cerrado)
+- `src/views/VotePage.module.css` (estilos `.closeLink` y `.closedNotice`)
+- `src/lib/i18n.ts` (claves `vote.close.*`, ES + CA)
+**Tecnologías**: Mongoose, Apollo `refetchQueries`, `window.prompt` (siguiendo convención de `TortillaManager`)
 ## [2026-05-17] - Sistema de logros en el perfil
 **Descripción**: Cada perfil (propio y ajeno) muestra una rejilla de logros con emoji + título. Los desbloqueados van en color, los pendientes en gris con tooltip "Aún no desbloqueado". Lista inicial de 10 logros: hitos de votos (1/10/50), rachas (3/5/10), 10 perfecto, 0 implacable, primera vez siendo el voto más bajo de una tortilla, primera vez siendo el más alto. Los logros se calculan en cada request a partir de votos del usuario y agregaciones de min/max por tortilla — no requieren persistencia adicional.
 **Archivos principales**:

@@ -19,6 +19,8 @@ export const TORTILLA_FIELDS = gql`
     imageUrl
     averageScore
     voteCount
+    closedAt
+    votingOpen
   }
 `;
 
@@ -169,6 +171,15 @@ export const CREATE_TORTILLA_MUTATION = gql`
 export const DELETE_TORTILLA_MUTATION = gql`
   mutation DeleteTortilla($id: ID!, $adminPassword: String!) {
     deleteTortilla(id: $id, adminPassword: $adminPassword)
+  }
+`;
+
+export const CLOSE_TORTILLA_VOTING_MUTATION = gql`
+  ${TORTILLA_FIELDS}
+  mutation CloseTortillaVoting($id: ID!, $adminPassword: String!) {
+    closeTortillaVoting(id: $id, adminPassword: $adminPassword) {
+      ...TortillaFields
+    }
   }
 `;
 
