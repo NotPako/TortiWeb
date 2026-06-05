@@ -8,6 +8,10 @@ import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { VoteSlider } from '@/components/VoteSlider';
 import { ReactionPicker } from '@/components/features/ReactionPicker';
+import {
+  CommentsSection,
+  type CommentItem,
+} from '@/components/features/CommentsSection';
 import type { Reaction } from '@/models/Vote';
 import {
   CAST_VOTE_MUTATION,
@@ -28,6 +32,7 @@ type Tortilla = {
   myVote: { id: string; score: number; reaction?: Reaction | null } | null;
   closedAt: string | null;
   votingOpen: boolean;
+  comments: CommentItem[];
 };
 
 export default function VotePage() {
@@ -149,6 +154,7 @@ export default function VotePage() {
   const isError = feedback?.startsWith(t('common.errorPrefix'));
 
   return (
+    <div className={styles.wrap}>
     <div className={styles.grid}>
       <div className={styles.imageCard}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -242,6 +248,13 @@ export default function VotePage() {
           </p>
         ) : null}
       </div>
+    </div>
+
+      <CommentsSection
+        tortillaId={tortilla.id}
+        comments={tortilla.comments}
+        onChanged={() => refetch()}
+      />
     </div>
   );
 }

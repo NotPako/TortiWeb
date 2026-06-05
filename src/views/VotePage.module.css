@@ -1,3 +1,9 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .grid {
   display: grid;
   gap: 16px;
