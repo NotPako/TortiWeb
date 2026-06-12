@@ -8,7 +8,7 @@ import {
   CommentsSection,
   type CommentItem,
 } from '@/components/features/CommentsSection';
-import { Avatar, List, Modal, Segmented, Skeleton, Tag } from 'antd';
+import { Avatar, List, Modal, Pagination, Segmented, Skeleton, Tag } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import {
@@ -82,12 +82,16 @@ function tagColorForScore(score: number): string {
   return 'red';
 }
 
+// 12 = múltiplo de las 2 y 3 columnas del grid: las páginas quedan completas.
+const PAGE_SIZE = 12;
+
 export default function HistoryPage() {
   const { userName, isReady } = useUser();
   const { t, locale } = useLanguage();
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (isReady && !userName) router.replace('/login');
@@ -128,6 +132,11 @@ export default function HistoryPage() {
     }
     return rawList;
   }, [rawList, sortBy]);
+
+  const pagedList = useMemo(
+    () => list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [list, page]
+  );
 
   function formatDate(date: string) {
     try {
@@ -182,7 +191,10 @@ export default function HistoryPage() {
         <h1 className={styles.title}>{t('history.title')}</h1>
         <Segmented
           value={sortBy}
-          onChange={(v) => setSortBy(v as 'date' | 'score')}
+          onChange={(v) => {
+            setSortBy(v as 'date' | 'score');
+            setPage(1);
+          }}
           options={[
             { label: t('history.sortByDate'), value: 'date' },
             { label: t('history.sortByScore'), value: 'score' },
@@ -190,7 +202,7 @@ export default function HistoryPage() {
         />
       </div>
       <div className={styles.grid}>
-        {list.map((tortilla) => (
+        {pagedList.map((tortilla) => (
           <button
             key={tortilla.id}
             type="button"
@@ -240,6 +252,20 @@ export default function HistoryPage() {
             </div>
           </button>
         ))}
+      </div>
+
+      <div className={styles.paginationRow}>
+        <Pagination
+          current={page}
+          pageSize={PAGE_SIZE}
+          total={list.length}
+          onChange={(p) => {
+            setPage(p);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          showSizeChanger={false}
+          hideOnSinglePage
+        />
       </div>
 
       <Modal

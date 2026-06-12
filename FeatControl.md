@@ -1,5 +1,12 @@
 # FeatControl
 
+## [2026-06-04] - Paginación en historial y listado de admin
+**Descripción**: Con la temporada 25/26 migrada (~30 tortillas) las listas crecieron demasiado. El historial pagina a 12 tortillas por página (múltiplo de las 2 y 3 columnas del grid, páginas siempre completas) con scroll suave al cambiar de página y reset a página 1 al cambiar la ordenación. El listado de tortillas del admin pagina a 8 por página (tamaño `small`) con clamp de página al borrar la última de la última página. Ambas usan paginación client-side (los datos ya llegan completos de `TORTILLAS_QUERY`) y se ocultan con una sola página.
+**Archivos principales**:
+- `src/views/HistoryPage.tsx` + `.module.css` (Pagination + `pagedList` + reset en Segmented)
+- `src/components/TortillaManager.tsx` + `.module.css` (Pagination small + clamp)
+**Tecnologías**: ANTD Pagination, useMemo
+
 ## [2026-06-04] - Rebranding visual (variación "Limpio") de la pantalla Votar
 **Descripción**: Aplicación del rebranding pixel-perfect de TortiWeb basado en el handoff de Claude Design (variación 1 "Limpio"). Estrena pareja tipográfica geométrica (Space Grotesk + Manrope), nueva paleta ámbar+ink, brandmark SVG propio de tortilla (jubilando el emoji 🍳), top bar con nav pill, switcher de idioma pill segmentado y avatar circular con gradiente cálido. Pantalla `/vote` rediseñada con grid de 2 columnas (foto + identidad / panel de votación), eyebrow con punto ámbar, slider pointer-driven custom con stepper ±0.1, chips de reacción tipo pill, botón primario ink con sombra cálida y feedback verde "✓ Voto registrado" al enviar. Mantiene toda la funcionalidad existente (comentarios, cierre manual, reacciones, etc.).
 **Archivos principales**:

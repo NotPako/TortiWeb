@@ -29,6 +29,11 @@
   gap: 12px;
 }
 
+.paginationRow {
+  display: flex;
+  justify-content: center;
+}
+
 .title {
   font-size: 24px;
   font-weight: 700;
