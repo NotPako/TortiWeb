@@ -25,6 +25,12 @@
   margin-bottom: 16px;
 }
 
+.paginationRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
 .statusText {
   color: var(--color-tortilla-700);
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
-import { Skeleton } from 'antd';
+import { Pagination, Skeleton } from 'antd';
 import {
   CURRENT_TORTILLA_QUERY,
   DELETE_TORTILLA_MUTATION,
@@ -20,10 +20,13 @@ type Tortilla = {
   voteCount: number;
 };
 
+const PAGE_SIZE = 8;
+
 export function TortillaManager() {
   const { t, locale } = useLanguage();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const { data, loading, error } = useQuery<{ tortillas: Tortilla[] }>(
     TORTILLAS_QUERY
@@ -74,6 +77,14 @@ export function TortillaManager() {
   const isError = feedback?.startsWith(t('common.errorPrefix'));
   const list = data?.tortillas ?? [];
 
+  // Clamp: al borrar la última tortilla de la última página, retrocede sola.
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedList = useMemo(
+    () => list.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [list, currentPage]
+  );
+
   return (
     <section className={styles.section}>
       <h2 className={styles.title}>{t('admin.manage.title')}</h2>
@@ -89,7 +100,7 @@ export function TortillaManager() {
         <p className={styles.emptyText}>{t('admin.manage.empty')}</p>
       ) : (
         <ul className={styles.list}>
-          {list.map((tortilla) => (
+          {pagedList.map((tortilla) => (
             <li key={tortilla.id} className={styles.item}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -125,6 +136,19 @@ export function TortillaManager() {
           ))}
         </ul>
       )}
+
+      {list.length > PAGE_SIZE ? (
+        <div className={styles.paginationRow}>
+          <Pagination
+            current={currentPage}
+            pageSize={PAGE_SIZE}
+            total={list.length}
+            onChange={setPage}
+            showSizeChanger={false}
+            size="small"
+          />
+        </div>
+      ) : null}
 
       {feedback ? (
         <p
