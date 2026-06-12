@@ -7,6 +7,7 @@ import { Avatar } from 'antd';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { Brand } from './Brand';
 import { ME_QUERY } from '@/graphql/operations';
 import styles from './NavBar.module.css';
 
@@ -19,8 +20,6 @@ export function NavBar() {
   const { userName, userImage, signOut, isReady } = useUser();
   const { t } = useLanguage();
 
-  // La sesión JWT puede tener la imagen desactualizada (no se refresca en cada
-  // request). Consultamos `me` para obtener siempre la imagen vigente en DB.
   const { data: meData } = useQuery<MeQueryResult>(ME_QUERY, {
     skip: !isReady || !userName,
     fetchPolicy: 'cache-and-network',
@@ -30,53 +29,16 @@ export function NavBar() {
   const links = [
     { href: '/vote', labelKey: 'nav.vote' as const },
     { href: '/history', labelKey: 'nav.history' as const },
+    { href: '/profile', labelKey: 'nav.profile' as const },
     { href: '/admin', labelKey: 'nav.admin' as const },
   ];
 
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
-        <Link href="/" className={styles.brand}>
-          <span className={styles.brandIcon} aria-hidden>
-            🍳
-          </span>
-          <span className={styles.brandText}>{t('app.title')}</span>
+        <Link href="/" className={styles.brandLink} aria-label={t('app.title')}>
+          <Brand size={30} />
         </Link>
-
-        <div className={styles.right}>
-          <LanguageSwitcher />
-          {isReady && userName ? (
-            <div className={styles.greeting}>
-              <Link href="/profile" className={styles.userName}>
-                {t('nav.greetingPrefix')} <strong>{userName}</strong>
-              </Link>
-              <Link
-                href="/profile"
-                className={styles.avatarLink}
-                aria-label={t('profile.title')}
-              >
-                <Avatar
-                  src={avatarSrc}
-                  size={32}
-                  style={{
-                    backgroundColor: 'var(--color-tortilla-500)',
-                    color: 'white',
-                    fontWeight: 600,
-                  }}
-                >
-                  {userName.charAt(0).toUpperCase()}
-                </Avatar>
-              </Link>
-              <button onClick={signOut} className={styles.linkButton}>
-                {t('nav.signOut')}
-              </button>
-            </div>
-          ) : (
-            <Link href="/login" className={styles.linkButton}>
-              {t('nav.signIn')}
-            </Link>
-          )}
-        </div>
 
         <nav className={styles.nav}>
           {links.map((l) => {
@@ -91,6 +53,51 @@ export function NavBar() {
             );
           })}
         </nav>
+
+        <div className={styles.right}>
+          {isReady && userName ? (
+            <>
+              <span className={styles.greeting}>
+                {t('nav.greetingPrefix')}{' '}
+                <strong className={styles.userName}>{userName}</strong>
+              </span>
+              <LanguageSwitcher />
+              <Link
+                href="/profile"
+                className={styles.avatarLink}
+                aria-label={t('profile.title')}
+              >
+                <Avatar
+                  src={avatarSrc}
+                  size={34}
+                  style={{
+                    background:
+                      'linear-gradient(135deg, var(--c-amber-lite), var(--c-amber-deep))',
+                    color: 'white',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                  }}
+                >
+                  {userName.charAt(0).toUpperCase()}
+                </Avatar>
+              </Link>
+              <button
+                onClick={signOut}
+                className={styles.signOut}
+                aria-label={t('nav.signOut')}
+              >
+                {t('nav.signOut')}
+              </button>
+            </>
+          ) : (
+            <>
+              <LanguageSwitcher />
+              <Link href="/login" className={styles.signIn}>
+                {t('nav.signIn')}
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

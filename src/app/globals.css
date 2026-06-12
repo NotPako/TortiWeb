@@ -1,19 +1,37 @@
 /* === Theme tokens (CSS custom properties) === */
 :root {
-  /* Tortilla palette */
-  --color-tortilla-50: #fff8e6;
-  --color-tortilla-100: #ffeec2;
-  --color-tortilla-200: #ffdb85;
+  /* === Rebrand palette === */
+  --c-ink: #1c1407;
+  --c-ink-soft: #574a36;
+  --c-muted: #9c8c72;
+  --c-faint: #bcae97;
+  --c-line: #efe5d4;
+  --c-line-soft: #f6efe2;
+  --c-paper: #fffdf8;
+  --c-surface: #ffffff;
+  --c-amber: #f59300;
+  --c-amber-deep: #db7c00;
+  --c-amber-dark: #a85c00;
+  --c-amber-lite: #ffb43c;
+  --c-amber-50: #fff8ec;
+  --c-amber-100: #ffeccb;
+  --c-amber-200: #ffd88c;
+  --c-success: #1f7a43;
+
+  /* === Legacy palette (kept for backwards compatibility) === */
+  --color-tortilla-50: var(--c-amber-50);
+  --color-tortilla-100: var(--c-amber-100);
+  --color-tortilla-200: var(--c-amber-200);
   --color-tortilla-300: #ffc347;
-  --color-tortilla-400: #ffae1f;
-  --color-tortilla-500: #f59300;
-  --color-tortilla-600: #cc7300;
-  --color-tortilla-700: #a25400;
-  --color-tortilla-800: #7a3e00;
+  --color-tortilla-400: var(--c-amber-lite);
+  --color-tortilla-500: var(--c-amber);
+  --color-tortilla-600: var(--c-amber-deep);
+  --color-tortilla-700: var(--c-amber-dark);
+  --color-tortilla-800: var(--c-ink);
   --color-tortilla-900: #5a2d00;
 
   /* Status colors */
-  --color-success-fg: #166534;
+  --color-success-fg: var(--c-success);
   --color-success-bg: #dcfce7;
   --color-warning-fg: #854d0e;
   --color-warning-bg: #fef9c3;
@@ -22,18 +40,22 @@
   --color-danger-border: #fecaca;
 
   /* Foundation */
-  --color-text: #1f1300;
-  --color-bg: #ffffff;
-  --font-sans: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto,
-    sans-serif;
+  --color-text: var(--c-ink);
+  --color-bg: var(--c-paper);
+  --font-display: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  --font-ui: var(--font-manrope), 'Manrope', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: var(--font-ui);
 
   /* Tokens */
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 9px;
+  --radius: 13px;
+  --radius-lg: 18px;
   --radius-xl: 20px;
   --radius-full: 9999px;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-cta: 0 6px 18px rgba(28, 20, 7, 0.22);
+  --shadow-thumb: 0 2px 6px rgba(120, 70, 0, 0.28);
 
   color-scheme: light;
 }
@@ -53,22 +75,16 @@ body {
 }
 
 html {
-  /* Mejor experiencia en touch al hacer scroll dentro de elementos */
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: linear-gradient(
-    180deg,
-    var(--color-tortilla-50) 0%,
-    var(--color-bg) 60%
-  );
+  background: var(--c-paper);
   color: var(--color-text);
-  font-family: var(--font-sans);
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   font-size: 16px;
   line-height: 1.5;
-  /* Evita rebote raro en iOS Safari */
   overscroll-behavior-y: none;
 }
 
@@ -102,7 +118,11 @@ h2,
 h3,
 h4,
 h5,
-h6,
+h6 {
+  margin: 0;
+  font-family: var(--font-display);
+}
+
 p {
   margin: 0;
 }

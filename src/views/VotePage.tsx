@@ -7,12 +7,14 @@ import { Skeleton } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { VoteSlider } from '@/components/VoteSlider';
+import { AvgPill } from '@/components/AvgPill';
 import { ReactionPicker } from '@/components/features/ReactionPicker';
 import {
   CommentsSection,
   type CommentItem,
 } from '@/components/features/CommentsSection';
 import type { Reaction } from '@/models/Vote';
+import { fmt } from '@/lib/format';
 import {
   CAST_VOTE_MUTATION,
   CLOSE_TORTILLA_VOTING_MUTATION,
@@ -42,6 +44,7 @@ export default function VotePage() {
   const [score, setScore] = useState(7);
   const [reaction, setReaction] = useState<Reaction | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (isReady && !userName) router.replace('/login');
@@ -97,15 +100,18 @@ export default function VotePage() {
     }
   }
 
-  const formattedDate = useMemo(() => {
+  const eyebrowDate = useMemo(() => {
     if (!tortilla) return '';
     try {
-      return new Date(tortilla.date).toLocaleDateString(locale, {
-        weekday: 'long',
+      const d = new Date(tortilla.date);
+      const weekday = d
+        .toLocaleDateString(locale, { weekday: 'short' })
+        .replace('.', '');
+      const day = d.toLocaleDateString(locale, {
         day: 'numeric',
-        month: 'long',
-        year: 'numeric',
+        month: 'short',
       });
+      return `${weekday} · ${day}`;
     } catch {
       return tortilla.date;
     }
@@ -120,7 +126,8 @@ export default function VotePage() {
           input: { tortillaId: tortilla.id, score, reaction },
         },
       });
-      setFeedback(t('vote.success'));
+      setSubmitted(true);
+      window.setTimeout(() => setSubmitted(false), 2400);
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';
       setFeedback(`${t('common.errorPrefix')}: ${msg}`);
@@ -152,103 +159,121 @@ export default function VotePage() {
   }
 
   const isError = feedback?.startsWith(t('common.errorPrefix'));
+  const hint = tortilla.myVote
+    ? t('vote.alreadyVoted', { score: fmt(tortilla.myVote.score) })
+    : t('vote.helper');
 
   return (
-    <div className={styles.wrap}>
-    <div className={styles.grid}>
-      <div className={styles.imageCard}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={tortilla.imageUrl}
-          alt={tortilla.name}
-          className={styles.image}
-        />
-        <div className={styles.imageBody}>
-          <h2 className={styles.tortillaName}>{tortilla.name}</h2>
-          <p className={styles.dateText}>{formattedDate}</p>
+    <div className={styles.page}>
+      <div className={styles.grid}>
+        {/* Columna izquierda: identidad de la tortilla */}
+        <div className={styles.identityCol}>
+          <div className={styles.eyebrow}>
+            <span className={styles.eyebrowDot} aria-hidden />
+            <span className={styles.eyebrowText}>
+              {eyebrowDate} · {t('vote.eyebrow')}
+            </span>
+          </div>
+
+          <div className={styles.photoWrap}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={tortilla.imageUrl}
+              alt={tortilla.name}
+              className={styles.photo}
+            />
+          </div>
+
+          <h1 className={styles.title}>{tortilla.name}</h1>
+
+          <AvgPill
+            average={tortilla.averageScore}
+            voteCount={tortilla.voteCount}
+            size="lg"
+          />
+
           {tortilla.description ? (
             <p className={styles.description}>{tortilla.description}</p>
           ) : null}
-          <div className={styles.metaRow}>
-            <span>
-              {t('vote.average')}{' '}
-              <strong>
-                {tortilla.averageScore !== null
-                  ? tortilla.averageScore.toFixed(2)
-                  : '—'}
-              </strong>
-            </span>
-            <span>
-              {t('vote.votes')} <strong>{tortilla.voteCount}</strong>
-            </span>
-          </div>
+        </div>
+
+        {/* Columna derecha: panel de votación */}
+        <div className={styles.votePanel}>
+          <h2 className={styles.panelTitle}>{t('vote.title')}</h2>
+
+          {tortilla.votingOpen ? (
+            <>
+              <VoteSlider
+                value={score}
+                onChange={setScore}
+                disabled={voting}
+                hint={hint}
+              />
+
+              <div className={styles.divider} />
+
+              <ReactionPicker
+                value={reaction}
+                onChange={setReaction}
+                disabled={voting}
+              />
+
+              <button
+                type="button"
+                className={
+                  submitted
+                    ? `${styles.cta} ${styles.ctaSuccess}`
+                    : styles.cta
+                }
+                onClick={handleSubmit}
+                disabled={voting}
+              >
+                {submitted
+                  ? `✓ ${t('vote.success')}`
+                  : voting
+                    ? t('vote.submitting')
+                    : tortilla.myVote
+                      ? t('vote.update')
+                      : t('vote.send')}
+              </button>
+
+              <button
+                type="button"
+                className={styles.closeLink}
+                onClick={handleClose}
+                disabled={closing}
+              >
+                {closing ? t('vote.close.closing') : t('vote.close.button')}
+              </button>
+            </>
+          ) : (
+            <div className={styles.closedNotice}>
+              <p className={styles.closedTitle}>
+                {t('vote.close.closedTitle')}
+              </p>
+              {tortilla.myVote ? (
+                <p className={styles.closedHint}>
+                  {t('vote.close.yourFinalScore', {
+                    score: fmt(tortilla.myVote.score),
+                  })}
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {feedback ? (
+            <p
+              className={
+                isError
+                  ? `${styles.feedback} ${styles.feedbackError}`
+                  : `${styles.feedback} ${styles.feedbackSuccess}`
+              }
+            >
+              {feedback}
+            </p>
+          ) : null}
         </div>
       </div>
-
-      <div className={styles.voteCard}>
-        <h3 className={styles.voteTitle}>{t('vote.title')}</h3>
-        {tortilla.votingOpen ? (
-          <>
-            {tortilla.myVote ? (
-              <p className={styles.voteHelper}>
-                {t('vote.alreadyVoted', {
-                  score: tortilla.myVote.score.toFixed(1),
-                })}
-              </p>
-            ) : (
-              <p className={styles.voteHelper}>{t('vote.helper')}</p>
-            )}
-            <VoteSlider value={score} onChange={setScore} disabled={voting} />
-            <ReactionPicker
-              value={reaction}
-              onChange={setReaction}
-              disabled={voting}
-            />
-            <button
-              className={styles.voteButton}
-              onClick={handleSubmit}
-              disabled={voting}
-            >
-              {voting
-                ? t('vote.submitting')
-                : tortilla.myVote
-                  ? t('vote.update')
-                  : t('vote.send')}
-            </button>
-            <button
-              type="button"
-              className={styles.closeLink}
-              onClick={handleClose}
-              disabled={closing}
-            >
-              {closing ? t('vote.close.closing') : t('vote.close.button')}
-            </button>
-          </>
-        ) : (
-          <div className={styles.closedNotice}>
-            <p className={styles.closedTitle}>{t('vote.close.closedTitle')}</p>
-            {tortilla.myVote ? (
-              <p className={styles.voteHelper}>
-                {t('vote.close.yourFinalScore', {
-                  score: tortilla.myVote.score.toFixed(1),
-                })}
-              </p>
-            ) : null}
-          </div>
-        )}
-        {feedback ? (
-          <p
-            className={
-              isError
-                ? `${styles.feedback} ${styles.feedbackError}`
-                : `${styles.feedback} ${styles.feedbackSuccess}`
-            }
-          >
-            {feedback}
-          </p>
-        ) : null}
-      </div>
-    </div>
 
       <CommentsSection
         tortillaId={tortilla.id}

@@ -1,33 +1,62 @@
 .wrap {
   display: flex;
   flex-direction: column;
+  gap: 11px;
+}
+
+.eyebrow {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.label {
-  font-size: 13px;
-  color: var(--color-tortilla-600);
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1.5px solid var(--c-line);
+  background: var(--c-surface);
+  color: var(--c-ink-soft);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13.5px;
+  transition:
+    border-color 0.14s,
+    background-color 0.14s,
+    color 0.14s;
 }
 
-.btn {
-  flex: 1;
-  height: auto !important;
-  padding: 8px 4px !important;
-  display: inline-flex !important;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  white-space: normal;
+.chip:hover:not(:disabled) {
+  border-color: var(--c-amber-200);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chipActive {
+  border-color: var(--c-amber);
+  background: var(--c-amber-50);
+  color: var(--c-amber-dark);
 }
 
 .emoji {
-  font-size: 22px;
+  font-size: 15px;
   line-height: 1;
 }
 
-.btnLabel {
-  font-size: 11px;
-  line-height: 1.2;
-  text-align: center;
+.label {
+  line-height: 1;
 }

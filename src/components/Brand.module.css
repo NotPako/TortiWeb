@@ -1,0 +1,17 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--wordmark-size);
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+  line-height: 1;
+}
+
+.wordmarkAccent {
+  color: var(--c-amber-deep);
+}
