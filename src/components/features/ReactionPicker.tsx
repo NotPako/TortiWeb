@@ -1,6 +1,5 @@
 'use client';
 
-import { Button, Space } from 'antd';
 import { useLanguage } from '@/components/LanguageContext';
 import type { Reaction } from '@/models/Vote';
 import styles from './ReactionPicker.module.css';
@@ -29,27 +28,34 @@ export function ReactionPicker({ value, onChange, disabled = false }: Props) {
   const { t } = useLanguage();
 
   function handleClick(r: Reaction) {
+    if (disabled) return;
     onChange(value === r ? null : r);
   }
 
   return (
     <div className={styles.wrap}>
-      <p className={styles.label}>{t('reaction.label')}</p>
-      <Space.Compact block>
-        {OPTIONS.map((opt) => (
-          <Button
-            key={opt.value}
-            type={value === opt.value ? 'primary' : 'default'}
-            disabled={disabled}
-            onClick={() => handleClick(opt.value)}
-            aria-pressed={value === opt.value}
-            className={styles.btn}
-          >
-            <span className={styles.emoji}>{opt.emoji}</span>
-            <span className={styles.btnLabel}>{t(opt.labelKey)}</span>
-          </Button>
-        ))}
-      </Space.Compact>
+      <p className={styles.eyebrow}>{t('reaction.label')}</p>
+      <div className={styles.chips}>
+        {OPTIONS.map((opt) => {
+          const active = value === opt.value;
+          const className = active
+            ? `${styles.chip} ${styles.chipActive}`
+            : styles.chip;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              disabled={disabled}
+              onClick={() => handleClick(opt.value)}
+              aria-pressed={active}
+              className={className}
+            >
+              <span className={styles.emoji}>{opt.emoji}</span>
+              <span className={styles.label}>{t(opt.labelKey)}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -26,10 +26,14 @@ const es = {
 
   'nav.vote': 'Votar',
   'nav.history': 'Historial',
+  'nav.profile': 'Perfil',
   'nav.admin': 'Admin',
   'nav.greetingPrefix': 'Hola,',
   'nav.signOut': 'Salir',
   'nav.signIn': 'Identificarse',
+
+  'avg.suffix': '/10 media',
+  'vote.eyebrow': 'Tortilla del día',
 
   'login.nameLabel': 'Tu nombre',
   'login.namePlaceholder': 'Ej: Pako',
@@ -207,10 +211,14 @@ const ca: Record<DictKey, string> = {
 
   'nav.vote': 'Votar',
   'nav.history': 'Històric',
+  'nav.profile': 'Perfil',
   'nav.admin': 'Admin',
   'nav.greetingPrefix': 'Hola,',
   'nav.signOut': 'Sortir',
   'nav.signIn': 'Identificar-se',
+
+  'avg.suffix': '/10 mitjana',
+  'vote.eyebrow': 'Truita del dia',
 
   'login.nameLabel': 'El teu nom',
   'login.namePlaceholder': 'Ex: Pako',

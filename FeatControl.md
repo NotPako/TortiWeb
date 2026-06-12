@@ -1,5 +1,22 @@
 # FeatControl
 
+## [2026-06-04] - Rebranding visual (variación "Limpio") de la pantalla Votar
+**Descripción**: Aplicación del rebranding pixel-perfect de TortiWeb basado en el handoff de Claude Design (variación 1 "Limpio"). Estrena pareja tipográfica geométrica (Space Grotesk + Manrope), nueva paleta ámbar+ink, brandmark SVG propio de tortilla (jubilando el emoji 🍳), top bar con nav pill, switcher de idioma pill segmentado y avatar circular con gradiente cálido. Pantalla `/vote` rediseñada con grid de 2 columnas (foto + identidad / panel de votación), eyebrow con punto ámbar, slider pointer-driven custom con stepper ±0.1, chips de reacción tipo pill, botón primario ink con sombra cálida y feedback verde "✓ Voto registrado" al enviar. Mantiene toda la funcionalidad existente (comentarios, cierre manual, reacciones, etc.).
+**Archivos principales**:
+- `src/app/globals.css` (nuevos tokens `--c-*` y mapeo legacy)
+- `src/app/layout.tsx` (carga `Space_Grotesk` + `Manrope` vía `next/font`)
+- `src/components/Brand.tsx` + `Brand.module.css` (SVG `Brandmark` + wordmark)
+- `src/components/NavBar.tsx` + `.module.css` (top bar restyled, nav pill, avatar gradiente)
+- `src/components/LanguageSwitcher.module.css` (pill segmented control ámbar)
+- `src/components/VoteSlider.tsx` + `.module.css` (pointer-driven, stepper, big number, marks 0/10)
+- `src/components/AvgPill.tsx` + `.module.css` (chip de media "8,4 /10 media · 12 votos")
+- `src/components/features/ReactionPicker.tsx` + `.module.css` (chips pill con eyebrow caps)
+- `src/views/VotePage.tsx` + `.module.css` (layout 2 columnas, eyebrow, CTA con feedback éxito)
+- `src/lib/format.ts` (helper `fmt` para decimales con coma)
+- `src/lib/i18n.ts` (`nav.profile`, `avg.suffix`, `vote.eyebrow`)
+**Tecnologías**: `next/font/google` (Space Grotesk, Manrope), CSS Modules, SVG inline con `useId`, pointer events nativos para el slider custom.
+**Notas**: Variables CSS legacy `--color-tortilla-*` se mantienen aliasadas para que el resto de páginas (history/admin/profile/login) sigan funcionando sin tocarse. El rebranding se aplica solo a la pantalla `/vote` y a la `NavBar` global.
+
 ## [2026-05-17] - Cierre manual de votación por el admin
 **Descripción**: El admin puede cerrar la votación de la tortilla actual en cualquier momento desde `/vote`. La tortilla guarda un timestamp `closedAt`; mientras está abierta se muestran los controles habituales y un enlace discreto "Cerrar votación" al pie de la tarjeta de voto; al pulsarlo, `window.prompt` pide la contraseña (misma UX que el borrado en `TortillaManager`). Una vez cerrada, **la tortilla desaparece de `/vote`** (la vista vuelve al estado "aún no hay tortilla") pero permanece en el histórico con todos sus datos, comentarios y reacciones. El backend rechaza nuevos votos en tortillas con `closedAt`. La mutation es idempotente. `votingOpen` queda definido sólo en función de `closedAt` (no de la fecha), coherente con el modelo "última subida = abierta hasta cerrar manualmente o subir otra" ya existente.
 **Archivos principales**:
