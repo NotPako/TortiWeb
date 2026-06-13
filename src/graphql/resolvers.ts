@@ -116,6 +116,21 @@ function sessionUserKey(session: Session | null): string | null {
   return session.user.usernameKey;
 }
 
+/**
+ * Exige que el usuario autenticado sea admin. La sesión transporta el rol, pero
+ * lo reverificamos contra la BD para que un cambio de rol (p. ej. vía
+ * `scripts/grant-admin.mjs`) surta efecto sin esperar a que caduque el JWT.
+ */
+async function requireAdmin(ctx: GqlContext): Promise<void> {
+  if (!ctx.session?.user || ctx.session.user.needsUsername) {
+    throw new Error('Debes iniciar sesión.');
+  }
+  const user = await User.findById(ctx.session.user.id).select('role').exec();
+  if (!user || user.role !== 'admin') {
+    throw new Error('No tienes permisos de administrador.');
+  }
+}
+
 async function tortillaPayload(
   doc: TortillaDocument,
   userKey: string | null
@@ -364,20 +379,12 @@ export const resolvers = {
           imageBase64: string;
           imageContentType: string;
           date?: string | Date | null;
-          adminPassword: string;
         };
-      }
+      },
+      ctx: GqlContext
     ) {
       await connectToDatabase();
-      const expected = process.env.ADMIN_PASSWORD;
-      if (!expected) {
-        throw new Error(
-          'ADMIN_PASSWORD no está configurada en el servidor.'
-        );
-      }
-      if (args.input.adminPassword !== expected) {
-        throw new Error('Contraseña de admin incorrecta.');
-      }
+      await requireAdmin(ctx);
 
       const buffer = decodeBase64Image(args.input.imageBase64);
       if (buffer.length === 0) {
@@ -428,18 +435,11 @@ export const resolvers = {
 
     async deleteTortilla(
       _: unknown,
-      args: { id: string; adminPassword: string }
+      args: { id: string },
+      ctx: GqlContext
     ) {
       await connectToDatabase();
-      const expected = process.env.ADMIN_PASSWORD;
-      if (!expected) {
-        throw new Error(
-          'ADMIN_PASSWORD no está configurada en el servidor.'
-        );
-      }
-      if (args.adminPassword !== expected) {
-        throw new Error('Contraseña de admin incorrecta.');
-      }
+      await requireAdmin(ctx);
       if (!Types.ObjectId.isValid(args.id)) {
         throw new Error('ID de tortilla inválido.');
       }
@@ -467,19 +467,11 @@ export const resolvers = {
 
     async closeTortillaVoting(
       _: unknown,
-      args: { id: string; adminPassword: string },
+      args: { id: string },
       ctx: GqlContext
     ) {
       await connectToDatabase();
-      const expected = process.env.ADMIN_PASSWORD;
-      if (!expected) {
-        throw new Error(
-          'ADMIN_PASSWORD no está configurada en el servidor.'
-        );
-      }
-      if (args.adminPassword !== expected) {
-        throw new Error('Contraseña de admin incorrecta.');
-      }
+      await requireAdmin(ctx);
       if (!Types.ObjectId.isValid(args.id)) {
         throw new Error('ID de tortilla inválido.');
       }

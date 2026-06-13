@@ -1,5 +1,23 @@
 # FeatControl
 
+## [2026-06-13] - Roles de usuario (admin) en lugar de contraseña de admin
+**Descripción**: Sustitución del esquema de `ADMIN_PASSWORD` (una contraseña compartida vía env, pedida con `window.prompt`/campo de formulario en cada acción) por un rol persistido en la cuenta. `User.role` (`'user' | 'admin'`, default `'user'`) es la única fuente de verdad. El rol viaja en el JWT/sesión de NextAuth, y el frontend lo expone vía `useUser().isAdmin`: la NavBar oculta el enlace `/admin`, la página `/admin` redirige a `/` a los no-admin, y el botón "Cerrar votación" de `/vote` solo se muestra a admins. En servidor, las mutaciones `createTortilla`/`deleteTortilla`/`closeTortillaVoting` usan el helper `requireAdmin(ctx)`, que **revalida el rol contra la BD** en cada llamada (un cambio de rol surte efecto en cuanto el usuario recarga sesión, sin esperar a que caduque el JWT). El argumento `adminPassword` desaparece del schema GraphQL y de las operaciones. El primer admin se asigna con el script nuevo `scripts/grant-admin.mjs`.
+**Archivos principales**:
+- `src/models/User.ts` (campo `role` + tipo `UserRole`)
+- `src/types/next-auth.d.ts` (`role` en `Session.user` y `JWT`)
+- `src/lib/auth.ts` (`token.role`/`session.user.role` desde DB)
+- `src/components/UserContext.tsx` (`isAdmin` en `useUser`)
+- `src/graphql/typeDefs.ts` (quitado `adminPassword` de input y args)
+- `src/graphql/resolvers.ts` (helper `requireAdmin`, 3 mutaciones migradas)
+- `src/graphql/operations.ts` (mutaciones sin `adminPassword`)
+- `src/views/AdminPage.tsx` (sin campo contraseña, gating por `isAdmin`)
+- `src/components/TortillaManager.tsx`, `src/views/VotePage.tsx` (sin `window.prompt`; cierre solo admin)
+- `src/components/NavBar.tsx` (enlace `/admin` condicionado a `isAdmin`)
+- `src/lib/i18n.ts` (eliminadas claves `*.passwordPrompt`, `admin.passLabel`, `admin.errors.passRequired`, ES + CA)
+- `scripts/grant-admin.mjs` (otorga/revoca admin por usuario, dry-run + `--execute`)
+**Tecnologías**: NextAuth JWT/session callbacks, Mongoose enum field, Apollo
+**Notas**: La variable de entorno `ADMIN_PASSWORD` queda obsoleta y puede retirarse del despliegue. El rol se gestiona en BD; para sembrar el primer admin: `node scripts/grant-admin.mjs <usuario> --execute`.
+
 ## [2026-06-04] - Paginación en historial y listado de admin
 **Descripción**: Con la temporada 25/26 migrada (~30 tortillas) las listas crecieron demasiado. El historial pagina a 12 tortillas por página (múltiplo de las 2 y 3 columnas del grid, páginas siempre completas) con scroll suave al cambiar de página y reset a página 1 al cambiar la ordenación. El listado de tortillas del admin pagina a 8 por página (tamaño `small`) con clamp de página al borrar la última de la última página. Ambas usan paginación client-side (los datos ya llegan completos de `TORTILLAS_QUERY`) y se ocultan con una sola página.
 **Archivos principales**:

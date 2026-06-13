@@ -17,7 +17,7 @@ type MeQueryResult = {
 
 export function NavBar() {
   const pathname = usePathname();
-  const { userName, userImage, signOut, isReady } = useUser();
+  const { userName, userImage, signOut, isReady, isAdmin } = useUser();
   const { t } = useLanguage();
 
   const { data: meData } = useQuery<MeQueryResult>(ME_QUERY, {
@@ -30,7 +30,9 @@ export function NavBar() {
     { href: '/vote', labelKey: 'nav.vote' as const },
     { href: '/history', labelKey: 'nav.history' as const },
     { href: '/profile', labelKey: 'nav.profile' as const },
-    { href: '/admin', labelKey: 'nav.admin' as const },
+    ...(isAdmin
+      ? [{ href: '/admin', labelKey: 'nav.admin' as const }]
+      : []),
   ];
 
   return (
