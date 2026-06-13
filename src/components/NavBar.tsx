@@ -40,19 +40,21 @@ export function NavBar() {
           <Brand size={30} />
         </Link>
 
-        <nav className={styles.nav}>
-          {links.map((l) => {
-            const active = pathname === l.href;
-            const linkClass = active
-              ? `${styles.navLink} ${styles.navLinkActive}`
-              : styles.navLink;
-            return (
-              <Link key={l.href} href={l.href} className={linkClass}>
-                {t(l.labelKey)}
-              </Link>
-            );
-          })}
-        </nav>
+        {isReady && userName ? (
+          <nav className={styles.nav}>
+            {links.map((l) => {
+              const active = pathname === l.href;
+              const linkClass = active
+                ? `${styles.navLink} ${styles.navLinkActive}`
+                : styles.navLink;
+              return (
+                <Link key={l.href} href={l.href} className={linkClass}>
+                  {t(l.labelKey)}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : null}
 
         <div className={styles.right}>
           {isReady && userName ? (
