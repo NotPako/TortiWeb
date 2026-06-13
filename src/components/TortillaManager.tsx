@@ -57,13 +57,10 @@ export function TortillaManager() {
     const confirmText = t('admin.manage.confirm', { name: tortilla.name });
     if (!window.confirm(confirmText)) return;
 
-    const password = window.prompt(t('admin.manage.passwordPrompt'));
-    if (!password) return;
-
     setDeletingId(tortilla.id);
     try {
       await deleteTortilla({
-        variables: { id: tortilla.id, adminPassword: password },
+        variables: { id: tortilla.id },
       });
       setFeedback(t('admin.manage.deleted'));
     } catch (err) {

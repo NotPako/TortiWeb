@@ -1,11 +1,14 @@
 import mongoose, { Schema, Model, Document, Types } from 'mongoose';
 import { publicUrlFor } from '@/lib/r2';
 
+export type UserRole = 'user' | 'admin';
+
 export interface UserDocument extends Document {
   username: string;
   usernameKey: string; // normalizado (lowercase, trim) — coincide con Vote.userKey
   email: string;
   emailKey: string; // normalizado para unicidad case-insensitive
+  role: UserRole; // 'admin' habilita crear/cerrar/borrar tortillas
   passwordHash?: string;
   googleId?: string;
   image?: string; // URL externa (Google) — fallback si no hay imageKey
@@ -34,6 +37,12 @@ const UserSchema = new Schema<UserDocument>(
       lowercase: true,
       unique: true,
       index: true,
+    },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
+      required: true,
     },
     passwordHash: { type: String },
     googleId: { type: String, sparse: true, index: true },

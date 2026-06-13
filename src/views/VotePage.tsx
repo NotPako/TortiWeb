@@ -38,7 +38,7 @@ type Tortilla = {
 };
 
 export default function VotePage() {
-  const { userName, isReady } = useUser();
+  const { userName, isReady, isAdmin } = useUser();
   const { t, locale } = useLanguage();
   const router = useRouter();
   const [score, setScore] = useState(7);
@@ -86,12 +86,10 @@ export default function VotePage() {
 
   async function handleClose() {
     if (!tortilla) return;
-    const password = window.prompt(t('vote.close.passwordPrompt'));
-    if (!password) return;
     setFeedback(null);
     try {
       await closeVoting({
-        variables: { id: tortilla.id, adminPassword: password },
+        variables: { id: tortilla.id },
       });
       setFeedback(t('vote.close.success'));
     } catch (e) {
@@ -237,14 +235,16 @@ export default function VotePage() {
                       : t('vote.send')}
               </button>
 
-              <button
-                type="button"
-                className={styles.closeLink}
-                onClick={handleClose}
-                disabled={closing}
-              >
-                {closing ? t('vote.close.closing') : t('vote.close.button')}
-              </button>
+              {isAdmin ? (
+                <button
+                  type="button"
+                  className={styles.closeLink}
+                  onClick={handleClose}
+                  disabled={closing}
+                >
+                  {closing ? t('vote.close.closing') : t('vote.close.button')}
+                </button>
+              ) : null}
             </>
           ) : (
             <div className={styles.closedNotice}>

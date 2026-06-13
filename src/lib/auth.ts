@@ -92,6 +92,7 @@ export const authOptions: NextAuthOptions = {
             token.usernameKey = doc.usernameKey;
             token.email = doc.email;
             token.needsUsername = doc.usernameKey.startsWith('g_');
+            token.role = doc.role ?? 'user';
             token.picture = userImageUrl(doc) ?? undefined;
           }
         }
@@ -104,6 +105,7 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username as string;
         session.user.usernameKey = token.usernameKey as string;
         session.user.needsUsername = Boolean(token.needsUsername);
+        session.user.role = (token.role as 'user' | 'admin') ?? 'user';
         session.user.email = token.email as string;
         session.user.image = (token.picture as string | undefined) ?? null;
       }

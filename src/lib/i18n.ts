@@ -82,8 +82,6 @@ const es = {
   'vote.success': '¡Voto registrado!',
   'vote.close.button': 'Cerrar votación',
   'vote.close.closing': 'Cerrando…',
-  'vote.close.passwordPrompt':
-    'Introduce la contraseña de admin para cerrar la votación',
   'vote.close.success': 'Votación cerrada.',
   'vote.close.closedTitle': 'La votación está cerrada.',
   'vote.close.yourFinalScore': 'Tu nota final fue {score}.',
@@ -114,14 +112,12 @@ const es = {
   'admin.dateHelper': 'Si la dejas vacía se usará la fecha actual.',
   'admin.fileLabel': 'Foto de la tortilla',
   'admin.previewAlt': 'Vista previa',
-  'admin.passLabel': 'Contraseña de admin',
   'admin.creating': 'Creando…',
   'admin.submit': 'Crear tortilla',
   'admin.success': '¡Tortilla creada!',
   'admin.errors.imageTooLarge': 'Error: la imagen no puede superar 4 MB.',
   'admin.errors.imageRequired': 'Error: selecciona una imagen.',
   'admin.errors.nameRequired': 'Error: el nombre es obligatorio.',
-  'admin.errors.passRequired': 'Error: introduce la contraseña de admin.',
 
   'admin.manage.title': 'Tortillas existentes',
   'admin.manage.subtitle':
@@ -131,7 +127,6 @@ const es = {
   'admin.manage.deleting': 'Eliminando…',
   'admin.manage.confirm':
     '¿Seguro que quieres eliminar "{name}"? Esta acción no se puede deshacer y borrará también sus votos.',
-  'admin.manage.passwordPrompt': 'Introduce la contraseña de admin',
   'admin.manage.deleted': '¡Tortilla eliminada!',
 
   'slider.label': 'Tu nota',
@@ -267,8 +262,6 @@ const ca: Record<DictKey, string> = {
   'vote.success': 'Vot registrat!',
   'vote.close.button': 'Tancar votació',
   'vote.close.closing': 'Tancant…',
-  'vote.close.passwordPrompt':
-    'Introdueix la contrasenya d\'admin per tancar la votació',
   'vote.close.success': 'Votació tancada.',
   'vote.close.closedTitle': 'La votació està tancada.',
   'vote.close.yourFinalScore': 'La teva nota final va ser {score}.',
@@ -299,14 +292,12 @@ const ca: Record<DictKey, string> = {
   'admin.dateHelper': "Si la deixes buida s'utilitzarà la data actual.",
   'admin.fileLabel': 'Foto de la truita',
   'admin.previewAlt': 'Vista prèvia',
-  'admin.passLabel': "Contrasenya d'admin",
   'admin.creating': 'Creant…',
   'admin.submit': 'Crear truita',
   'admin.success': 'Truita creada!',
   'admin.errors.imageTooLarge': 'Error: la imatge no pot superar 4 MB.',
   'admin.errors.imageRequired': 'Error: selecciona una imatge.',
   'admin.errors.nameRequired': 'Error: el nom és obligatori.',
-  'admin.errors.passRequired': "Error: introdueix la contrasenya d'admin.",
 
   'admin.manage.title': 'Truites existents',
   'admin.manage.subtitle':
@@ -316,7 +307,6 @@ const ca: Record<DictKey, string> = {
   'admin.manage.deleting': 'Eliminant…',
   'admin.manage.confirm':
     'Segur que vols eliminar "{name}"? Aquesta acció no es pot desfer i també esborrarà els seus vots.',
-  'admin.manage.passwordPrompt': "Introdueix la contrasenya d'admin",
   'admin.manage.deleted': 'Truita eliminada!',
 
   'slider.label': 'La teva nota',

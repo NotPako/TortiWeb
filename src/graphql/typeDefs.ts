@@ -128,8 +128,6 @@ export const typeDefs = gql`
     imageContentType: String!
     """Fecha opcional; si no se indica, se usa la actual."""
     date: Date
-    """Contraseña de admin requerida para crear tortillas."""
-    adminPassword: String!
   }
 
   input CastVoteInput {
@@ -159,10 +157,10 @@ export const typeDefs = gql`
   type Mutation {
     createTortilla(input: CreateTortillaInput!): Tortilla!
     castVote(input: CastVoteInput!): Vote!
-    """Elimina una tortilla y todos sus votos. Requiere contraseña de admin."""
-    deleteTortilla(id: ID!, adminPassword: String!): Boolean!
-    """Cierra manualmente la votación de una tortilla. Requiere contraseña de admin."""
-    closeTortillaVoting(id: ID!, adminPassword: String!): Tortilla!
+    """Elimina una tortilla y todos sus votos. Requiere rol de admin."""
+    deleteTortilla(id: ID!): Boolean!
+    """Cierra manualmente la votación de una tortilla. Requiere rol de admin."""
+    closeTortillaVoting(id: ID!): Tortilla!
     """Crea una cuenta con usuario+contraseña. Devuelve el usuario."""
     register(input: RegisterInput!): User!
     """Asigna un username a un usuario autenticado por Google sin username."""

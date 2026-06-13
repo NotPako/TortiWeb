@@ -34,21 +34,22 @@ function fileToBase64(file: File): Promise<{ base64: string; type: string }> {
 }
 
 export default function AdminPage() {
-  const { userName, isReady } = useUser();
+  const { userName, isReady, isAdmin } = useUser();
   const { t } = useLanguage();
   const router = useRouter();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState<string>('');
-  const [adminPassword, setAdminPassword] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isReady && !userName) router.replace('/login');
-  }, [isReady, userName, router]);
+    if (!isReady) return;
+    if (!userName) router.replace('/login');
+    else if (!isAdmin) router.replace('/');
+  }, [isReady, userName, isAdmin, router]);
 
   useEffect(() => {
     if (!file) {
@@ -94,10 +95,6 @@ export default function AdminPage() {
       setFeedback(t('admin.errors.nameRequired'));
       return;
     }
-    if (!adminPassword) {
-      setFeedback(t('admin.errors.passRequired'));
-      return;
-    }
     try {
       const { base64, type } = await fileToBase64(file);
       await createTortilla({
@@ -108,7 +105,6 @@ export default function AdminPage() {
             imageBase64: base64,
             imageContentType: type,
             date: date ? new Date(date).toISOString() : null,
-            adminPassword,
           },
         },
       });
@@ -117,14 +113,13 @@ export default function AdminPage() {
       setDescription('');
       setDate('');
       setFile(null);
-      setAdminPassword('');
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       setFeedback(`${t('common.errorPrefix')}: ${msg}`);
     }
   }
 
-  if (!isReady || !userName) return null;
+  if (!isReady || !userName || !isAdmin) return null;
 
   const isError = feedback?.startsWith(t('common.errorPrefix'));
 
@@ -196,20 +191,6 @@ export default function AdminPage() {
                 className={styles.preview}
               />
             ) : null}
-          </div>
-
-          <div>
-            <label className={styles.label} htmlFor="t-pass">
-              {t('admin.passLabel')}
-            </label>
-            <input
-              id="t-pass"
-              type="password"
-              className={styles.input}
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              required
-            />
           </div>
 
           <button
