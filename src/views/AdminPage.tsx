@@ -6,6 +6,7 @@ import { useMutation } from '@apollo/client';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { TortillaManager } from '@/components/TortillaManager';
+import { TortillaEventAdmin } from '@/components/TortillaEventAdmin';
 import {
   CREATE_TORTILLA_MUTATION,
   CURRENT_TORTILLA_QUERY,
@@ -214,6 +215,8 @@ export default function AdminPage() {
           ) : null}
         </form>
       </div>
+
+      <TortillaEventAdmin />
 
       <TortillaManager />
     </div>

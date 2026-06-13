@@ -51,6 +51,33 @@ export const typeDefs = gql`
     imageUrl: String
   }
 
+  """Persona apuntada a una convocatoria."""
+  type Attendee {
+    userName: String!
+    """URL del avatar del apuntado, si está disponible."""
+    imageUrl: String
+  }
+
+  """
+  Convocatoria de la próxima tortilla (antes de cocinarse). La gente se apunta
+  para que el chef sepa cuántos ingredientes preparar.
+  """
+  type TortillaEvent {
+    id: ID!
+    """Miércoles previsto."""
+    date: Date!
+    """Nota opcional del admin (p. ej. "traed pan")."""
+    note: String
+    attendees: [Attendee!]!
+    attendeeCount: Int!
+    """True si el usuario autenticado está apuntado."""
+    isAttending: Boolean!
+    """Fecha de cierre (auto al subir la tortilla o manual). Null si sigue abierta."""
+    closedAt: Date
+    """True si la convocatoria sigue abierta para apuntarse."""
+    open: Boolean!
+  }
+
   """Usuario autenticado."""
   type User {
     id: ID!
@@ -117,6 +144,8 @@ export const typeDefs = gql`
     myStats: UserStats
     """Estadísticas y votos de cualquier usuario por nombre de usuario."""
     userStats(username: String!): UserStats
+    """Convocatoria abierta de la próxima tortilla, o null si no hay ninguna."""
+    upcomingTortilla: TortillaEvent
   }
 
   input CreateTortillaInput {
@@ -154,6 +183,13 @@ export const typeDefs = gql`
     text: String!
   }
 
+  input AnnounceTortillaInput {
+    """Fecha del miércoles; si no se indica, se usa el próximo miércoles."""
+    date: Date
+    """Nota opcional para los apuntados."""
+    note: String
+  }
+
   type Mutation {
     createTortilla(input: CreateTortillaInput!): Tortilla!
     castVote(input: CastVoteInput!): Vote!
@@ -171,5 +207,11 @@ export const typeDefs = gql`
     addComment(input: AddCommentInput!): Comment!
     """Elimina un comentario propio."""
     deleteComment(id: ID!): Boolean!
+    """Convoca la tortilla del próximo miércoles. Requiere rol de admin."""
+    announceTortilla(input: AnnounceTortillaInput!): TortillaEvent!
+    """Cierra manualmente una convocatoria. Requiere rol de admin."""
+    closeTortillaEvent(id: ID!): TortillaEvent!
+    """Apunta o desapunta al usuario autenticado de una convocatoria."""
+    setAttendance(id: ID!, attending: Boolean!): TortillaEvent!
   }
 `;

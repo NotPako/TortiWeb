@@ -1,0 +1,122 @@
+.card {
+  background: white;
+  border: 1px solid var(--color-tortilla-100);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-amber-deep, var(--color-tortilla-600));
+}
+
+.date {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-tortilla-800);
+  text-transform: capitalize;
+}
+
+.note {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--color-tortilla-600);
+}
+
+.attendeesHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--color-tortilla-100);
+  padding-top: 12px;
+}
+
+.attendeesTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-tortilla-700);
+}
+
+.count {
+  font-size: 13px;
+  color: var(--color-tortilla-600);
+}
+
+.empty {
+  font-size: 14px;
+  color: var(--color-tortilla-600);
+}
+
+.attendees {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.attendee {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attendeeName {
+  font-size: 14px;
+  color: var(--color-tortilla-800);
+}
+
+.toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  padding: 9px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggleJoin {
+  background: var(--color-tortilla-500);
+  color: white;
+  border: 1px solid var(--color-tortilla-500);
+}
+
+.toggleJoin:hover:not(:disabled) {
+  background: var(--color-tortilla-600);
+}
+
+.toggleLeave {
+  background: white;
+  color: var(--color-tortilla-700);
+  border: 1px solid var(--color-tortilla-300);
+}
+
+.toggleLeave:hover:not(:disabled) {
+  background: var(--color-tortilla-100);
+}

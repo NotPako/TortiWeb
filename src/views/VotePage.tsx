@@ -9,6 +9,7 @@ import { useLanguage } from '@/components/LanguageContext';
 import { VoteSlider } from '@/components/VoteSlider';
 import { AvgPill } from '@/components/AvgPill';
 import { ReactionPicker } from '@/components/features/ReactionPicker';
+import { UpcomingTortillaCard } from '@/components/features/UpcomingTortillaCard';
 import {
   CommentsSection,
   type CommentItem,
@@ -135,24 +136,35 @@ export default function VotePage() {
   if (!isReady || !userName) return null;
 
   if (loading && !data) {
-    return <Skeleton active paragraph={{ rows: 6 }} />;
+    return (
+      <>
+        <UpcomingTortillaCard />
+        <Skeleton active paragraph={{ rows: 6 }} />
+      </>
+    );
   }
   if (error) {
     return (
-      <div className={styles.errorBox}>
-        {t('vote.errorLoading')} {error.message}{' '}
-        <button onClick={() => refetch()} className={styles.retry}>
-          {t('common.retry')}
-        </button>
-      </div>
+      <>
+        <UpcomingTortillaCard />
+        <div className={styles.errorBox}>
+          {t('vote.errorLoading')} {error.message}{' '}
+          <button onClick={() => refetch()} className={styles.retry}>
+            {t('common.retry')}
+          </button>
+        </div>
+      </>
     );
   }
   if (!tortilla) {
     return (
-      <div className={styles.emptyCard}>
-        <p className={styles.emptyTitle}>{t('vote.empty.title')}</p>
-        <p className={styles.emptySubtitle}>{t('vote.empty.subtitle')}</p>
-      </div>
+      <>
+        <UpcomingTortillaCard />
+        <div className={styles.emptyCard}>
+          <p className={styles.emptyTitle}>{t('vote.empty.title')}</p>
+          <p className={styles.emptySubtitle}>{t('vote.empty.subtitle')}</p>
+        </div>
+      </>
     );
   }
 
@@ -163,6 +175,7 @@ export default function VotePage() {
 
   return (
     <div className={styles.page}>
+      <UpcomingTortillaCard />
       <div className={styles.grid}>
         {/* Columna izquierda: identidad de la tortilla */}
         <div className={styles.identityCol}>
