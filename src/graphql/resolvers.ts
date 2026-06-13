@@ -13,6 +13,7 @@ import type { Reaction } from '@/models/Vote';
 import { Comment, CommentDocument } from '@/models/Comment';
 import { TortillaEvent, TortillaEventDocument } from '@/models/TortillaEvent';
 import { computeAchievements, type VoteForAchievements } from '@/lib/achievements';
+import { isSameDay, nextWednesday } from '@/lib/dates';
 import {
   User,
   normalizeEmail,
@@ -47,26 +48,6 @@ const dateScalar = new GraphQLScalarType({
     return null;
   },
 });
-
-const APP_TIMEZONE = 'Europe/Madrid';
-
-function dayKey(d: Date, tz: string = APP_TIMEZONE): string {
-  return d.toLocaleDateString('en-CA', { timeZone: tz });
-}
-
-function isSameDay(a: Date, b: Date, tz: string = APP_TIMEZONE): boolean {
-  return dayKey(a, tz) === dayKey(b, tz);
-}
-
-/** Próximo miércoles (hoy si ya es miércoles). Fijado a mediodía para evitar
- * saltos de día por zona horaria. El admin puede editar la fecha igualmente. */
-function nextWednesday(from: Date = new Date()): Date {
-  const d = new Date(from);
-  const diff = (3 - d.getDay() + 7) % 7; // 0=domingo .. 3=miércoles
-  d.setDate(d.getDate() + diff);
-  d.setHours(12, 0, 0, 0);
-  return d;
-}
 
 function decodeBase64Image(base64: string): Buffer {
   const match = base64.match(/^data:[^;]+;base64,(.+)$/);

@@ -1,5 +1,16 @@
 # FeatControl
 
+## [2026-06-13] - Infraestructura de tests (Vitest + resolvers en memoria)
+**Descripción**: Primer arnés de tests del proyecto. Dos capas: (1) **unitarios** de lógica pura — `computeAchievements`, helpers de fecha y `fmt`; (2) **integración de resolvers** GraphQL contra una BD MongoDB en memoria (`mongodb-memory-server`), llamando a los resolvers directamente con un `ctx` de sesión simulado. Los tests de resolvers mockean `@/lib/mongodb` (para no abrir Atlas) y `@/lib/r2` (sin tocar la red), y limpian las colecciones entre tests. Cobertura inicial: roles/permisos de admin, invariantes de la convocatoria (una abierta a la vez, apuntarse/desapuntarse idempotente, bloqueo si cerrada), auto-cierre al subir tortilla y la regla "solo se vota la más reciente". Comandos: `npm test` (run único) y `npm run test:watch`. De paso se extrajeron los helpers de fecha de `resolvers.ts` a `src/lib/dates.ts` para poder testearlos aislados.
+**Archivos principales**:
+- `vitest.config.ts` (entorno node, alias `@`, includes `src/**/*.test.ts`)
+- `src/lib/dates.ts` (extraído de `resolvers.ts`: `dayKey`, `isSameDay`, `nextWednesday`)
+- `src/lib/{format,dates,achievements}.test.ts` (unitarios)
+- `src/graphql/resolvers.test.ts` (integración con mongo en memoria + mocks de mongodb/r2)
+- `package.json` (scripts `test` / `test:watch`; devDeps `vitest`, `mongodb-memory-server`)
+**Tecnologías**: Vitest 2, mongodb-memory-server, mocks con `vi.mock`
+**Notas**: Patrón reutilizable para nuevos resolvers (mock de mongodb+r2, mongod en memoria, `ctx` simulado). Capa E2E (Playwright) queda pendiente como siguiente paso opcional. `vite-tsconfig-paths` se descartó (ESM-only, rompía el config CJS) en favor de un alias manual.
+
 ## [2026-06-13] - Convocatoria de tortilla (apuntarse al próximo miércoles)
 **Descripción**: Nuevo concepto previo a cocinar: el admin **convoca** la tortilla del próximo miércoles y la gente se **apunta** desde `/vote`, para que el chef sepa para cuántos comprar. Modelo nuevo `TortillaEvent` (convocatoria) separado de `Tortilla` (cocinada): tiene fecha, nota opcional y lista de apuntados (subdocumentos con `userKey`/`userName`/`joinedAt`, denormalizado como `Vote`/`Comment`). Solo puede haber **una convocatoria abierta** a la vez. Desde Admin, botón "Convocar tortilla" (fecha autocalculada al próximo miércoles, editable + nota opcional); si ya hay una abierta, muestra recuento y botón "Cerrar convocatoria" (con confirm). En `/vote`, tarjeta `UpcomingTortillaCard` siempre visible (incluso sin tortilla del día) con la fecha, la nota, los avatares + nombres de apuntados, el recuento y un toggle "Me apunto" / "No voy". La convocatoria se cierra **automáticamente al subir la tortilla cocinada** (`createTortilla` cierra cualquier `TortillaEvent` abierto) y también **manualmente** antes. La query `upcomingTortilla` solo devuelve la convocatoria abierta.
 **Archivos principales**:
