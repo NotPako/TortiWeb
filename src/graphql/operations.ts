@@ -228,3 +228,55 @@ export const DELETE_COMMENT_MUTATION = gql`
     deleteComment(id: $id)
   }
 `;
+
+export const TORTILLA_EVENT_FIELDS = gql`
+  fragment TortillaEventFields on TortillaEvent {
+    id
+    date
+    note
+    attendeeCount
+    isAttending
+    closedAt
+    open
+    attendees {
+      userName
+      imageUrl
+    }
+  }
+`;
+
+export const UPCOMING_TORTILLA_QUERY = gql`
+  ${TORTILLA_EVENT_FIELDS}
+  query UpcomingTortilla {
+    upcomingTortilla {
+      ...TortillaEventFields
+    }
+  }
+`;
+
+export const ANNOUNCE_TORTILLA_MUTATION = gql`
+  ${TORTILLA_EVENT_FIELDS}
+  mutation AnnounceTortilla($input: AnnounceTortillaInput!) {
+    announceTortilla(input: $input) {
+      ...TortillaEventFields
+    }
+  }
+`;
+
+export const CLOSE_TORTILLA_EVENT_MUTATION = gql`
+  ${TORTILLA_EVENT_FIELDS}
+  mutation CloseTortillaEvent($id: ID!) {
+    closeTortillaEvent(id: $id) {
+      ...TortillaEventFields
+    }
+  }
+`;
+
+export const SET_ATTENDANCE_MUTATION = gql`
+  ${TORTILLA_EVENT_FIELDS}
+  mutation SetAttendance($id: ID!, $attending: Boolean!) {
+    setAttendance(id: $id, attending: $attending) {
+      ...TortillaEventFields
+    }
+  }
+`;

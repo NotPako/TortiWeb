@@ -129,6 +129,31 @@ const es = {
     '¿Seguro que quieres eliminar "{name}"? Esta acción no se puede deshacer y borrará también sus votos.',
   'admin.manage.deleted': '¡Tortilla eliminada!',
 
+  'event.title': 'Próxima tortilla',
+  'event.attendeesTitle': 'Quién va',
+  'event.attendeeSingular': 'apuntado',
+  'event.attendeePlural': 'apuntados',
+  'event.empty': 'Aún no se ha apuntado nadie. ¡Sé el primero!',
+  'event.join': 'Me apunto',
+  'event.leave': 'No voy',
+  'event.saving': 'Guardando…',
+  'event.admin.title': 'Convocar tortilla',
+  'event.admin.subtitle':
+    'Anuncia la tortilla del próximo miércoles para que la gente se apunte y el chef sepa para cuántos cocinar.',
+  'event.admin.dateLabel': 'Fecha (miércoles)',
+  'event.admin.noteLabel': 'Nota (opcional)',
+  'event.admin.notePlaceholder': 'Ej.: traed pan y bebida',
+  'event.admin.submit': 'Convocar tortilla',
+  'event.admin.announcing': 'Convocando…',
+  'event.admin.success': '¡Convocatoria creada!',
+  'event.admin.openTitle': 'Convocatoria abierta',
+  'event.admin.openFor': 'Para el {date}',
+  'event.admin.close': 'Cerrar convocatoria',
+  'event.admin.closing': 'Cerrando…',
+  'event.admin.closed': 'Convocatoria cerrada.',
+  'event.admin.closeConfirm':
+    '¿Cerrar la convocatoria? Ya nadie podrá apuntarse.',
+
   'slider.label': 'Tu nota',
 
   'lang.label': 'Idioma',
@@ -308,6 +333,31 @@ const ca: Record<DictKey, string> = {
   'admin.manage.confirm':
     'Segur que vols eliminar "{name}"? Aquesta acció no es pot desfer i també esborrarà els seus vots.',
   'admin.manage.deleted': 'Truita eliminada!',
+
+  'event.title': 'Pròxima truita',
+  'event.attendeesTitle': 'Qui va',
+  'event.attendeeSingular': 'apuntat',
+  'event.attendeePlural': 'apuntats',
+  'event.empty': 'Encara no s\'ha apuntat ningú. Sigues el primer!',
+  'event.join': "M'apunto",
+  'event.leave': 'No vinc',
+  'event.saving': 'Desant…',
+  'event.admin.title': 'Convocar truita',
+  'event.admin.subtitle':
+    'Anuncia la truita del pròxim dimecres perquè la gent s\'apunti i el xef sàpiga per a quants cuinar.',
+  'event.admin.dateLabel': 'Data (dimecres)',
+  'event.admin.noteLabel': 'Nota (opcional)',
+  'event.admin.notePlaceholder': 'Ex.: porteu pa i beguda',
+  'event.admin.submit': 'Convocar truita',
+  'event.admin.announcing': 'Convocant…',
+  'event.admin.success': 'Convocatòria creada!',
+  'event.admin.openTitle': 'Convocatòria oberta',
+  'event.admin.openFor': 'Per al {date}',
+  'event.admin.close': 'Tancar convocatòria',
+  'event.admin.closing': 'Tancant…',
+  'event.admin.closed': 'Convocatòria tancada.',
+  'event.admin.closeConfirm':
+    'Tancar la convocatòria? Ja ningú no es podrà apuntar.',
 
   'slider.label': 'La teva nota',
 

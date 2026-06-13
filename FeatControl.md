@@ -1,5 +1,20 @@
 # FeatControl
 
+## [2026-06-13] - Convocatoria de tortilla (apuntarse al próximo miércoles)
+**Descripción**: Nuevo concepto previo a cocinar: el admin **convoca** la tortilla del próximo miércoles y la gente se **apunta** desde `/vote`, para que el chef sepa para cuántos comprar. Modelo nuevo `TortillaEvent` (convocatoria) separado de `Tortilla` (cocinada): tiene fecha, nota opcional y lista de apuntados (subdocumentos con `userKey`/`userName`/`joinedAt`, denormalizado como `Vote`/`Comment`). Solo puede haber **una convocatoria abierta** a la vez. Desde Admin, botón "Convocar tortilla" (fecha autocalculada al próximo miércoles, editable + nota opcional); si ya hay una abierta, muestra recuento y botón "Cerrar convocatoria" (con confirm). En `/vote`, tarjeta `UpcomingTortillaCard` siempre visible (incluso sin tortilla del día) con la fecha, la nota, los avatares + nombres de apuntados, el recuento y un toggle "Me apunto" / "No voy". La convocatoria se cierra **automáticamente al subir la tortilla cocinada** (`createTortilla` cierra cualquier `TortillaEvent` abierto) y también **manualmente** antes. La query `upcomingTortilla` solo devuelve la convocatoria abierta.
+**Archivos principales**:
+- `src/models/TortillaEvent.ts` (modelo nuevo: subdoc `attendees`, índice `closedAt+date`)
+- `src/graphql/typeDefs.ts` (tipos `TortillaEvent`/`Attendee`, input `AnnounceTortillaInput`, query `upcomingTortilla`, mutations `announceTortilla`/`closeTortillaEvent`/`setAttendance`)
+- `src/graphql/resolvers.ts` (helper `nextWednesday`, `eventPayload` con avatares batch, 4 resolvers, auto-cierre en `createTortilla`)
+- `src/graphql/operations.ts` (`TORTILLA_EVENT_FIELDS`, query + 3 mutations)
+- `src/components/TortillaEventAdmin.tsx` + `.module.css` (sección admin convocar/cerrar)
+- `src/components/features/UpcomingTortillaCard.tsx` + `.module.css` (tarjeta de apuntarse en /vote)
+- `src/views/AdminPage.tsx` (integra `TortillaEventAdmin`)
+- `src/views/VotePage.tsx` (tarjeta visible en todos los estados, incl. sin tortilla)
+- `src/lib/i18n.ts` (claves `event.*`, ES + CA)
+**Tecnologías**: Mongoose subdocumentos, Apollo `refetchQueries` + `cache-and-network`, ANTD Avatar/Skeleton
+**Notas**: La convocatoria no se vincula aún a la `Tortilla` resultante (solo se autocierra). El chef no se modela todavía (decisión: solo recuento en v1); queda como evolución futura junto a un posible ranking de cocineros.
+
 ## [2026-06-13] - Roles de usuario (admin) en lugar de contraseña de admin
 **Descripción**: Sustitución del esquema de `ADMIN_PASSWORD` (una contraseña compartida vía env, pedida con `window.prompt`/campo de formulario en cada acción) por un rol persistido en la cuenta. `User.role` (`'user' | 'admin'`, default `'user'`) es la única fuente de verdad. El rol viaja en el JWT/sesión de NextAuth, y el frontend lo expone vía `useUser().isAdmin`: la NavBar oculta el enlace `/admin`, la página `/admin` redirige a `/` a los no-admin, y el botón "Cerrar votación" de `/vote` solo se muestra a admins. En servidor, las mutaciones `createTortilla`/`deleteTortilla`/`closeTortillaVoting` usan el helper `requireAdmin(ctx)`, que **revalida el rol contra la BD** en cada llamada (un cambio de rol surte efecto en cuanto el usuario recarga sesión, sin esperar a que caduque el JWT). El argumento `adminPassword` desaparece del schema GraphQL y de las operaciones. El primer admin se asigna con el script nuevo `scripts/grant-admin.mjs`.
 **Archivos principales**:

@@ -11,6 +11,7 @@ import { Tortilla, TortillaDocument } from '@/models/Tortilla';
 import { Vote, VoteDocument, REACTIONS } from '@/models/Vote';
 import type { Reaction } from '@/models/Vote';
 import { Comment, CommentDocument } from '@/models/Comment';
+import { TortillaEvent, TortillaEventDocument } from '@/models/TortillaEvent';
 import { computeAchievements, type VoteForAchievements } from '@/lib/achievements';
 import {
   User,
@@ -55,6 +56,16 @@ function dayKey(d: Date, tz: string = APP_TIMEZONE): string {
 
 function isSameDay(a: Date, b: Date, tz: string = APP_TIMEZONE): boolean {
   return dayKey(a, tz) === dayKey(b, tz);
+}
+
+/** Próximo miércoles (hoy si ya es miércoles). Fijado a mediodía para evitar
+ * saltos de día por zona horaria. El admin puede editar la fecha igualmente. */
+function nextWednesday(from: Date = new Date()): Date {
+  const d = new Date(from);
+  const diff = (3 - d.getDay() + 7) % 7; // 0=domingo .. 3=miércoles
+  d.setDate(d.getDate() + diff);
+  d.setHours(12, 0, 0, 0);
+  return d;
 }
 
 function decodeBase64Image(base64: string): Buffer {
@@ -304,6 +315,41 @@ async function computeUserStats(userKey: string) {
   };
 }
 
+async function eventPayload(
+  doc: TortillaEventDocument,
+  userKey: string | null
+) {
+  const keys = Array.from(new Set(doc.attendees.map((a) => a.userKey)));
+  const users = keys.length
+    ? await User.find({ usernameKey: { $in: keys } })
+        .select('usernameKey image imageKey')
+        .exec()
+    : [];
+  const imageByKey = new Map<string, string | null>(
+    users.map((u) => [u.usernameKey, userImageUrl(u)])
+  );
+  // Orden de llegada (joinedAt asc) para que la lista sea estable.
+  const attendees = [...doc.attendees]
+    .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
+    .map((a) => ({
+      userName: a.userName,
+      imageUrl: imageByKey.get(a.userKey) ?? null,
+    }));
+  const closedAt = doc.closedAt ?? null;
+  return {
+    id: (doc._id as Types.ObjectId).toString(),
+    date: doc.date,
+    note: doc.note ?? null,
+    attendees,
+    attendeeCount: attendees.length,
+    isAttending: userKey
+      ? doc.attendees.some((a) => a.userKey === userKey)
+      : false,
+    closedAt,
+    open: !closedAt,
+  };
+}
+
 export const resolvers = {
   Date: dateScalar,
 
@@ -367,6 +413,15 @@ export const resolvers = {
       if (!usernameKey) return null;
       return computeUserStats(usernameKey);
     },
+
+    async upcomingTortilla(_: unknown, __: unknown, ctx: GqlContext) {
+      await connectToDatabase();
+      const doc = await TortillaEvent.findOne({ closedAt: null })
+        .sort({ date: -1 })
+        .exec();
+      if (!doc) return null;
+      return eventPayload(doc, sessionUserKey(ctx.session));
+    },
   },
 
   Mutation: {
@@ -429,6 +484,12 @@ export const resolvers = {
         }
         throw err;
       }
+
+      // Al subir la tortilla cocinada, cerramos cualquier convocatoria abierta.
+      await TortillaEvent.updateMany(
+        { closedAt: null },
+        { $set: { closedAt: new Date() } }
+      ).exec();
 
       return tortillaPayload(doc, null);
     },
@@ -779,6 +840,88 @@ export const resolvers = {
       }
       await doc.deleteOne();
       return true;
+    },
+
+    async announceTortilla(
+      _: unknown,
+      args: { input: { date?: string | Date | null; note?: string | null } },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      await requireAdmin(ctx);
+
+      const existing = await TortillaEvent.findOne({ closedAt: null }).exec();
+      if (existing) {
+        throw new Error(
+          'Ya hay una convocatoria abierta. Ciérrala antes de crear otra.'
+        );
+      }
+
+      const date = args.input.date
+        ? new Date(args.input.date)
+        : nextWednesday();
+      const note = args.input.note?.trim() || undefined;
+
+      const doc = await TortillaEvent.create({
+        date,
+        note,
+        attendees: [],
+        announcedByKey: ctx.session!.user.usernameKey,
+      });
+
+      return eventPayload(doc, sessionUserKey(ctx.session));
+    },
+
+    async closeTortillaEvent(
+      _: unknown,
+      args: { id: string },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      await requireAdmin(ctx);
+      if (!Types.ObjectId.isValid(args.id)) {
+        throw new Error('ID de convocatoria inválido.');
+      }
+      const doc = await TortillaEvent.findById(args.id).exec();
+      if (!doc) throw new Error('Convocatoria no encontrada.');
+      if (!doc.closedAt) {
+        doc.closedAt = new Date();
+        await doc.save();
+      }
+      return eventPayload(doc, sessionUserKey(ctx.session));
+    },
+
+    async setAttendance(
+      _: unknown,
+      args: { id: string; attending: boolean },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      if (!ctx.session?.user || ctx.session.user.needsUsername) {
+        throw new Error('Debes iniciar sesión para apuntarte.');
+      }
+      if (!Types.ObjectId.isValid(args.id)) {
+        throw new Error('ID de convocatoria inválido.');
+      }
+      const doc = await TortillaEvent.findById(args.id).exec();
+      if (!doc) throw new Error('Convocatoria no encontrada.');
+      if (doc.closedAt) {
+        throw new Error('Esta convocatoria está cerrada.');
+      }
+
+      const userKey = ctx.session.user.usernameKey;
+      const userName = ctx.session.user.username;
+      const idx = doc.attendees.findIndex((a) => a.userKey === userKey);
+
+      if (args.attending && idx === -1) {
+        doc.attendees.push({ userKey, userName, joinedAt: new Date() });
+        await doc.save();
+      } else if (!args.attending && idx !== -1) {
+        doc.attendees.splice(idx, 1);
+        await doc.save();
+      }
+
+      return eventPayload(doc, userKey);
     },
   },
 
