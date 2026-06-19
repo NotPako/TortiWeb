@@ -7,6 +7,7 @@ import { Avatar, Button, Input, List, message } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { ADD_COMMENT_MUTATION } from '@/graphql/operations';
+import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
 import styles from './CommentsSection.module.css';
 
 export type CommentItem = {
@@ -25,7 +26,7 @@ type Props = {
   onChanged: () => void | Promise<unknown>;
 };
 
-const MAX_LENGTH = 500;
+const MAX_LENGTH = MAX_COMMENT_LENGTH;
 
 export function CommentsSection({ tortillaId, comments, onChanged }: Props) {
   const { userName } = useUser();
@@ -100,7 +101,9 @@ export function CommentsSection({ tortillaId, comments, onChanged }: Props) {
                     </span>
                   </div>
                 }
-                description={<p className={styles.text}>{c.text}</p>}
+                description={
+                  <p className={styles.text}>{normalizeCommentText(c.text)}</p>
+                }
               />
             </List.Item>
           );

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model, Document, Types } from 'mongoose';
+import { MAX_COMMENT_LENGTH } from '@/lib/comments';
 
 export interface CommentDocument extends Document {
   tortilla: Types.ObjectId;
@@ -24,7 +25,7 @@ const CommentSchema = new Schema<CommentDocument>(
       required: true,
       trim: true,
       minlength: 1,
-      maxlength: 500,
+      maxlength: MAX_COMMENT_LENGTH,
     },
   },
   { timestamps: true }
