@@ -14,6 +14,7 @@ import { Comment, CommentDocument } from '@/models/Comment';
 import { TortillaEvent, TortillaEventDocument } from '@/models/TortillaEvent';
 import { computeAchievements, type VoteForAchievements } from '@/lib/achievements';
 import { isSameDay, nextWednesday } from '@/lib/dates';
+import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
 import {
   User,
   normalizeEmail,
@@ -765,10 +766,12 @@ export const resolvers = {
       if (!Types.ObjectId.isValid(args.input.tortillaId)) {
         throw new Error('ID de tortilla inválido.');
       }
-      const text = args.input.text.trim();
+      const text = normalizeCommentText(args.input.text);
       if (!text) throw new Error('El comentario no puede estar vacío.');
-      if (text.length > 500) {
-        throw new Error('El comentario no puede superar 500 caracteres.');
+      if (text.length > MAX_COMMENT_LENGTH) {
+        throw new Error(
+          `El comentario no puede superar ${MAX_COMMENT_LENGTH} caracteres.`
+        );
       }
 
       const tortilla = await Tortilla.findById(args.input.tortillaId)
