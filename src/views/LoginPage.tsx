@@ -84,6 +84,11 @@ export default function LoginPage() {
           >
             <Input.Password autoComplete="current-password" />
           </Form.Item>
+          <p className={styles.forgotRow}>
+            <Link href="/auth/forgot-password" className={styles.link}>
+              {t('auth.login.forgotPassword')}
+            </Link>
+          </p>
           {error ? (
             <Form.Item>
               <Alert type="error" message={error} showIcon />

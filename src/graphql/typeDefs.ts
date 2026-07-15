@@ -171,6 +171,13 @@ export const typeDefs = gql`
     password: String!
   }
 
+  input ResetPasswordInput {
+    """Token recibido por email (en claro)."""
+    token: String!
+    """Nueva contraseña (mínimo 8 caracteres)."""
+    password: String!
+  }
+
   input SetProfileImageInput {
     """Imagen en base64 (data URL o cadena pura)."""
     imageBase64: String!
@@ -201,6 +208,13 @@ export const typeDefs = gql`
     register(input: RegisterInput!): User!
     """Asigna un username a un usuario autenticado por Google sin username."""
     setUsername(username: String!): User!
+    """
+    Envía un email con enlace de reseteo si existe una cuenta con ese email.
+    Siempre devuelve true para no revelar si el email está registrado.
+    """
+    requestPasswordReset(email: String!): Boolean!
+    """Establece una nueva contraseña a partir de un token de reseteo válido."""
+    resetPassword(input: ResetPasswordInput!): Boolean!
     """Sube y asigna una foto de perfil al usuario autenticado."""
     setProfileImage(input: SetProfileImageInput!): User!
     """Añade un comentario a una tortilla. Requiere sesión."""
