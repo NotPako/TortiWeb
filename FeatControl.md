@@ -1,5 +1,21 @@
 # FeatControl
 
+## [2026-07-16] - Olvidé mi contraseña (reset por email)
+**Descripción**: Flujo completo de recuperación de contraseña para cuentas de credenciales. Desde el login, "¿Olvidaste tu contraseña?" lleva a `/auth/forgot-password`, donde el usuario introduce su email. Si existe una cuenta, recibe un correo (nodemailer/SMTP) con un enlace a `/auth/reset-password?token=…` que caduca en **1 hora**; allí elige una nueva contraseña (con confirmación). Seguridad: el token (32 bytes aleatorios) viaja solo en el email; en BD se guarda únicamente su **SHA-256** (`resetPasswordTokenHash`), la comparación es en tiempo constante, es de **un solo uso** (se limpia al resetear) y tanto la mutation como la UI responden siempre igual exista o no el email (anti-enumeración de cuentas). Los usuarios de Google que nunca tuvieron contraseña también pueden usar el flujo, lo que les habilita además el login con credenciales.
+**Archivos principales**:
+- `src/lib/passwordReset.ts` + `passwordReset.test.ts` (helpers puros: generación/hash/caducidad, 8 tests unitarios)
+- `src/lib/mail.ts` (transporte SMTP + plantilla del email de reseteo)
+- `src/models/User.ts` (campos `resetPasswordTokenHash`, `resetPasswordExpiresAt`)
+- `src/graphql/typeDefs.ts` (`requestPasswordReset(email)`, `resetPassword(input)`, `ResetPasswordInput`)
+- `src/graphql/resolvers.ts` (mutations; el fallo de envío de email se loguea pero no se filtra al cliente)
+- `src/graphql/operations.ts` (`REQUEST_PASSWORD_RESET_MUTATION`, `RESET_PASSWORD_MUTATION`)
+- `src/views/ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx` (reutilizan `LoginPage.module.css`)
+- `src/app/auth/forgot-password/page.tsx`, `src/app/auth/reset-password/page.tsx` (esta última con `Suspense` por `useSearchParams`)
+- `src/views/LoginPage.tsx` + `.module.css` (link al flujo)
+- `src/lib/i18n.ts` (claves `auth.forgot.*` y `auth.reset.*`, ES + CA)
+**Tecnologías**: nodemailer 7 (nueva dependencia), crypto (randomBytes/sha256/timingSafeEqual), ANTD Form/Alert
+**Notas**: Vars de entorno nuevas: `SMTP_HOST`, `SMTP_PORT` (587 por defecto; 465 activa TLS implícito), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` (opcional, por defecto `SMTP_USER`). El enlace se construye sobre `NEXTAUTH_URL`.
+
 ## [2026-06-13] - Infraestructura de tests (Vitest + resolvers en memoria)
 **Descripción**: Primer arnés de tests del proyecto. Dos capas: (1) **unitarios** de lógica pura — `computeAchievements`, helpers de fecha y `fmt`; (2) **integración de resolvers** GraphQL contra una BD MongoDB en memoria (`mongodb-memory-server`), llamando a los resolvers directamente con un `ctx` de sesión simulado. Los tests de resolvers mockean `@/lib/mongodb` (para no abrir Atlas) y `@/lib/r2` (sin tocar la red), y limpian las colecciones entre tests. Cobertura inicial: roles/permisos de admin, invariantes de la convocatoria (una abierta a la vez, apuntarse/desapuntarse idempotente, bloqueo si cerrada), auto-cierre al subir tortilla y la regla "solo se vota la más reciente". Comandos: `npm test` (run único) y `npm run test:watch`. De paso se extrajeron los helpers de fecha de `resolvers.ts` a `src/lib/dates.ts` para poder testearlos aislados.
 **Archivos principales**:

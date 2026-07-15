@@ -14,6 +14,10 @@ export interface UserDocument extends Document {
   image?: string; // URL externa (Google) — fallback si no hay imageKey
   imageKey?: string; // Key en R2 de la foto de perfil subida por el usuario
   imageContentType?: string;
+  /** SHA-256 del token de "olvidé mi contraseña" pendiente (nunca el token en claro). */
+  resetPasswordTokenHash?: string;
+  /** Caducidad del token de reseteo. */
+  resetPasswordExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +53,8 @@ const UserSchema = new Schema<UserDocument>(
     image: { type: String },
     imageKey: { type: String },
     imageContentType: { type: String },
+    resetPasswordTokenHash: { type: String },
+    resetPasswordExpiresAt: { type: Date },
   },
   { timestamps: true }
 );

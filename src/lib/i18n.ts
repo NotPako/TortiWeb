@@ -61,6 +61,30 @@ const es = {
   'auth.setupUsername.submit': 'Guardar',
   'auth.errors.invalidCredentials': 'Usuario o contraseña incorrectos.',
 
+  'auth.login.forgotPassword': '¿Olvidaste tu contraseña?',
+  'auth.forgot.title': 'Recuperar contraseña',
+  'auth.forgot.subtitle':
+    'Escribe el email de tu cuenta y te enviaremos un enlace para elegir una nueva contraseña.',
+  'auth.forgot.submit': 'Enviar enlace',
+  'auth.forgot.sentTitle': 'Revisa tu correo',
+  'auth.forgot.sentDescription':
+    'Si existe una cuenta con ese email, recibirás un enlace para restablecer tu contraseña. Caduca en 1 hora.',
+  'auth.forgot.backToLogin': 'Volver a iniciar sesión',
+  'auth.reset.title': 'Nueva contraseña',
+  'auth.reset.subtitle': 'Elige tu nueva contraseña.',
+  'auth.reset.newPasswordLabel': 'Nueva contraseña',
+  'auth.reset.confirmPasswordLabel': 'Repite la contraseña',
+  'auth.reset.passwordTooShort':
+    'La contraseña debe tener al menos 8 caracteres.',
+  'auth.reset.passwordMismatch': 'Las contraseñas no coinciden.',
+  'auth.reset.submit': 'Guardar contraseña',
+  'auth.reset.successTitle': '¡Contraseña actualizada!',
+  'auth.reset.successDescription':
+    'Ya puedes iniciar sesión con tu nueva contraseña. Redirigiendo…',
+  'auth.reset.invalidLink':
+    'El enlace de reseteo no es válido. Pide uno nuevo desde "¿Olvidaste tu contraseña?".',
+  'auth.reset.errorGeneric': 'No se pudo restablecer la contraseña.',
+
   'common.loading': 'Cargando…',
   'common.retry': 'reintentar',
   'common.errorPrefix': 'Error',
@@ -265,6 +289,30 @@ const ca: Record<DictKey, string> = {
     'Per acabar, tria un nom d\'usuari. Si ja vas votar abans amb aquest nom, mantindràs el teu històric.',
   'auth.setupUsername.submit': 'Desar',
   'auth.errors.invalidCredentials': 'Usuari o contrasenya incorrectes.',
+
+  'auth.login.forgotPassword': 'Has oblidat la contrasenya?',
+  'auth.forgot.title': 'Recuperar contrasenya',
+  'auth.forgot.subtitle':
+    'Escriu l\'email del teu compte i t\'enviarem un enllaç per triar una nova contrasenya.',
+  'auth.forgot.submit': 'Enviar enllaç',
+  'auth.forgot.sentTitle': 'Revisa el teu correu',
+  'auth.forgot.sentDescription':
+    'Si existeix un compte amb aquest email, rebràs un enllaç per restablir la teva contrasenya. Caduca en 1 hora.',
+  'auth.forgot.backToLogin': 'Tornar a iniciar sessió',
+  'auth.reset.title': 'Nova contrasenya',
+  'auth.reset.subtitle': 'Tria la teva nova contrasenya.',
+  'auth.reset.newPasswordLabel': 'Nova contrasenya',
+  'auth.reset.confirmPasswordLabel': 'Repeteix la contrasenya',
+  'auth.reset.passwordTooShort':
+    'La contrasenya ha de tenir com a mínim 8 caràcters.',
+  'auth.reset.passwordMismatch': 'Les contrasenyes no coincideixen.',
+  'auth.reset.submit': 'Desar contrasenya',
+  'auth.reset.successTitle': 'Contrasenya actualitzada!',
+  'auth.reset.successDescription':
+    'Ja pots iniciar sessió amb la teva nova contrasenya. Redirigint…',
+  'auth.reset.invalidLink':
+    'L\'enllaç de reseteig no és vàlid. Demana\'n un de nou des de "Has oblidat la contrasenya?".',
+  'auth.reset.errorGeneric': 'No s\'ha pogut restablir la contrasenya.',
 
   'common.loading': 'Carregant…',
   'common.retry': 'tornar a intentar',

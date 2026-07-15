@@ -15,6 +15,14 @@ import { TortillaEvent, TortillaEventDocument } from '@/models/TortillaEvent';
 import { computeAchievements, type VoteForAchievements } from '@/lib/achievements';
 import { isSameDay, nextWednesday } from '@/lib/dates';
 import {
+  generateResetToken,
+  hashResetToken,
+  isResetTokenExpired,
+  resetTokenExpiry,
+  resetTokenMatches,
+} from '@/lib/passwordReset';
+import { sendPasswordResetEmail } from '@/lib/mail';
+import {
   User,
   normalizeEmail,
   normalizeUsername,
@@ -651,6 +659,79 @@ export const resolvers = {
         username: doc.username,
         email: doc.email,
       };
+    },
+
+    async requestPasswordReset(_: unknown, args: { email: string }) {
+      await connectToDatabase();
+      const email = args.email.trim();
+      // Respuesta constante: nunca revelamos si el email existe o no.
+      if (!EMAIL_RE.test(email)) return true;
+
+      const user = await User.findOne({
+        emailKey: normalizeEmail(email),
+      }).exec();
+      if (!user) return true;
+
+      const { token, tokenHash } = generateResetToken();
+      user.resetPasswordTokenHash = tokenHash;
+      user.resetPasswordExpiresAt = resetTokenExpiry();
+      await user.save();
+
+      const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+      const resetUrl = `${baseUrl.replace(/\/$/, '')}/auth/reset-password?token=${token}`;
+
+      try {
+        await sendPasswordResetEmail({
+          to: user.email,
+          username: user.username,
+          resetUrl,
+        });
+      } catch (err) {
+        // No filtramos el fallo al cliente (revelaría que el email existe),
+        // pero lo registramos para diagnóstico.
+        console.error('Error enviando email de reseteo:', err);
+      }
+
+      return true;
+    },
+
+    async resetPassword(
+      _: unknown,
+      args: { input: { token: string; password: string } }
+    ) {
+      await connectToDatabase();
+      const { token, password } = args.input;
+
+      if (!token || !/^[0-9a-f]{64}$/.test(token)) {
+        throw new Error('El enlace de reseteo no es válido o ha caducado.');
+      }
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        throw new Error(
+          `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+        );
+      }
+
+      // Buscamos por hash: índice directo, sin recorrer usuarios.
+      const user = await User.findOne({
+        resetPasswordTokenHash: hashResetToken(token),
+      }).exec();
+
+      if (
+        !user ||
+        !user.resetPasswordTokenHash ||
+        !resetTokenMatches(token, user.resetPasswordTokenHash) ||
+        isResetTokenExpired(user.resetPasswordExpiresAt)
+      ) {
+        throw new Error('El enlace de reseteo no es válido o ha caducado.');
+      }
+
+      user.passwordHash = await bcrypt.hash(password, 10);
+      // Token de un solo uso.
+      user.resetPasswordTokenHash = undefined;
+      user.resetPasswordExpiresAt = undefined;
+      await user.save();
+
+      return true;
     },
 
     async setUsername(
