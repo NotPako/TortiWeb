@@ -1,5 +1,23 @@
 # FeatControl
 
+## [2026-07-31] - `UserChip`: componente único de identidad de usuario
+**Descripción**: Refactor que unifica en un solo componente todos los sitios donde se pinta un usuario (avatar + nombre). Antes había **cuatro implementaciones distintas** del mismo patrón, cada una con su `Avatar` de ANTD y sus estilos inline duplicados, y dos de ellas con el `<Link>` al perfil copiado a mano. Ahora `UserChip` es el único sitio donde se decide cómo se ve un usuario: el gradiente del avatar, la inicial de respaldo cuando no hay foto y la ruta del perfil.
+
+Dos arreglos que salen del refactor:
+1. **Los apuntados a la convocatoria no enlazaban a su perfil** (era el único de los cuatro sitios sin `<Link>`); ahora sí, como el resto.
+2. **Se cierra el rebrand a medias**: `HistoryPage`, `CommentsSection` y la cabecera de `ProfilePage` seguían con el avatar plano viejo (`--color-tortilla-500`) mientras `NavBar` y `UpcomingTortillaCard` ya usaban el gradiente ámbar del rebrand 0001. Todos pasan al gradiente.
+
+El chip hereda `color` y `font-size` del contenedor, así que el mismo componente encaja sin variantes en una lista de votos, un comentario, la fila de apuntados o la navbar; solo el peso, el hover y el foco los posee él. Props: `size`, `showName` (avatar suelto para navbar/cabecera), `href` (`null` = no enlaza, para el propio perfil), `onNavigate` (cerrar el modal del historial al navegar) y `ariaLabel`.
+**Archivos principales**:
+- `src/components/features/UserChip.tsx` + `.module.css` (nuevo; exporta también el helper `profileHref`)
+- `src/components/features/UpcomingTortillaCard.tsx` + `.module.css` (apuntados: gana el enlace; muere `.attendeeName`)
+- `src/components/features/CommentsSection.tsx` + `.module.css` (muere `.author`; el texto conserva el sangrado con `padding-left`)
+- `src/views/HistoryPage.tsx` + `.module.css` (votos del modal; muere `.voterLink`)
+- `src/components/NavBar.tsx` (`showName={false}`, `href="/profile"`)
+- `src/views/ProfilePage.tsx` (cabecera con `href={null}`; la miniatura cuadrada de tortilla sigue siendo un `Avatar` normal, no es un usuario)
+**Tecnologías**: ANTD Avatar, next/link, CSS Modules con herencia tipográfica
+**Notas**: Neto de −60 líneas. Los estilos inline del avatar se quedan inline a propósito: ANTD aplica su propio fondo a `.ant-avatar` y una clase de CSS Module pierde la guerra de especificidad. Aviso para quien ejecute los tests: `resolvers.test.ts` falla de forma **intermitente** con `Cannot find module '@/models/Comment'` (resolución de alias de Vite en arranque frío, no relacionado con este cambio); reejecutar la suite.
+
 ## [2026-06-13] - Infraestructura de tests (Vitest + resolvers en memoria)
 **Descripción**: Primer arnés de tests del proyecto. Dos capas: (1) **unitarios** de lógica pura — `computeAchievements`, helpers de fecha y `fmt`; (2) **integración de resolvers** GraphQL contra una BD MongoDB en memoria (`mongodb-memory-server`), llamando a los resolvers directamente con un `ctx` de sesión simulado. Los tests de resolvers mockean `@/lib/mongodb` (para no abrir Atlas) y `@/lib/r2` (sin tocar la red), y limpian las colecciones entre tests. Cobertura inicial: roles/permisos de admin, invariantes de la convocatoria (una abierta a la vez, apuntarse/desapuntarse idempotente, bloqueo si cerrada), auto-cierre al subir tortilla y la regla "solo se vota la más reciente". Comandos: `npm test` (run único) y `npm run test:watch`. De paso se extrajeron los helpers de fecha de `resolvers.ts` a `src/lib/dates.ts` para poder testearlos aislados.
 **Archivos principales**:

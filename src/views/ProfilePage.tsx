@@ -13,6 +13,7 @@ import {
   AchievementsGrid,
   type AchievementItem,
 } from '@/components/features/AchievementsGrid';
+import { UserChip } from '@/components/features/UserChip';
 import { MY_STATS_QUERY, USER_STATS_QUERY } from '@/graphql/operations';
 import styles from './ProfilePage.module.css';
 
@@ -133,19 +134,14 @@ export default function ProfilePage({ username }: Props = {}) {
 
   const header = (
     <header className={styles.header}>
-      <Avatar
-        src={stats?.imageUrl ?? undefined}
+      {/* Ya estamos en el perfil: el chip no enlaza a ningún sitio. */}
+      <UserChip
+        userName={displayName}
+        imageUrl={stats?.imageUrl}
         size={88}
-        style={{
-          backgroundColor: 'var(--color-tortilla-500)',
-          color: 'white',
-          fontWeight: 700,
-          fontSize: 36,
-          flexShrink: 0,
-        }}
-      >
-        {displayName.charAt(0).toUpperCase()}
-      </Avatar>
+        showName={false}
+        href={null}
+      />
       <div className={styles.headerText}>
         <h1 className={styles.title}>{title}</h1>
         {isOwn ? (

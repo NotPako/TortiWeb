@@ -70,13 +70,10 @@
   gap: 8px 14px;
 }
 
+/* La tipografía vive en el contenedor: `UserChip` la hereda. */
 .attendee {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-}
-
-.attendeeName {
   font-size: 14px;
   color: var(--color-tortilla-800);
 }
