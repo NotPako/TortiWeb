@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
 import {
   CommentsSection,
   type CommentItem,
 } from '@/components/features/CommentsSection';
-import { Avatar, List, Modal, Pagination, Segmented, Skeleton, Tag } from 'antd';
+import { UserChip } from '@/components/features/UserChip';
+import { List, Modal, Pagination, Segmented, Skeleton, Tag } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import {
@@ -312,39 +312,16 @@ export default function HistoryPage() {
               header={<strong>{t('history.individualVotes')}</strong>}
               dataSource={sortedVotes}
               locale={{ emptyText: t('history.noVotesYet') }}
-              renderItem={(vote) => {
-                const profileHref = `/profile/${encodeURIComponent(vote.userName)}`;
-                return (
+              renderItem={(vote) => (
                   <List.Item>
                     <List.Item.Meta
-                      avatar={
-                        <Link
-                          href={profileHref}
-                          onClick={() => setSelectedId(null)}
-                          aria-label={vote.userName}
-                        >
-                          <Avatar
-                            src={vote.imageUrl ?? undefined}
-                            style={{
-                              backgroundColor: 'var(--color-tortilla-500)',
-                              color: 'white',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {vote.userName.charAt(0).toUpperCase()}
-                          </Avatar>
-                        </Link>
-                      }
                       title={
-                        <Link
-                          href={profileHref}
-                          onClick={() => setSelectedId(null)}
-                          className={styles.voterLink}
-                          style={{ color: 'inherit', textDecoration: 'none' }}
-                        >
-                          {vote.userName}
-                        </Link>
+                        <UserChip
+                          userName={vote.userName}
+                          imageUrl={vote.imageUrl}
+                          onNavigate={() => setSelectedId(null)}
+                          className={styles.voter}
+                        />
                       }
                     />
                     <div
@@ -363,8 +340,7 @@ export default function HistoryPage() {
                       </Tag>
                     </div>
                   </List.Item>
-                );
-              }}
+              )}
             />
             <div className={styles.modalCommentsWrap}>
               <CommentsSection

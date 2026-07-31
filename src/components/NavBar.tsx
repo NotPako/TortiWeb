@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@apollo/client';
-import { Avatar } from 'antd';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Brand } from './Brand';
+import { UserChip } from './features/UserChip';
 import { ME_QUERY } from '@/graphql/operations';
 import styles from './NavBar.module.css';
 
@@ -66,25 +66,15 @@ export function NavBar() {
                 <strong className={styles.userName}>{userName}</strong>
               </span>
               <LanguageSwitcher />
-              <Link
+              <UserChip
+                userName={userName}
+                imageUrl={avatarSrc}
+                size={34}
+                showName={false}
                 href="/profile"
+                ariaLabel={t('profile.title')}
                 className={styles.avatarLink}
-                aria-label={t('profile.title')}
-              >
-                <Avatar
-                  src={avatarSrc}
-                  size={34}
-                  style={{
-                    background:
-                      'linear-gradient(135deg, var(--c-amber-lite), var(--c-amber-deep))',
-                    color: 'white',
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 700,
-                  }}
-                >
-                  {userName.charAt(0).toUpperCase()}
-                </Avatar>
-              </Link>
+              />
               <button
                 onClick={signOut}
                 className={styles.signOut}

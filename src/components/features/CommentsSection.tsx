@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useMutation } from '@apollo/client';
-import { Avatar, Button, Input, List, message } from 'antd';
+import { Button, Input, List, message } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { ADD_COMMENT_MUTATION } from '@/graphql/operations';
 import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
+import { UserChip } from './UserChip';
 import styles from './CommentsSection.module.css';
 
 export type CommentItem = {
@@ -71,43 +71,23 @@ export function CommentsSection({ tortillaId, comments, onChanged }: Props) {
       <List
         dataSource={comments}
         locale={{ emptyText: t('comments.empty') }}
-        renderItem={(c) => {
-          const profileHref = `/profile/${encodeURIComponent(c.userName)}`;
-          return (
-            <List.Item className={styles.item}>
-              <List.Item.Meta
-                avatar={
-                  <Link href={profileHref} aria-label={c.userName}>
-                    <Avatar
-                      src={c.imageUrl ?? undefined}
-                      style={{
-                        backgroundColor: 'var(--color-tortilla-500)',
-                        color: 'white',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {c.userName.charAt(0).toUpperCase()}
-                    </Avatar>
-                  </Link>
-                }
-                title={
-                  <div className={styles.itemHeader}>
-                    <Link href={profileHref} className={styles.author}>
-                      {c.userName}
-                    </Link>
-                    <span className={styles.timestamp}>
-                      {formatTime(c.createdAt)}
-                    </span>
-                  </div>
-                }
-                description={
-                  <p className={styles.text}>{normalizeCommentText(c.text)}</p>
-                }
-              />
-            </List.Item>
-          );
-        }}
+        renderItem={(c) => (
+          <List.Item className={styles.item}>
+            <List.Item.Meta
+              title={
+                <div className={styles.itemHeader}>
+                  <UserChip userName={c.userName} imageUrl={c.imageUrl} />
+                  <span className={styles.timestamp}>
+                    {formatTime(c.createdAt)}
+                  </span>
+                </div>
+              }
+              description={
+                <p className={styles.text}>{normalizeCommentText(c.text)}</p>
+              }
+            />
+          </List.Item>
+        )}
       />
 
       {userName ? (

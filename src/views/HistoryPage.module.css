@@ -4,9 +4,9 @@
   gap: 16px;
 }
 
-.voterLink:hover {
-  color: var(--color-tortilla-600) !important;
-  text-decoration: underline !important;
+/* El hover lo gestiona `UserChip`; aquí solo la tipografía que hereda. */
+.voter {
+  color: var(--color-tortilla-800);
 }
 
 .modalCommentsWrap {

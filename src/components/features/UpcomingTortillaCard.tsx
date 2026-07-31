@@ -1,12 +1,12 @@
 'use client';
 
 import { useMutation, useQuery } from '@apollo/client';
-import { Avatar } from 'antd';
 import {
   SET_ATTENDANCE_MUTATION,
   UPCOMING_TORTILLA_QUERY,
 } from '@/graphql/operations';
 import { useLanguage } from '../LanguageContext';
+import { UserChip } from './UserChip';
 import styles from './UpcomingTortillaCard.module.css';
 
 type Attendee = { userName: string; imageUrl: string | null };
@@ -19,14 +19,6 @@ type TortillaEvent = {
   open: boolean;
   attendees: Attendee[];
 };
-
-const avatarGradient = {
-  background:
-    'linear-gradient(135deg, var(--c-amber-lite), var(--c-amber-deep))',
-  color: 'white',
-  fontFamily: 'var(--font-display)',
-  fontWeight: 700,
-} as const;
 
 export function UpcomingTortillaCard() {
   const { t, locale } = useLanguage();
@@ -91,10 +83,11 @@ export function UpcomingTortillaCard() {
         <ul className={styles.attendees}>
           {event.attendees.map((a, i) => (
             <li key={`${a.userName}-${i}`} className={styles.attendee}>
-              <Avatar src={a.imageUrl ?? undefined} size={28} style={avatarGradient}>
-                {a.userName.charAt(0).toUpperCase()}
-              </Avatar>
-              <span className={styles.attendeeName}>{a.userName}</span>
+              <UserChip
+                userName={a.userName}
+                imageUrl={a.imageUrl}
+                size={28}
+              />
             </li>
           ))}
         </ul>

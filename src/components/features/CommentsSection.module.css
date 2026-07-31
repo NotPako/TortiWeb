@@ -25,30 +25,25 @@
   padding: 12px 0 !important;
 }
 
+/* El color/tamaño de aquí los hereda el nombre dentro de `UserChip`. */
 .itemHeader {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.author {
-  font-weight: 600;
   color: var(--color-tortilla-800);
-}
-
-.author:hover {
-  color: var(--color-tortilla-600);
-  text-decoration: underline;
 }
 
 .timestamp {
   font-size: 12px;
   color: var(--color-tortilla-600);
+  font-weight: 400;
 }
 
+/* Sangrado del texto para alinearlo con el nombre (avatar 32px + gap 9px). */
 .text {
   margin: 4px 0 0;
+  padding-left: 41px;
   color: var(--color-text);
   white-space: pre-wrap;
   word-break: break-word;
