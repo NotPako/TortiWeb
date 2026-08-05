@@ -187,6 +187,7 @@ const es = {
   'profile.voteHistory': 'Historial de votos',
   'profile.yourScore': 'Tu nota',
   'profile.changePhoto': 'Cambiar foto',
+  'profile.viewPhoto': 'Ver la foto de perfil a tamaño completo',
   'profile.uploadSuccess': '¡Foto de perfil actualizada!',
   'profile.uploadError': 'No se pudo actualizar la foto.',
   'profile.achievementsTitle': 'Logros',
@@ -217,8 +218,6 @@ const es = {
   'achievement.streak10.description': '10 tortillas consecutivas votadas.',
   'achievement.perfectScore.title': 'Diez perfecto',
   'achievement.perfectScore.description': 'Has puesto un 10 a una tortilla.',
-  'achievement.zeroScore.title': 'Cero implacable',
-  'achievement.zeroScore.description': 'Has puesto un 0 a una tortilla.',
   'achievement.firstLowballer.title': 'El más duro',
   'achievement.firstLowballer.description':
     'Por primera vez, fuiste el voto más bajo de una tortilla.',
@@ -400,6 +399,7 @@ const ca: Record<DictKey, string> = {
   'profile.voteHistory': 'Historial de vots',
   'profile.yourScore': 'La teva nota',
   'profile.changePhoto': 'Canviar foto',
+  'profile.viewPhoto': 'Veure la foto de perfil a mida completa',
   'profile.uploadSuccess': 'Foto de perfil actualitzada!',
   'profile.uploadError': 'No s\'ha pogut actualitzar la foto.',
   'profile.achievementsTitle': 'Assoliments',
@@ -430,8 +430,6 @@ const ca: Record<DictKey, string> = {
   'achievement.streak10.description': '10 truites consecutives votades.',
   'achievement.perfectScore.title': 'Deu perfecte',
   'achievement.perfectScore.description': 'Has posat un 10 a una truita.',
-  'achievement.zeroScore.title': 'Zero implacable',
-  'achievement.zeroScore.description': 'Has posat un 0 a una truita.',
   'achievement.firstLowballer.title': 'El més dur',
   'achievement.firstLowballer.description':
     'Per primera vegada, vas ser el vot més baix d\'una truita.',

@@ -15,7 +15,6 @@ export type AchievementId =
   | 'streak5'
   | 'streak10'
   | 'perfectScore'
-  | 'zeroScore'
   | 'firstLowballer'
   | 'firstHighballer';
 
@@ -75,11 +74,6 @@ const DEFS: Array<{
     id: 'perfectScore',
     emoji: '💎',
     check: (i) => i.scores.some((s) => s >= 10 - FLOAT_EPSILON),
-  },
-  {
-    id: 'zeroScore',
-    emoji: '💩',
-    check: (i) => i.scores.some((s) => s <= FLOAT_EPSILON),
   },
   { id: 'firstLowballer', emoji: '😠', check: isFirstLowballer },
   { id: 'firstHighballer', emoji: '⭐', check: isFirstHighballer },
