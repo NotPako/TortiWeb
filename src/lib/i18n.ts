@@ -100,6 +100,12 @@ const es = {
   'history.yourScore': 'Tu nota:',
   'history.sortByDate': 'Por fecha',
   'history.sortByScore': 'Por puntuación',
+  'history.searchPlaceholder': 'Buscar por nombre o ingredientes…',
+  'history.resultSingular': '{n} resultado',
+  'history.resultPlural': '{n} resultados',
+  'history.noResults.title': 'Ninguna tortilla coincide con tu búsqueda.',
+  'history.noResults.subtitle':
+    'Prueba con menos palabras o revisa si hay alguna errata.',
 
   'admin.title': 'Crear tortilla del miércoles',
   'admin.subtitle':
@@ -305,6 +311,12 @@ const ca: Record<DictKey, string> = {
   'history.yourScore': 'La teva nota:',
   'history.sortByDate': 'Per data',
   'history.sortByScore': 'Per puntuació',
+  'history.searchPlaceholder': 'Cerca per nom o ingredients…',
+  'history.resultSingular': '{n} resultat',
+  'history.resultPlural': '{n} resultats',
+  'history.noResults.title': 'Cap truita coincideix amb la teva cerca.',
+  'history.noResults.subtitle':
+    'Prova amb menys paraules o revisa si hi ha alguna errada.',
 
   'admin.title': 'Crear truita del dimecres',
   'admin.subtitle':

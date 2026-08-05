@@ -1,5 +1,16 @@
 # FeatControl
 
+## [2026-08-05] - Buscador en el historial de tortillas
+**Descripción**: Campo de búsqueda en `/history` que filtra por palabras clave sobre el **nombre y la descripción** a la vez. Funciona con varias palabras en modo AND y sin importar el orden ("cebolla patata" encuentra "Tortilla de patata con cebolla"), casa por subcadena ("cebo" ya vale) y es **insensible a mayúsculas y acentos**, que es lo que de verdad importa aquí: quien escribe "calabacin" o "jamon" sin tilde encuentra "Calabacín" y "Jamón". La `ñ` también se pliega a `n` (decisión deliberada, es lo que hace el `asciifolding` clásico: "nino" encuentra "niño").
+
+Filtrado en cliente, coherente con la paginación existente (los datos ya llegan completos en `TORTILLAS_QUERY`; con ~30 tortillas filtrar es instantáneo y un debounce solo añadiría lag). La cadena es **filtrar → ordenar → paginar**, para que el contador de páginas cuente solo resultados. Escribir en el buscador vuelve a la página 1, igual que ya hacía cambiar la ordenación. Junto al input aparece el recuento de resultados cuando hay consulta activa.
+**Archivos principales**:
+- `src/lib/search.ts` + `search.test.ts` (nuevo; `normalizeForSearch`, `toSearchTokens`, `matchesAllTokens`, 15 tests)
+- `src/views/HistoryPage.tsx` + `.module.css` (input ANTD con `allowClear`, recuento, estado de "sin resultados")
+- `src/lib/i18n.ts` (claves `history.searchPlaceholder`, `history.result*`, `history.noResults.*`, ES + CA)
+**Tecnologías**: `String.normalize('NFD')` + descarte de marcas combinantes, ANTD Input, useMemo
+**Notas**: El estado vacío se partió en dos, y no es cosmético: antes un `list.length === 0` hacía early return de toda la página, así que sin resultados **desaparecía el buscador** y no había forma de corregir la consulta. Ahora el early return solo cubre "no hay ninguna tortilla registrada" y el "sin resultados" se renderiza dentro del layout, con el input intacto.
+
 ## [2026-07-31] - `UserChip`: componente único de identidad de usuario
 **Descripción**: Refactor que unifica en un solo componente todos los sitios donde se pinta un usuario (avatar + nombre). Antes había **cuatro implementaciones distintas** del mismo patrón, cada una con su `Avatar` de ANTD y sus estilos inline duplicados, y dos de ellas con el `<Link>` al perfil copiado a mano. Ahora `UserChip` es el único sitio donde se decide cómo se ve un usuario: el gradiente del avatar, la inicial de respaldo cuando no hay foto y la ruta del perfil.
 

@@ -8,9 +8,11 @@ import {
   type CommentItem,
 } from '@/components/features/CommentsSection';
 import { UserChip } from '@/components/features/UserChip';
-import { List, Modal, Pagination, Segmented, Skeleton, Tag } from 'antd';
+import { Input, List, Modal, Pagination, Segmented, Skeleton, Tag } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
+import { matchesAllTokens, toSearchTokens } from '@/lib/search';
 import {
   TORTILLAS_QUERY,
   TORTILLA_DETAIL_QUERY,
@@ -91,6 +93,7 @@ export default function HistoryPage() {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
+  const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -121,17 +124,31 @@ export default function HistoryPage() {
   }, [detail?.votes]);
 
   const rawList = data?.tortillas ?? [];
+
+  // Filtrar → ordenar → paginar. El filtro va primero para que la paginación
+  // cuente solo los resultados visibles.
+  const tokens = useMemo(() => toSearchTokens(query), [query]);
+  const filteredList = useMemo(() => {
+    if (tokens.length === 0) return rawList;
+    return rawList.filter((tortilla) =>
+      matchesAllTokens(
+        `${tortilla.name} ${tortilla.description ?? ''}`,
+        tokens
+      )
+    );
+  }, [rawList, tokens]);
+
   const list = useMemo(() => {
     if (sortBy === 'score') {
-      return [...rawList].sort((a, b) => {
+      return [...filteredList].sort((a, b) => {
         if (a.averageScore === null && b.averageScore === null) return 0;
         if (a.averageScore === null) return 1;
         if (b.averageScore === null) return -1;
         return b.averageScore - a.averageScore;
       });
     }
-    return rawList;
-  }, [rawList, sortBy]);
+    return filteredList;
+  }, [filteredList, sortBy]);
 
   const pagedList = useMemo(
     () => list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
@@ -176,7 +193,10 @@ export default function HistoryPage() {
     );
   }
 
-  if (list.length === 0) {
+  // Solo cuando no hay ninguna tortilla registrada. Si la búsqueda no encuentra
+  // nada se renderiza el layout completo: ocultar el buscador dejaría al
+  // usuario sin forma de corregir la consulta.
+  if (rawList.length === 0) {
     return (
       <div className={styles.emptyCard}>
         <p className={styles.emptyTitle}>{t('history.empty.title')}</p>
@@ -201,6 +221,37 @@ export default function HistoryPage() {
           ]}
         />
       </div>
+
+      <div className={styles.searchRow}>
+        <Input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(1);
+          }}
+          placeholder={t('history.searchPlaceholder')}
+          prefix={<SearchOutlined className={styles.searchIcon} />}
+          allowClear
+          aria-label={t('history.searchPlaceholder')}
+        />
+        {tokens.length > 0 ? (
+          <span className={styles.resultCount}>
+            {list.length === 1
+              ? t('history.resultSingular', { n: list.length })
+              : t('history.resultPlural', { n: list.length })}
+          </span>
+        ) : null}
+      </div>
+
+      {list.length === 0 ? (
+        <div className={styles.emptyCard}>
+          <p className={styles.emptyTitle}>{t('history.noResults.title')}</p>
+          <p className={styles.emptySubtitle}>
+            {t('history.noResults.subtitle')}
+          </p>
+        </div>
+      ) : null}
+
       <div className={styles.grid}>
         {pagedList.map((tortilla) => (
           <button
