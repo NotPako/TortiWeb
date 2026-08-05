@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Avatar } from 'antd';
+import { Avatar, Image } from 'antd';
 import styles from './UserChip.module.css';
 
 /**
@@ -27,6 +28,14 @@ type Props = {
   href?: string | null;
   /** Se ejecuta al navegar. Útil para cerrar el modal que contiene el chip. */
   onNavigate?: () => void;
+  /**
+   * Al pulsar el avatar, abre la foto a tamaño completo. Solo tiene efecto si
+   * el usuario tiene foto: con la inicial de respaldo no hay nada que ampliar.
+   * Incompatible con enlazar, así que se usa junto a `href={null}`.
+   */
+  previewable?: boolean;
+  /** Etiqueta accesible del disparador de la vista previa. */
+  previewLabel?: string;
   /** Etiqueta accesible. Solo necesaria si `showName` es `false`. */
   ariaLabel?: string;
   className?: string;
@@ -43,10 +52,14 @@ export function UserChip({
   showName = true,
   href,
   onNavigate,
+  previewable = false,
+  previewLabel,
   ariaLabel,
   className,
 }: Props) {
   const target = href === undefined ? profileHref(userName) : href;
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const canPreview = previewable && Boolean(imageUrl);
 
   const avatar = (
     <Avatar
@@ -74,6 +87,35 @@ export function UserChip({
   );
 
   const rootClass = className ? `${styles.chip} ${className}` : styles.chip;
+
+  if (canPreview) {
+    return (
+      <span className={rootClass}>
+        <button
+          type="button"
+          className={styles.previewTrigger}
+          onClick={() => setPreviewOpen(true)}
+          aria-label={previewLabel ?? userName}
+        >
+          {avatar}
+        </button>
+        {showName ? <span className={styles.name}>{userName}</span> : null}
+        {/*
+          ANTD abre el visor desde su propio <Image>. Lo dejamos oculto y lo
+          controlamos a mano para no perder el Avatar (gradiente + inicial).
+        */}
+        <Image
+          src={imageUrl ?? undefined}
+          alt={userName}
+          style={{ display: 'none' }}
+          preview={{
+            visible: previewOpen,
+            onVisibleChange: setPreviewOpen,
+          }}
+        />
+      </span>
+    );
+  }
 
   if (!target) {
     return <span className={rootClass}>{body}</span>;

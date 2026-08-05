@@ -17,9 +17,9 @@ const empty = {
 };
 
 describe('computeAchievements', () => {
-  it('devuelve los 10 logros, todos bloqueados sin actividad', () => {
+  it('devuelve los 9 logros, todos bloqueados sin actividad', () => {
     const result = computeAchievements(empty);
-    expect(result).toHaveLength(10);
+    expect(result).toHaveLength(9);
     expect(result.every((a) => !a.unlocked)).toBe(true);
   });
 
@@ -37,7 +37,7 @@ describe('computeAchievements', () => {
     expect(m.get('streak10')).toBe(false);
   });
 
-  it('detecta nota perfecta y nota cero', () => {
+  it('detecta nota perfecta', () => {
     const perfect = unlockedMap({
       ...empty,
       totalVotes: 1,
@@ -45,15 +45,14 @@ describe('computeAchievements', () => {
       allRelevantVotes: [{ tortillaId: 't1', score: 10 }],
     });
     expect(perfect.get('perfectScore')).toBe(true);
-    expect(perfect.get('zeroScore')).toBe(false);
 
-    const zero = unlockedMap({
+    const notPerfect = unlockedMap({
       ...empty,
       totalVotes: 1,
-      userVotes: [{ tortillaId: 't1', score: 0 }],
-      allRelevantVotes: [{ tortillaId: 't1', score: 0 }],
+      userVotes: [{ tortillaId: 't1', score: 9.9 }],
+      allRelevantVotes: [{ tortillaId: 't1', score: 9.9 }],
     });
-    expect(zero.get('zeroScore')).toBe(true);
+    expect(notPerfect.get('perfectScore')).toBe(false);
   });
 
   it('marca lowballer/highballer según el min/max de la tortilla', () => {
