@@ -29,6 +29,27 @@
   gap: 12px;
 }
 
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.searchRow :global(.ant-input-affix-wrapper) {
+  max-width: 420px;
+}
+
+.searchIcon {
+  color: var(--c-muted);
+}
+
+.resultCount {
+  font-size: 13px;
+  color: var(--color-tortilla-700);
+  font-variant-numeric: tabular-nums;
+}
+
 .paginationRow {
   display: flex;
   justify-content: center;
