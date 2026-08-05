@@ -14,6 +14,7 @@ import { Comment, CommentDocument } from '@/models/Comment';
 import { TortillaEvent, TortillaEventDocument } from '@/models/TortillaEvent';
 import { computeAchievements, type VoteForAchievements } from '@/lib/achievements';
 import { isSameDay, nextWednesday } from '@/lib/dates';
+import { computeStreaks } from '@/lib/streak';
 import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
 import {
   User,
@@ -229,34 +230,15 @@ async function computeUserStats(userKey: string) {
       .map((v) => (v.tortilla._id as Types.ObjectId).toString())
   );
 
-  // Si la tortilla más reciente es de hoy y aún no se votó, no rompe la racha.
-  let startIndex = 0;
-  if (tortillaList.length > 0) {
-    const first = tortillaList[0];
-    const firstId = (first._id as Types.ObjectId).toString();
-    if (isSameDay(first.date, new Date()) && !votedIds.has(firstId)) {
-      startIndex = 1;
-    }
-  }
-
-  let currentStreak = 0;
-  let bestStreak = 0;
-  let runLength = 0;
-  let foundFirstGap = false;
-  for (let i = startIndex; i < tortillaList.length; i++) {
-    const tid = (tortillaList[i]._id as Types.ObjectId).toString();
-    if (votedIds.has(tid)) {
-      runLength++;
-      if (runLength > bestStreak) bestStreak = runLength;
-    } else {
-      if (!foundFirstGap) {
-        currentStreak = runLength;
-        foundFirstGap = true;
-      }
-      runLength = 0;
-    }
-  }
-  if (!foundFirstGap) currentStreak = runLength;
+  // La racha se cuenta por día, no por tortilla: si un día hubo dos, haber
+  // votado cualquiera de ellas mantiene la racha.
+  const { currentStreak, bestStreak } = computeStreaks({
+    tortillas: tortillaList.map((d) => ({
+      id: (d._id as Types.ObjectId).toString(),
+      date: d.date,
+    })),
+    votedTortillaIds: votedIds,
+  });
 
   // Logros: necesitamos min/max por tortilla en las que votó el usuario.
   const userTortillaIds = voteDocs
@@ -355,16 +337,21 @@ export const resolvers = {
       return tortillaPayload(doc, sessionUserKey(ctx.session));
     },
 
-    async currentTortilla(_: unknown, __: unknown, ctx: GqlContext) {
+    async currentTortillas(_: unknown, __: unknown, ctx: GqlContext) {
       await connectToDatabase();
-      // La tortilla "actual" es siempre la más reciente subida. La votación se
-      // cierra cuando se sube una nueva (no por fecha): así evitamos depender
-      // de la zona horaria del servidor y de cómo el admin rellena la fecha.
-      // Si el admin la cierra manualmente, también desaparece de /vote (sigue
-      // accesible en el histórico).
-      const doc = await Tortilla.findOne({}).sort({ date: -1 }).exec();
-      if (!doc || doc.closedAt) return null;
-      return tortillaPayload(doc, sessionUserKey(ctx.session));
+      // La jornada "actual" es la del día de la tortilla más reciente, y se
+      // votan **todas** las de ese día: a veces se cocinan dos distintas.
+      // Subir una tortilla de un día posterior cierra la jornada anterior.
+      const latest = await Tortilla.findOne({}).sort({ date: -1 }).exec();
+      if (!latest) return [];
+
+      const docs = await Tortilla.find({}).sort({ date: -1 }).exec();
+      const openToday = docs.filter(
+        (d) => isSameDay(d.date, latest.date) && !d.closedAt
+      );
+
+      const userKey = sessionUserKey(ctx.session);
+      return Promise.all(openToday.map((d) => tortillaPayload(d, userKey)));
     },
 
     async me(_: unknown, __: unknown, ctx: GqlContext) {
@@ -562,14 +549,14 @@ export const resolvers = {
       const tortilla = await Tortilla.findById(tortillaId).exec();
       if (!tortilla) throw new Error('Tortilla no encontrada.');
 
-      // Solo se permite votar la tortilla más reciente: cuando se sube una
-      // nueva, las anteriores quedan cerradas automáticamente.
-      const latest = await Tortilla.findOne({}).sort({ date: -1 }).exec();
-      if (
-        !latest ||
-        (latest._id as Types.ObjectId).toString() !==
-          (tortilla._id as Types.ObjectId).toString()
-      ) {
+      // Solo se vota la jornada en curso: la del día de la tortilla más
+      // reciente. Cualquier tortilla de ese mismo día es votable (a veces se
+      // cocinan dos), y subir una de un día posterior cierra la anterior.
+      const latest = await Tortilla.findOne({})
+        .sort({ date: -1 })
+        .select('date')
+        .exec();
+      if (!latest || !isSameDay(latest.date, tortilla.date)) {
         throw new Error(
           'La votación de esta tortilla ya está cerrada (hay una más reciente).'
         );

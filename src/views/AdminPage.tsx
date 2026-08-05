@@ -9,7 +9,7 @@ import { TortillaManager } from '@/components/TortillaManager';
 import { TortillaEventAdmin } from '@/components/TortillaEventAdmin';
 import {
   CREATE_TORTILLA_MUTATION,
-  CURRENT_TORTILLA_QUERY,
+  CURRENT_TORTILLAS_QUERY,
   TORTILLAS_QUERY,
 } from '@/graphql/operations';
 import styles from './AdminPage.module.css';
@@ -66,7 +66,7 @@ export default function AdminPage() {
     CREATE_TORTILLA_MUTATION,
     {
       refetchQueries: [
-        { query: CURRENT_TORTILLA_QUERY },
+        { query: CURRENT_TORTILLAS_QUERY },
         { query: TORTILLAS_QUERY },
       ],
       awaitRefetchQueries: true,
