@@ -1,5 +1,19 @@
 # FeatControl
 
+## [2026-08-05] - Paginación en el historial del perfil y retirada del logro "Cero implacable"
+**Descripción**: Dos cambios pequeños e independientes.
+
+**Paginación del historial de votos del perfil**: la lista de tortillas votadas crecía sin límite al final de `/profile` (y de los perfiles ajenos). Ahora pagina de 10 en 10 usando el prop `pagination` nativo del `List` de ANTD, en lugar del `<Pagination>` suelto que usan el historial y el panel de admin: como aquí ya había un `List`, el prop nativo evita duplicar el estado de página y el troceado a mano. Se oculta con una sola página. Al cambiar de página se hace scroll **a la tarjeta del historial**, no al principio del documento, porque el historial vive al final de una página larga y subir arriba del todo sería desorientador.
+
+**Retirada de "Cero implacable"** (💩, se desbloqueaba al puntuar con un 0): los logros pasan de 10 a 9. Se elimina de la unión `AchievementId`, de `DEFS`, de sus dos claves i18n (ES + CA) y del test que lo cubría, que se reescribe para seguir cubriendo `perfectScore` con un caso negativo (9.9 no cuenta). La rejilla del perfil es responsive, así que absorbe el hueco sin tocar CSS.
+**Archivos principales**:
+- `src/views/ProfilePage.tsx` (paginación + `historyCardRef` para el scroll)
+- `src/lib/achievements.ts` (fuera `zeroScore`)
+- `src/lib/achievements.test.ts` (9 logros en vez de 10; test de nota perfecta reescrito)
+- `src/lib/i18n.ts` (fuera `achievement.zeroScore.*`, ES + CA)
+**Tecnologías**: ANTD List `pagination`, `scrollIntoView`
+**Notas**: Los logros se calculan en cada request, así que retirar uno no deja nada que migrar en BD. La entrada del 2026-05-17 sigue diciendo "10 logros" a propósito: describe lo que se construyó entonces.
+
 ## [2026-08-05] - Buscador en el historial de tortillas
 **Descripción**: Campo de búsqueda en `/history` que filtra por palabras clave sobre el **nombre y la descripción** a la vez. Funciona con varias palabras en modo AND y sin importar el orden ("cebolla patata" encuentra "Tortilla de patata con cebolla"), casa por subcadena ("cebo" ya vale) y es **insensible a mayúsculas y acentos**, que es lo que de verdad importa aquí: quien escribe "calabacin" o "jamon" sin tilde encuentra "Calabacín" y "Jamón". La `ñ` también se pliega a `n` (decisión deliberada, es lo que hace el `asciifolding` clásico: "nino" encuentra "niño").
 

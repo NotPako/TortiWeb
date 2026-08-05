@@ -215,8 +215,6 @@ const es = {
   'achievement.streak10.description': '10 tortillas consecutivas votadas.',
   'achievement.perfectScore.title': 'Diez perfecto',
   'achievement.perfectScore.description': 'Has puesto un 10 a una tortilla.',
-  'achievement.zeroScore.title': 'Cero implacable',
-  'achievement.zeroScore.description': 'Has puesto un 0 a una tortilla.',
   'achievement.firstLowballer.title': 'El más duro',
   'achievement.firstLowballer.description':
     'Por primera vez, fuiste el voto más bajo de una tortilla.',
@@ -426,8 +424,6 @@ const ca: Record<DictKey, string> = {
   'achievement.streak10.description': '10 truites consecutives votades.',
   'achievement.perfectScore.title': 'Deu perfecte',
   'achievement.perfectScore.description': 'Has posat un 10 a una truita.',
-  'achievement.zeroScore.title': 'Zero implacable',
-  'achievement.zeroScore.description': 'Has posat un 0 a una truita.',
   'achievement.firstLowballer.title': 'El més dur',
   'achievement.firstLowballer.description':
     'Per primera vegada, vas ser el vot més baix d\'una truita.',

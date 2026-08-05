@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
 import { Avatar, Button, List, Skeleton, Statistic, Tag, Upload, message } from 'antd';
@@ -64,12 +64,15 @@ function tagColorForScore(score: number): string {
   return 'red';
 }
 
+const VOTE_HISTORY_PAGE_SIZE = 10;
+
 export default function ProfilePage({ username }: Props = {}) {
   const { userName, isReady } = useUser();
   const { t, locale } = useLanguage();
   const router = useRouter();
   const isOwn = !username;
   const { upload, uploading } = useProfileImageUpload();
+  const historyCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOwn && isReady && !userName) router.replace('/login');
@@ -260,10 +263,23 @@ export default function ProfilePage({ username }: Props = {}) {
         </div>
       ) : null}
 
-      <div className={styles.historyCard}>
+      <div className={styles.historyCard} ref={historyCardRef}>
         <List
           header={<strong>{t('profile.voteHistory')}</strong>}
           dataSource={sortedVotes}
+          pagination={{
+            pageSize: VOTE_HISTORY_PAGE_SIZE,
+            hideOnSinglePage: true,
+            showSizeChanger: false,
+            align: 'center',
+            // El historial vive al final de una página larga: subimos a la
+            // tarjeta, no al principio del documento.
+            onChange: () =>
+              historyCardRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              }),
+          }}
           renderItem={(vote) => (
             <List.Item>
               <List.Item.Meta
