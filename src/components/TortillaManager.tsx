@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import { Pagination, Skeleton } from 'antd';
 import {
-  CURRENT_TORTILLA_QUERY,
+  CURRENT_TORTILLAS_QUERY,
   DELETE_TORTILLA_MUTATION,
   TORTILLAS_QUERY,
 } from '@/graphql/operations';
@@ -35,7 +35,7 @@ export function TortillaManager() {
   const [deleteTortilla] = useMutation(DELETE_TORTILLA_MUTATION, {
     refetchQueries: [
       { query: TORTILLAS_QUERY },
-      { query: CURRENT_TORTILLA_QUERY },
+      { query: CURRENT_TORTILLAS_QUERY },
     ],
     awaitRefetchQueries: true,
   });

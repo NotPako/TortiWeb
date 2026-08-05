@@ -35,11 +35,11 @@ export const COMMENT_FIELDS = gql`
   }
 `;
 
-export const CURRENT_TORTILLA_QUERY = gql`
+export const CURRENT_TORTILLAS_QUERY = gql`
   ${TORTILLA_FIELDS}
   ${COMMENT_FIELDS}
-  query CurrentTortilla {
-    currentTortilla {
+  query CurrentTortillas {
+    currentTortillas {
       ...TortillaFields
       myVote {
         id

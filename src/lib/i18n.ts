@@ -80,6 +80,8 @@ const es = {
   'vote.update': 'Actualizar voto',
   'vote.send': 'Enviar voto',
   'vote.success': '¡Voto registrado!',
+  'vote.multiple':
+    'Hoy hay {n} tortillas en juego. Puedes votarlas todas, o solo las que hayas probado.',
   'vote.close.button': 'Cerrar votación',
   'vote.close.closing': 'Cerrando…',
   'vote.close.success': 'Votación cerrada.',
@@ -290,6 +292,8 @@ const ca: Record<DictKey, string> = {
   'vote.update': 'Actualitzar vot',
   'vote.send': 'Enviar vot',
   'vote.success': 'Vot registrat!',
+  'vote.multiple':
+    'Avui hi ha {n} truites en joc. Pots votar-les totes, o només les que hagis tastat.',
   'vote.close.button': 'Tancar votació',
   'vote.close.closing': 'Tancant…',
   'vote.close.success': 'Votació tancada.',

@@ -1,5 +1,23 @@
 # FeatControl
 
+## [2026-08-05] - Varias tortillas por jornada + racha por día
+**Descripción**: Hasta ahora solo se podía votar **una** tortilla a la vez, pero algunos días se cocinan dos distintas. El concepto pasa de "la tortilla más reciente" a **"la jornada en curso"**: el día de la tortilla más reciente, y son votables **todas** las de ese día que no estén cerradas a mano. Subir una tortilla de un día posterior sigue cerrando la jornada anterior, igual que antes.
+
+En `/vote` se renderiza una tarjeta por tortilla, cada una con su foto, su slider, sus reacciones, su botón y sus comentarios. Cuando hay más de una aparece un aviso arriba. La query `currentTortilla` pasa a `currentTortillas` (lista).
+
+**La racha ahora cuenta por día, no por tortilla**: si un día hubo dos, haber votado **cualquiera** de ellas mantiene la racha. Obligar a votar las dos castigaría a quien solo probó una, que es lo contrario de lo que la racha premia. La lógica se extrae de `resolvers.ts` a `src/lib/streak.ts` para poder testearla aislada, agrupando por clave de día (`dayKey`, zona horaria de Madrid) antes de contar. Se conserva la gracia existente: la jornada de hoy sin votar no rompe la racha.
+**Archivos principales**:
+- `src/lib/streak.ts` + `streak.test.ts` (nuevo; `computeStreaks` agrupando por día, 13 tests)
+- `src/graphql/resolvers.ts` (`currentTortillas` plural; `castVote` compara **día** en vez de id; racha delegada al helper)
+- `src/graphql/typeDefs.ts` (`currentTortilla: Tortilla` → `currentTortillas: [Tortilla!]!`)
+- `src/graphql/operations.ts` (`CURRENT_TORTILLAS_QUERY`)
+- `src/components/features/TortillaVoteCard.tsx` + `.module.css` (nuevo; extraído de `VotePage`)
+- `src/views/VotePage.tsx` + `.module.css` (de 298 a ~105 líneas: solo orquesta la lista)
+- `src/components/TortillaManager.tsx`, `src/views/AdminPage.tsx` (refetch de la query renombrada)
+- `src/graphql/resolvers.test.ts` (7 tests nuevos de jornada múltiple)
+- `src/lib/i18n.ts` (clave `vote.multiple`, ES + CA)
+**Tecnologías**: agrupación por `dayKey`, extracción de componente, Apollo `refetchQueries`
+**Notas**: Cada `TortillaVoteCard` posee su propio estado de voto (`score`, `reaction`, `feedback`), que es exactamente lo que permite tener varias en pantalla sin que se pisen; con un único `useState` en la vista, votar una habría arrastrado el valor a la otra. El auto-cierre de convocatoria en `createTortilla` usa `updateMany`, así que subir la segunda tortilla del día es idempotente y no hizo falta tocarlo.
 ## [2026-08-05] - Paginación en el historial del perfil, visor de foto y retirada del logro "Cero implacable"
 **Descripción**: Tres cambios pequeños e independientes.
 

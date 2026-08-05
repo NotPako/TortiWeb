@@ -187,7 +187,7 @@ describe('createTortilla auto-cierra la convocatoria abierta', () => {
   });
 });
 
-describe('castVote solo permite votar la tortilla más reciente', () => {
+describe('castVote solo permite votar la jornada en curso', () => {
   it('rechaza votar una tortilla antigua', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
     const older = await Tortilla.create({
@@ -228,5 +228,139 @@ describe('castVote solo permite votar la tortilla más reciente', () => {
     )) as { score: number; userName: string };
     expect(vote.score).toBe(8.5);
     expect(vote.userName).toBe('pepe');
+  });
+
+  it('permite votar cualquiera de las dos tortillas del mismo día', async () => {
+    const { ctx: user } = await makeUser('pepe', 'user');
+    // Mismo día natural, subidas a horas distintas.
+    const a = await Tortilla.create({
+      name: 'De patata',
+      date: new Date(2026, 5, 10, 12, 0),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+    const b = await Tortilla.create({
+      name: 'De calabacín',
+      date: new Date(2026, 5, 10, 14, 30),
+      imageKey: 'k2',
+      imageContentType: 'image/png',
+    });
+
+    // La "no más reciente" del día también debe aceptarse.
+    const voteA = (await Mutation.castVote(
+      null,
+      { input: { tortillaId: a._id.toString(), score: 7 } },
+      user
+    )) as { score: number };
+    const voteB = (await Mutation.castVote(
+      null,
+      { input: { tortillaId: b._id.toString(), score: 9 } },
+      user
+    )) as { score: number };
+
+    expect(voteA.score).toBe(7);
+    expect(voteB.score).toBe(9);
+  });
+
+  it('subir una tortilla de un día posterior cierra la jornada anterior', async () => {
+    const { ctx: user } = await makeUser('pepe', 'user');
+    const ayer = await Tortilla.create({
+      name: 'De ayer',
+      date: new Date(2026, 5, 10),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+    await Tortilla.create({
+      name: 'De hoy',
+      date: new Date(2026, 5, 17),
+      imageKey: 'k2',
+      imageContentType: 'image/png',
+    });
+
+    await expect(
+      Mutation.castVote(
+        null,
+        { input: { tortillaId: ayer._id.toString(), score: 8 } },
+        user
+      )
+    ).rejects.toThrow(/cerrada/i);
+  });
+});
+
+describe('currentTortillas devuelve la jornada completa', () => {
+  it('devuelve las dos tortillas del mismo día', async () => {
+    const { ctx: user } = await makeUser('pepe', 'user');
+    await Tortilla.create({
+      name: 'De patata',
+      date: new Date(2026, 5, 10, 12, 0),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+    await Tortilla.create({
+      name: 'De calabacín',
+      date: new Date(2026, 5, 10, 14, 30),
+      imageKey: 'k2',
+      imageContentType: 'image/png',
+    });
+
+    const list = (await Query.currentTortillas(null, {}, user)) as Array<{
+      name: string;
+    }>;
+    expect(list).toHaveLength(2);
+    expect(list.map((tortilla) => tortilla.name).sort()).toEqual([
+      'De calabacín',
+      'De patata',
+    ]);
+  });
+
+  it('excluye las de días anteriores', async () => {
+    const { ctx: user } = await makeUser('pepe', 'user');
+    await Tortilla.create({
+      name: 'Vieja',
+      date: new Date(2026, 5, 3),
+      imageKey: 'k0',
+      imageContentType: 'image/png',
+    });
+    await Tortilla.create({
+      name: 'De hoy',
+      date: new Date(2026, 5, 10),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+
+    const list = (await Query.currentTortillas(null, {}, user)) as Array<{
+      name: string;
+    }>;
+    expect(list).toHaveLength(1);
+    expect(list[0].name).toBe('De hoy');
+  });
+
+  it('excluye la cerrada a mano pero conserva la otra del día', async () => {
+    const { ctx: user } = await makeUser('pepe', 'user');
+    await Tortilla.create({
+      name: 'Abierta',
+      date: new Date(2026, 5, 10, 12, 0),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+    await Tortilla.create({
+      name: 'Cerrada',
+      date: new Date(2026, 5, 10, 14, 0),
+      imageKey: 'k2',
+      imageContentType: 'image/png',
+      closedAt: new Date(),
+    });
+
+    const list = (await Query.currentTortillas(null, {}, user)) as Array<{
+      name: string;
+    }>;
+    expect(list).toHaveLength(1);
+    expect(list[0].name).toBe('Abierta');
+  });
+
+  it('sin tortillas devuelve lista vacía', async () => {
+    const { ctx: user } = await makeUser('pepe', 'user');
+    const list = (await Query.currentTortillas(null, {}, user)) as unknown[];
+    expect(list).toEqual([]);
   });
 });

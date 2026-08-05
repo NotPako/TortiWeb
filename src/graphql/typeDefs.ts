@@ -136,8 +136,11 @@ export const typeDefs = gql`
     tortillas: [Tortilla!]!
     """Una tortilla concreta por ID."""
     tortilla(id: ID!): Tortilla
-    """La tortilla más reciente (la del miércoles actual)."""
-    currentTortilla: Tortilla
+    """
+    Tortillas de la jornada en curso, abiertas a votación. Normalmente una,
+    pero pueden ser varias si ese día se cocinó más de una.
+    """
+    currentTortillas: [Tortilla!]!
     """Información del usuario autenticado, o null si no hay sesión."""
     me: User
     """Estadísticas y votos del usuario autenticado."""
