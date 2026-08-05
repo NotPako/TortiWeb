@@ -137,13 +137,15 @@ export default function ProfilePage({ username }: Props = {}) {
 
   const header = (
     <header className={styles.header}>
-      {/* Ya estamos en el perfil: el chip no enlaza a ningún sitio. */}
+      {/* Ya estamos en el perfil: en vez de enlazar, amplía la foto. */}
       <UserChip
         userName={displayName}
         imageUrl={stats?.imageUrl}
         size={88}
         showName={false}
         href={null}
+        previewable
+        previewLabel={t('profile.viewPhoto')}
       />
       <div className={styles.headerText}>
         <h1 className={styles.title}>{title}</h1>

@@ -40,3 +40,23 @@
   outline: 2px solid var(--c-amber);
   outline-offset: 2px;
 }
+
+/* Disparador de la vista previa: el avatar sin adornos de botón. */
+.previewTrigger {
+  padding: 0;
+  border: none;
+  background: none;
+  line-height: 0;
+  border-radius: var(--radius-full);
+  cursor: zoom-in;
+  transition: opacity 0.14s;
+}
+
+.previewTrigger:hover {
+  opacity: 0.88;
+}
+
+.previewTrigger:focus-visible {
+  outline: 2px solid var(--c-amber);
+  outline-offset: 2px;
+}
