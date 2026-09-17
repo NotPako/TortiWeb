@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { Alert, Button, Divider, Form, Input } from 'antd';
 import { useLanguage } from '@/components/LanguageContext';
+import { safeCallbackUrl, withCallbackUrl } from '@/lib/navigation';
 import styles from './LoginPage.module.css';
 
 type LoginValues = {
@@ -18,7 +19,7 @@ export default function LoginPage() {
   const { status, data } = useSession();
   const router = useRouter();
   const params = useSearchParams();
-  const callbackUrl = params.get('callbackUrl') ?? '/vote';
+  const callbackUrl = safeCallbackUrl(params.get('callbackUrl'));
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (status === 'authenticated') {
       if (data?.user?.needsUsername) {
-        router.replace('/auth/setup-username');
+        router.replace(withCallbackUrl('/auth/setup-username', callbackUrl));
       } else {
         router.replace(callbackUrl);
       }
@@ -51,7 +52,9 @@ export default function LoginPage() {
   }
 
   function handleGoogle() {
-    signIn('google', { callbackUrl: '/auth/setup-username' });
+    signIn('google', {
+      callbackUrl: withCallbackUrl('/auth/setup-username', callbackUrl),
+    });
   }
 
   return (
@@ -104,7 +107,10 @@ export default function LoginPage() {
 
         <p className={styles.footer}>
           {t('auth.login.noAccount')}{' '}
-          <Link href="/register" className={styles.link}>
+          <Link
+            href={withCallbackUrl('/register', callbackUrl)}
+            className={styles.link}
+          >
             {t('auth.login.registerLink')}
           </Link>
         </p>

@@ -6,6 +6,11 @@ export const REACTIONS: Reaction[] = ['fire', 'yummy', 'meh', 'cringe'];
 
 export interface VoteDocument extends Document {
   tortilla: Types.ObjectId;
+  /**
+   * Redundante (la tortilla ya sabe su grupo), pero permite sacar las
+   * estadísticas de un grupo sin resolver antes la lista de tortillas.
+   */
+  group: Types.ObjectId;
   userName: string;
   userKey: string; // nombre normalizado (lower-case, trim) para evitar duplicados
   score: number; // 0..10 con decimales
@@ -22,6 +27,7 @@ const VoteSchema = new Schema<VoteDocument>(
       required: true,
       index: true,
     },
+    group: { type: Schema.Types.ObjectId, ref: 'Group', required: true },
     userName: { type: String, required: true, trim: true },
     userKey: { type: String, required: true, trim: true, lowercase: true },
     score: {
@@ -45,6 +51,8 @@ const VoteSchema = new Schema<VoteDocument>(
 
 // Un voto por usuario y tortilla (se actualiza en lugar de duplicarse)
 VoteSchema.index({ tortilla: 1, userKey: 1 }, { unique: true });
+// Estadísticas de un usuario dentro de un grupo.
+VoteSchema.index({ group: 1, userKey: 1 });
 
 export const Vote: Model<VoteDocument> =
   mongoose.models.Vote || mongoose.model<VoteDocument>('Vote', VoteSchema);

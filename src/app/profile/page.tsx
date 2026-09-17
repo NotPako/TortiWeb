@@ -1,9 +1,9 @@
-import ProfilePage from '@/views/ProfilePage';
+import AccountPage from '@/views/AccountPage';
 
 export const metadata = {
-  title: 'Mi perfil · TortiWeb',
+  title: 'Mi cuenta · TortiWeb',
 };
 
 export default function Page() {
-  return <ProfilePage />;
+  return <AccountPage />;
 }

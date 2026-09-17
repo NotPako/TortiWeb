@@ -3,6 +3,7 @@ import { MAX_COMMENT_LENGTH } from '@/lib/comments';
 
 export interface CommentDocument extends Document {
   tortilla: Types.ObjectId;
+  group: Types.ObjectId; // redundante con la tortilla, igual que en Vote
   userKey: string; // normalizado (lower-case, trim) — coincide con User.usernameKey
   userName: string; // display name capturado en el momento de comentar
   text: string;
@@ -18,6 +19,7 @@ const CommentSchema = new Schema<CommentDocument>(
       required: true,
       index: true,
     },
+    group: { type: Schema.Types.ObjectId, ref: 'Group', required: true },
     userKey: { type: String, required: true, trim: true, lowercase: true },
     userName: { type: String, required: true, trim: true },
     text: {

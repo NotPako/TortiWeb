@@ -13,6 +13,7 @@ export interface AttendeeSub {
  * sube la tortilla cocinada (o la cierra a mano) la convocatoria se cierra.
  */
 export interface TortillaEventDocument extends Document {
+  group: Types.ObjectId;
   date: Date; // el miércoles previsto
   note?: string; // mensaje opcional del admin ("traed pan", etc.)
   attendees: Types.DocumentArray<AttendeeSub & Types.Subdocument>;
@@ -34,6 +35,7 @@ const AttendeeSchema = new Schema<AttendeeSub>(
 
 const TortillaEventSchema = new Schema<TortillaEventDocument>(
   {
+    group: { type: Schema.Types.ObjectId, ref: 'Group', required: true },
     date: { type: Date, required: true },
     note: { type: String, trim: true, maxlength: 300 },
     attendees: { type: [AttendeeSchema], default: [] },
@@ -43,8 +45,8 @@ const TortillaEventSchema = new Schema<TortillaEventDocument>(
   { timestamps: true }
 );
 
-// Soporta la consulta "convocatoria abierta": closedAt = null, más reciente.
-TortillaEventSchema.index({ closedAt: 1, date: -1 });
+// Soporta "convocatoria abierta del grupo": closedAt = null, más reciente.
+TortillaEventSchema.index({ group: 1, closedAt: 1, date: -1 });
 
 export const TortillaEvent: Model<TortillaEventDocument> =
   mongoose.models.TortillaEvent ||

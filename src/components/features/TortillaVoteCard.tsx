@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { useLanguage } from '@/components/LanguageContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import { VoteSlider } from '@/components/VoteSlider';
 import { AvgPill } from '@/components/AvgPill';
 import { ReactionPicker } from './ReactionPicker';
@@ -73,9 +74,13 @@ export function TortillaVoteCard({
     // valor guardado, no pisar lo que el usuario esté ajustando.
   }, [tortilla.id, myVoteId]);
 
+  const { slug } = useCurrentGroup();
   const refetchQueries = useMemo(
-    () => [{ query: CURRENT_TORTILLAS_QUERY }, { query: TORTILLAS_QUERY }],
-    []
+    () => [
+      { query: CURRENT_TORTILLAS_QUERY, variables: { groupSlug: slug } },
+      { query: TORTILLAS_QUERY, variables: { groupSlug: slug } },
+    ],
+    [slug]
   );
 
   const [castVote, { loading: voting }] = useMutation(CAST_VOTE_MUTATION, {

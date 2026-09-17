@@ -1,19 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useRef } from 'react';
 import { useQuery } from '@apollo/client';
-import { Avatar, Button, List, Skeleton, Statistic, Tag, Upload, message } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import type { RcFile } from 'antd/es/upload/interface';
-import { useUser } from '@/components/UserContext';
+import { Avatar, List, Skeleton, Statistic, Tag } from 'antd';
 import { useLanguage } from '@/components/LanguageContext';
-import { useProfileImageUpload } from '@/hooks/useProfileImageUpload';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import {
   AchievementsGrid,
   type AchievementItem,
 } from '@/components/features/AchievementsGrid';
-import { UserChip } from '@/components/features/UserChip';
+import { ProfileHeader } from '@/components/features/ProfileHeader';
 import { AllergiesCard } from '@/components/features/AllergiesCard';
 import { MY_STATS_QUERY, USER_STATS_QUERY } from '@/graphql/operations';
 import styles from './ProfilePage.module.css';
@@ -55,7 +51,10 @@ type UserStats = {
 };
 
 type Props = {
-  /** Si se proporciona, muestra el perfil de ese usuario. Si no, el del usuario autenticado. */
+  /**
+   * Si se proporciona, muestra el perfil de ese usuario. Si no, el del usuario
+   * autenticado. En ambos casos, con las estadísticas del grupo de la ruta.
+   */
   username?: string;
 };
 
@@ -68,26 +67,24 @@ function tagColorForScore(score: number): string {
 const VOTE_HISTORY_PAGE_SIZE = 10;
 
 export default function ProfilePage({ username }: Props = {}) {
-  const { userName, isReady } = useUser();
+  // Sesión y pertenencia ya las garantiza GroupGate en el layout del grupo.
+  const { slug } = useCurrentGroup();
   const { t, locale } = useLanguage();
-  const router = useRouter();
   const isOwn = !username;
-  const { upload, uploading } = useProfileImageUpload();
   const historyCardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isOwn && isReady && !userName) router.replace('/login');
-  }, [isOwn, isReady, userName, router]);
 
   const { data: ownData, loading: ownLoading } = useQuery<{
     myStats: UserStats | null;
-  }>(MY_STATS_QUERY, { skip: !isOwn || !userName });
+  }>(MY_STATS_QUERY, {
+    variables: { groupSlug: slug },
+    skip: !isOwn || !slug,
+  });
 
   const { data: otherData, loading: otherLoading } = useQuery<{
     userStats: UserStats | null;
   }>(USER_STATS_QUERY, {
-    variables: { username: username ?? '' },
-    skip: isOwn,
+    variables: { groupSlug: slug, username: username ?? '' },
+    skip: isOwn || !slug,
   });
 
   const stats = isOwn
@@ -115,7 +112,7 @@ export default function ProfilePage({ username }: Props = {}) {
     }
   }
 
-  if (isOwn && (!isReady || !userName)) return null;
+  if (!slug) return null;
 
   if (loading && !data) {
     return <Skeleton active paragraph={{ rows: 8 }} />;
@@ -126,48 +123,13 @@ export default function ProfilePage({ username }: Props = {}) {
     ? t('profile.title')
     : t('profile.titleFor', { name: displayName });
 
-  async function handleBeforeUpload(file: RcFile): Promise<boolean> {
-    const ok = await upload(file as File);
-    if (ok) {
-      message.success(t('profile.uploadSuccess'));
-    } else {
-      message.error(t('profile.uploadError'));
-    }
-    return false; // Evita la subida automática de antd; ya la hizo el hook.
-  }
-
   const header = (
-    <header className={styles.header}>
-      {/* Ya estamos en el perfil: en vez de enlazar, amplía la foto. */}
-      <UserChip
-        userName={displayName}
-        imageUrl={stats?.imageUrl}
-        size={88}
-        showName={false}
-        href={null}
-        previewable
-        previewLabel={t('profile.viewPhoto')}
-      />
-      <div className={styles.headerText}>
-        <h1 className={styles.title}>{title}</h1>
-        {isOwn ? (
-          <Upload
-            accept="image/*"
-            showUploadList={false}
-            beforeUpload={handleBeforeUpload}
-            disabled={uploading}
-          >
-            <Button
-              size="small"
-              icon={<UploadOutlined />}
-              loading={uploading}
-            >
-              {t('profile.changePhoto')}
-            </Button>
-          </Upload>
-        ) : null}
-      </div>
-    </header>
+    <ProfileHeader
+      userName={displayName}
+      imageUrl={stats?.imageUrl}
+      title={title}
+      editable={isOwn}
+    />
   );
 
   if (!stats || stats.totalVotes === 0) {

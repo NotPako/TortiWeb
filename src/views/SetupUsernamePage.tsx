@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@apollo/client';
 import { useSession } from 'next-auth/react';
 import { Alert, Button, Form, Input } from 'antd';
 import { useLanguage } from '@/components/LanguageContext';
 import { SET_USERNAME_MUTATION } from '@/graphql/operations';
+import { safeCallbackUrl } from '@/lib/navigation';
 import styles from './LoginPage.module.css';
 
 type SetupValues = {
@@ -17,6 +18,7 @@ export default function SetupUsernamePage() {
   const { t } = useLanguage();
   const { status, data, update } = useSession();
   const router = useRouter();
+  const callbackUrl = safeCallbackUrl(useSearchParams().get('callbackUrl'));
 
   const [error, setError] = useState<string | null>(null);
   const [setUsernameMutation, { loading }] = useMutation(
@@ -29,9 +31,9 @@ export default function SetupUsernamePage() {
       return;
     }
     if (status === 'authenticated' && !data?.user?.needsUsername) {
-      router.replace('/vote');
+      router.replace(callbackUrl);
     }
-  }, [status, data, router]);
+  }, [status, data, router, callbackUrl]);
 
   async function handleSubmit(values: SetupValues) {
     setError(null);
@@ -40,7 +42,7 @@ export default function SetupUsernamePage() {
         variables: { username: values.username.trim() },
       });
       await update();
-      router.replace('/vote');
+      router.replace(callbackUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.errorPrefix'));
     }
