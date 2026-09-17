@@ -1,0 +1,40 @@
+.wrap {
+  max-width: 42rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-tortilla-800);
+  margin: 0;
+}
+
+.count {
+  font-weight: 500;
+  color: var(--c-muted);
+}
+
+.hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--c-ink-soft);
+}
+
+.error {
+  color: #b91c1c;
+}
+
+.leave {
+  display: flex;
+  justify-content: flex-end;
+}

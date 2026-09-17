@@ -9,6 +9,7 @@ import {
   TORTILLAS_QUERY,
 } from '@/graphql/operations';
 import { useLanguage } from './LanguageContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import styles from './TortillaManager.module.css';
 
 type Tortilla = {
@@ -24,18 +25,20 @@ const PAGE_SIZE = 8;
 
 export function TortillaManager() {
   const { t, locale } = useLanguage();
+  const { slug } = useCurrentGroup();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   const { data, loading, error } = useQuery<{ tortillas: Tortilla[] }>(
-    TORTILLAS_QUERY
+    TORTILLAS_QUERY,
+    { variables: { groupSlug: slug }, skip: !slug }
   );
 
   const [deleteTortilla] = useMutation(DELETE_TORTILLA_MUTATION, {
     refetchQueries: [
-      { query: TORTILLAS_QUERY },
-      { query: CURRENT_TORTILLAS_QUERY },
+      { query: TORTILLAS_QUERY, variables: { groupSlug: slug } },
+      { query: CURRENT_TORTILLAS_QUERY, variables: { groupSlug: slug } },
     ],
     awaitRefetchQueries: true,
   });

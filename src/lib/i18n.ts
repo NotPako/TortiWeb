@@ -31,6 +31,8 @@ const es = {
   'nav.greetingPrefix': 'Hola,',
   'nav.signOut': 'Salir',
   'nav.signIn': 'Identificarse',
+  'nav.groups': 'Mis grupos',
+  'nav.account': 'Mi cuenta',
 
   'avg.suffix': '/10 media',
   'vote.eyebrow': 'Tortilla del día',
@@ -64,6 +66,7 @@ const es = {
   'common.loading': 'Cargando…',
   'common.retry': 'reintentar',
   'common.errorPrefix': 'Error',
+  'common.cancel': 'Cancelar',
 
   'vote.errorLoading': 'Error cargando la tortilla:',
   'vote.empty.title': 'Aún no hay tortilla para votar.',
@@ -111,7 +114,7 @@ const es = {
 
   'admin.title': 'Crear tortilla del miércoles',
   'admin.subtitle':
-    'Solo el admin puede registrar nuevas tortillas. La contraseña se configura en el archivo .env.local.',
+    'Solo los admins del grupo pueden registrar nuevas tortillas.',
   'admin.nameLabel': 'Nombre de la tortilla',
   'admin.namePlaceholder': 'Ej: Tortilla de patata con cebolla',
   'admin.descLabel': 'Descripción (opcional)',
@@ -257,6 +260,85 @@ const es = {
   'event.admin.allergiesCannotEat': '{name} no puede consumir: {list}.',
   'event.admin.allergiesNotes': 'Observaciones de {name}: {notes}',
   'event.admin.allergiesSummary': 'Resumen por alérgeno',
+
+  'groups.title': 'Mis grupos',
+  'groups.subtitle':
+    'Cada grupo tiene sus propias tortillas, votos y convocatorias.',
+  'groups.create': 'Crear grupo',
+  'groups.backToList': 'Ir a mis grupos',
+  'groups.empty.title': 'Aún no estás en ningún grupo.',
+  'groups.empty.subtitle':
+    'Pide a alguien de tu grupo un enlace de invitación, o crea uno nuevo.',
+  'groups.join.title': '¿Tienes una invitación?',
+  'groups.join.placeholder': 'Código o enlace (ej. ABCD-EFGH)',
+  'groups.join.submit': 'Unirme',
+  'groups.join.hint':
+    'Si te han pasado un enlace, también puedes abrirlo directamente.',
+  'groups.new.title': 'Crear grupo',
+  'groups.new.subtitle':
+    'Serás su admin: podrás invitar a gente, convocar y subir tortillas.',
+  'groups.new.nameLabel': 'Nombre del grupo',
+  'groups.new.namePlaceholder': 'Ej.: Los del miércoles',
+  'groups.new.nameRequired': 'Escribe un nombre de al menos 2 caracteres.',
+  'groups.new.descriptionLabel': 'Descripción (opcional)',
+  'groups.new.submit': 'Crear grupo',
+
+  'group.eyebrow': 'Grupo',
+  'group.members': '{n} miembros',
+  'group.memberSingular': '1 miembro',
+  'group.switch': 'Cambiar',
+  'group.loadError': 'No se ha podido cargar el grupo.',
+  'group.notFound.title': 'Grupo no encontrado',
+  'group.notFound.subtitle':
+    'No existe o no eres miembro. Para entrar necesitas una invitación.',
+
+  'members.title': 'Miembros',
+  'members.role.admin': 'Admin',
+  'members.you': 'Tú',
+  'members.joinedAt': 'Desde el {date}',
+  'members.promote': 'Hacer admin',
+  'members.demote': 'Quitar admin',
+  'members.remove': 'Expulsar',
+  'members.removeConfirm':
+    '¿Expulsar a {name}? Sus votos y comentarios se conservan.',
+  'members.leave': 'Salir del grupo',
+  'members.leaveConfirm':
+    '¿Salir del grupo? Para volver necesitarás otra invitación.',
+  'members.askAdmin':
+    'Para invitar a alguien, pídele un enlace a un admin del grupo.',
+
+  'invites.title': 'Invitaciones',
+  'invites.subtitle':
+    'Comparte el enlace o dicta el código. Quien lo use entrará como miembro.',
+  'invites.expiryLabel': 'Caduca',
+  'invites.maxUsesLabel': 'Usos máximos',
+  'invites.never': 'Nunca',
+  'invites.days': 'En {n} días',
+  'invites.unlimited': 'Ilimitados',
+  'invites.create': 'Crear invitación',
+  'invites.created': 'Invitación creada.',
+  'invites.empty': 'No hay invitaciones activas.',
+  'invites.uses': '{uses} usos',
+  'invites.usesOf': '{uses} de {max} usos',
+  'invites.expiresOn': 'caduca el {date}',
+  'invites.noExpiry': 'no caduca',
+  'invites.revoke': 'Revocar',
+  'invites.revokeConfirm': '¿Revocar esta invitación? Dejará de funcionar.',
+
+  'join.title': 'Te han invitado a «{name}»',
+  'join.subtitle':
+    'Al unirte podrás votar sus tortillas y apuntarte a sus convocatorias.',
+  'join.submit': 'Unirme al grupo',
+  'join.invalid.title': 'Invitación no válida',
+  'join.invalid.subtitle': 'Revisa el enlace o el código que te han pasado.',
+  'join.status.revoked': 'Esta invitación ya no es válida',
+  'join.status.expired': 'Esta invitación ha caducado',
+  'join.status.exhausted': 'Esta invitación ya se ha usado el máximo de veces',
+  'join.askAgain': 'Pide una nueva a alguien de «{name}».',
+
+  'account.title': 'Mi cuenta',
+  'account.statsHint':
+    'Tus estadísticas y logros están en el perfil de cada grupo.',
 } as const;
 
 type DictKey = keyof typeof es;
@@ -276,6 +358,8 @@ const ca: Record<DictKey, string> = {
   'nav.greetingPrefix': 'Hola,',
   'nav.signOut': 'Sortir',
   'nav.signIn': 'Identificar-se',
+  'nav.groups': 'Els meus grups',
+  'nav.account': 'El meu compte',
 
   'avg.suffix': '/10 mitjana',
   'vote.eyebrow': 'Truita del dia',
@@ -309,6 +393,7 @@ const ca: Record<DictKey, string> = {
   'common.loading': 'Carregant…',
   'common.retry': 'tornar a intentar',
   'common.errorPrefix': 'Error',
+  'common.cancel': 'Cancel·lar',
 
   'vote.errorLoading': 'Error carregant la truita:',
   'vote.empty.title': 'Encara no hi ha truita per votar.',
@@ -356,7 +441,7 @@ const ca: Record<DictKey, string> = {
 
   'admin.title': 'Crear truita del dimecres',
   'admin.subtitle':
-    "Només l'admin pot registrar noves truites. La contrasenya es configura al fitxer .env.local.",
+    'Només els admins del grup poden registrar noves truites.',
   'admin.nameLabel': 'Nom de la truita',
   'admin.namePlaceholder': 'Ex: Truita de patata amb ceba',
   'admin.descLabel': 'Descripció (opcional)',
@@ -502,6 +587,85 @@ const ca: Record<DictKey, string> = {
   'event.admin.allergiesCannotEat': '{name} no pot consumir: {list}.',
   'event.admin.allergiesNotes': 'Observacions de {name}: {notes}',
   'event.admin.allergiesSummary': 'Resum per al·lergen',
+
+  'groups.title': 'Els meus grups',
+  'groups.subtitle':
+    'Cada grup té les seves pròpies truites, vots i convocatòries.',
+  'groups.create': 'Crear grup',
+  'groups.backToList': 'Anar als meus grups',
+  'groups.empty.title': 'Encara no ets a cap grup.',
+  'groups.empty.subtitle':
+    "Demana a algú del teu grup un enllaç d'invitació, o crea'n un de nou.",
+  'groups.join.title': 'Tens una invitació?',
+  'groups.join.placeholder': 'Codi o enllaç (ex. ABCD-EFGH)',
+  'groups.join.submit': 'Unir-me',
+  'groups.join.hint':
+    "Si t'han passat un enllaç, també el pots obrir directament.",
+  'groups.new.title': 'Crear grup',
+  'groups.new.subtitle':
+    "En seràs l'admin: podràs convidar gent, convocar i pujar truites.",
+  'groups.new.nameLabel': 'Nom del grup',
+  'groups.new.namePlaceholder': 'Ex.: Els del dimecres',
+  'groups.new.nameRequired': 'Escriu un nom de com a mínim 2 caràcters.',
+  'groups.new.descriptionLabel': 'Descripció (opcional)',
+  'groups.new.submit': 'Crear grup',
+
+  'group.eyebrow': 'Grup',
+  'group.members': '{n} membres',
+  'group.memberSingular': '1 membre',
+  'group.switch': 'Canviar',
+  'group.loadError': "No s'ha pogut carregar el grup.",
+  'group.notFound.title': 'Grup no trobat',
+  'group.notFound.subtitle':
+    'No existeix o no n\'ets membre. Per entrar-hi necessites una invitació.',
+
+  'members.title': 'Membres',
+  'members.role.admin': 'Admin',
+  'members.you': 'Tu',
+  'members.joinedAt': 'Des del {date}',
+  'members.promote': 'Fer admin',
+  'members.demote': 'Treure admin',
+  'members.remove': 'Expulsar',
+  'members.removeConfirm':
+    'Expulsar {name}? Els seus vots i comentaris es conserven.',
+  'members.leave': 'Sortir del grup',
+  'members.leaveConfirm':
+    'Sortir del grup? Per tornar necessitaràs una altra invitació.',
+  'members.askAdmin':
+    "Per convidar algú, demana un enllaç a un admin del grup.",
+
+  'invites.title': 'Invitacions',
+  'invites.subtitle':
+    "Comparteix l'enllaç o dicta el codi. Qui el faci servir entrarà com a membre.",
+  'invites.expiryLabel': 'Caduca',
+  'invites.maxUsesLabel': 'Usos màxims',
+  'invites.never': 'Mai',
+  'invites.days': "D'aquí a {n} dies",
+  'invites.unlimited': 'Il·limitats',
+  'invites.create': 'Crear invitació',
+  'invites.created': 'Invitació creada.',
+  'invites.empty': 'No hi ha invitacions actives.',
+  'invites.uses': '{uses} usos',
+  'invites.usesOf': '{uses} de {max} usos',
+  'invites.expiresOn': 'caduca el {date}',
+  'invites.noExpiry': 'no caduca',
+  'invites.revoke': 'Revocar',
+  'invites.revokeConfirm': 'Revocar aquesta invitació? Deixarà de funcionar.',
+
+  'join.title': "T'han convidat a «{name}»",
+  'join.subtitle':
+    'En unir-te podràs votar les seves truites i apuntar-te a les convocatòries.',
+  'join.submit': 'Unir-me al grup',
+  'join.invalid.title': 'Invitació no vàlida',
+  'join.invalid.subtitle': "Revisa l'enllaç o el codi que t'han passat.",
+  'join.status.revoked': 'Aquesta invitació ja no és vàlida',
+  'join.status.expired': 'Aquesta invitació ha caducat',
+  'join.status.exhausted': "Aquesta invitació ja s'ha fet servir el màxim de vegades",
+  'join.askAgain': "Demana'n una de nova a algú de «{name}».",
+
+  'account.title': 'El meu compte',
+  'account.statsHint':
+    'Les teves estadístiques i assoliments són al perfil de cada grup.',
 };
 
 export const dictionaries: Record<Language, Record<DictKey, string>> = {

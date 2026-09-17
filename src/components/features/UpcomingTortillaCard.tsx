@@ -6,6 +6,7 @@ import {
   UPCOMING_TORTILLA_QUERY,
 } from '@/graphql/operations';
 import { useLanguage } from '../LanguageContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import { UserChip } from './UserChip';
 import styles from './UpcomingTortillaCard.module.css';
 
@@ -22,9 +23,14 @@ type TortillaEvent = {
 
 export function UpcomingTortillaCard() {
   const { t, locale } = useLanguage();
+  const { slug } = useCurrentGroup();
   const { data } = useQuery<{ upcomingTortilla: TortillaEvent | null }>(
     UPCOMING_TORTILLA_QUERY,
-    { fetchPolicy: 'cache-and-network' }
+    {
+      variables: { groupSlug: slug },
+      skip: !slug,
+      fetchPolicy: 'cache-and-network',
+    }
   );
   const [setAttendance, { loading }] = useMutation(SET_ATTENDANCE_MUTATION);
 

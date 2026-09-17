@@ -9,6 +9,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { Brand } from './Brand';
 import { UserChip } from './features/UserChip';
 import { ME_QUERY } from '@/graphql/operations';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import styles from './NavBar.module.css';
 
 type MeQueryResult = {
@@ -17,8 +18,12 @@ type MeQueryResult = {
 
 export function NavBar() {
   const pathname = usePathname();
-  const { userName, userImage, signOut, isReady, isAdmin } = useUser();
+  const { userName, userImage, signOut, isReady } = useUser();
   const { t } = useLanguage();
+  // Dentro de /g/<slug> los enlaces apuntan a ese grupo; fuera, a la lista.
+  // Si el grupo no existe o no eres miembro, se comporta como fuera.
+  const { slug, group, loading, isAdmin, pathFor } = useCurrentGroup();
+  const inGroup = Boolean(slug) && (loading || group !== null);
 
   const { data: meData } = useQuery<MeQueryResult>(ME_QUERY, {
     skip: !isReady || !userName,
@@ -26,14 +31,19 @@ export function NavBar() {
   });
   const avatarSrc = meData?.me?.imageUrl ?? userImage ?? undefined;
 
-  const links = [
-    { href: '/vote', labelKey: 'nav.vote' as const },
-    { href: '/history', labelKey: 'nav.history' as const },
-    { href: '/profile', labelKey: 'nav.profile' as const },
-    ...(isAdmin
-      ? [{ href: '/admin', labelKey: 'nav.admin' as const }]
-      : []),
-  ];
+  const links = inGroup
+    ? [
+        { href: pathFor('vote'), labelKey: 'nav.vote' as const },
+        { href: pathFor('history'), labelKey: 'nav.history' as const },
+        { href: pathFor('profile'), labelKey: 'nav.profile' as const },
+        ...(isAdmin
+          ? [{ href: pathFor('admin'), labelKey: 'nav.admin' as const }]
+          : []),
+      ]
+    : [
+        { href: '/groups', labelKey: 'nav.groups' as const },
+        { href: '/profile', labelKey: 'nav.account' as const },
+      ];
 
   return (
     <header className={styles.header}>
@@ -71,7 +81,7 @@ export function NavBar() {
                 imageUrl={avatarSrc}
                 size={34}
                 showName={false}
-                href="/profile"
+                href={inGroup ? pathFor('profile') : '/profile'}
                 ariaLabel={t('profile.title')}
                 className={styles.avatarLink}
               />

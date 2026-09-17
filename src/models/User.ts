@@ -6,6 +6,7 @@ import {
   type AllergenId,
 } from '@/lib/allergens';
 
+/** @deprecated El rol vive ahora en `Membership.role`, por grupo. */
 export type UserRole = 'user' | 'admin';
 
 export interface UserDocument extends Document {
@@ -13,7 +14,12 @@ export interface UserDocument extends Document {
   usernameKey: string; // normalizado (lowercase, trim) — coincide con Vote.userKey
   email: string;
   emailKey: string; // normalizado para unicidad case-insensitive
-  role: UserRole; // 'admin' habilita crear/cerrar/borrar tortillas
+  /**
+   * @deprecated Rol global anterior a los grupos. Ya no se lee: los permisos
+   * salen de `Membership.role`. Se conserva hasta validar en producción la
+   * migración, que lo copia a las membresías.
+   */
+  role?: UserRole;
   passwordHash?: string;
   googleId?: string;
   image?: string; // URL externa (Google) — fallback si no hay imageKey
@@ -51,12 +57,7 @@ const UserSchema = new Schema<UserDocument>(
       unique: true,
       index: true,
     },
-    role: {
-      type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
-      required: true,
-    },
+    role: { type: String, enum: ['user', 'admin'] },
     passwordHash: { type: String },
     googleId: { type: String, sparse: true, index: true },
     image: { type: String },

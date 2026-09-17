@@ -1,5 +1,30 @@
 # FeatControl
 
+## [2026-09-17] - Multi-grupo: cada peña con sus tortillas, votos y admins
+**Descripción**: TortiWeb deja de ser una app de un solo grupo. Cualquier usuario puede crear un **grupo**, del que queda como admin, e invitar a gente con un enlace o un código dictable (`ABCD-EFGH`, sin 0/O ni 1/I/L). Tortillas, votos, comentarios, convocatorias, rachas y logros son **por grupo** y están aislados del resto. Tras iniciar sesión se aterriza en `/groups`, y todo lo del grupo vive bajo `/g/<slug>/…` (votar, historial, admin, miembros y perfil). Implementa el plan `docs/0013-multi-grupo.md` completo (las 4 fases en una rama).
+
+**Roles por grupo**: `User.role` global se sustituye por `Membership.role`, así que se puede ser admin de una peña y miembro de otra. El rol se lee de la BD en cada petición y ya no viaja en el JWT. Un grupo nunca se queda sin admins: no se puede degradar, expulsar ni dejar salir al último.
+
+**Autorización**: todo pasa por `requireGroupAccess` / `requireGroupAdmin` (`src/graphql/resolvers/access.ts`). El id del grupo con el que se filtra sale de esos helpers, nunca directamente de los argumentos. A quien no es miembro, el grupo y su contenido le responden igual que si no existieran ("no encontrado", nunca "prohibido"). Los tres invariantes que eran globales pasan a ser por grupo: la jornada votable, una convocatoria abierta a la vez y el auto-cierre al subir tortilla. Las **alergias** las ven los admins *de ese grupo* y los apuntados, y quien sale o es expulsado se desapunta de la convocatoria abierta. Los **perfiles** solo existen dentro de un grupo compartido: `userStats` exige ser miembro y solo cuenta actividad de ese grupo, para no revelar en qué otras peñas está nadie. `/profile` queda como "Mi cuenta" (foto y alergias, comunes a todos los grupos).
+
+**Invitaciones**: caducidad (1-90 días) y máximo de usos opcionales; el uso se consume de forma atómica, así que dos canjes simultáneos no superan el máximo. Canjear dos veces es idempotente. Revocar no borra la invitación. Sin sesión, `/join/<code>` manda a login o registro conservando el enlace en `callbackUrl`, que solo admite rutas internas.
+
+**Refactor**: `resolvers.ts` (1029 líneas) se divide por dominio en `src/graphql/resolvers/` (tortillas, comentarios, convocatorias, usuarios, grupos, más `access`, `payloads`, `stats` y `media`).
+**Archivos principales**:
+- `src/models/Group.ts`, `Membership.ts`, `GroupInvite.ts` (nuevos); `group` requerido e indexado en `Tortilla`, `TortillaEvent`, `Vote` y `Comment`; `User.role` pasa a opcional y deprecado
+- `src/lib/groups.ts`, `invites.ts`, `navigation.ts` + tests (slugs, rutas, regla del último admin, códigos, estado de invitación y `callbackUrl` seguro)
+- `src/graphql/resolvers/*` (split + scoping), `typeDefs.ts` (tipos `Group`, `GroupMember`, `GroupInvite`, `InvitePreview`; `groupSlug` en queries e inputs), `operations.ts`
+- Tests de resolvers: `tortillas`, `events`, `groups`, `isolation` (un test por resolver scopeado accediendo desde otro grupo) y `schema` (ApolloServer real)
+- `src/hooks/useCurrentGroup.ts` (slug desde la URL + query cacheada; lo usan navbar y vistas sin pasar props)
+- `src/components/features/GroupGate.tsx` (puerta y cabecera de `/g/[slug]`), `GroupMembersList.tsx`, `GroupInvitesPanel.tsx`, `ProfileHeader.tsx`
+- `src/views/GroupsPage.tsx`, `CreateGroupPage.tsx`, `JoinGroupPage.tsx`, `MembersPage.tsx`, `AccountPage.tsx` (nuevas); vistas existentes adaptadas al grupo actual
+- `src/app/g/[slug]/…`, `src/app/groups/…`, `src/app/join/[code]`; `/vote`, `/history`, `/admin` y `/profile/[username]` redirigen a `/groups`
+- `src/lib/auth.ts`, `src/types/next-auth.d.ts`, `src/components/UserContext.tsx` (sin rol en la sesión)
+- `scripts/migrate-to-groups.mjs` (nuevo)
+- `src/lib/i18n.ts` (claves `groups.*`, `group.*`, `members.*`, `invites.*`, `join.*`, `account.*`, ES + CA)
+**Tecnologías**: Mongoose (índices únicos compuestos, `findOneAndUpdate` atómico con `$expr`), Next.js App Router (layouts anidados, `useParams`), ANTD Result / List / Popconfirm / Select / Typography copyable, Apollo cache eviction
+**Notas**: **Requiere migración antes de usar la nueva versión.** `node scripts/migrate-to-groups.mjs` (dry-run) y después `--execute [--slug=… --name="…"]`. Crea el grupo por defecto, da membresía a todos los usuarios copiando su rol, asigna el grupo a los datos existentes, cambia los índices y verifica que no queda nada sin grupo. Es idempotente: conviene relanzarlo justo después de desplegar. Mientras no se ejecute, los datos antiguos no aparecen en ningún grupo. `User.role` no se borra hasta validar en producción.
+
 ## [2026-09-17] - Alergias en el perfil y aviso en la convocatoria
 **Descripción**: Cada usuario puede indicar en su perfil qué no puede comer, y el panel de convocatoria del admin muestra un aviso con las alergias de los apuntados: "Ana no puede consumir: gluten, lácteos", más un resumen por alérgeno con el número de personas afectadas.
 

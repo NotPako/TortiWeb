@@ -1,0 +1,36 @@
+.list {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-lg);
+  padding: 0 16px;
+}
+
+.member {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.joined {
+  font-size: 12px;
+  color: var(--c-muted);
+}
+
+/* En móvil las acciones de ANTD bajan debajo del miembro en vez de apretarlo. */
+@media (max-width: 520px) {
+  .list :global(.ant-list-item) {
+    flex-wrap: wrap;
+  }
+
+  .list :global(.ant-list-item-action) {
+    margin-inline-start: 0;
+  }
+}

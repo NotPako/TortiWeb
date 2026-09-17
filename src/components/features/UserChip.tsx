@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { groupProfilePath } from '@/lib/groups';
 import { Avatar, Image } from 'antd';
 import styles from './UserChip.module.css';
 
@@ -22,7 +24,9 @@ type Props = {
   /** `false` deja solo el avatar (navbar, cabecera de perfil). */
   showName?: boolean;
   /**
-   * Destino del enlace. Por defecto, el perfil público de `userName`.
+   * Destino del enlace. Por defecto, el perfil de `userName` dentro del grupo
+   * de la ruta actual (fuera de un grupo, sin enlace: los perfiles solo
+   * existen dentro de un grupo compartido).
    * `null` renderiza el chip sin enlazar (p. ej. en el propio perfil).
    */
   href?: string | null;
@@ -41,9 +45,6 @@ type Props = {
   className?: string;
 };
 
-export function profileHref(userName: string): string {
-  return `/profile/${encodeURIComponent(userName)}`;
-}
 
 export function UserChip({
   userName,
@@ -57,7 +58,10 @@ export function UserChip({
   ariaLabel,
   className,
 }: Props) {
-  const target = href === undefined ? profileHref(userName) : href;
+  const params = useParams<{ slug?: string | string[] }>();
+  const groupSlug = typeof params?.slug === 'string' ? params.slug : null;
+  const defaultHref = groupSlug ? groupProfilePath(groupSlug, userName) : null;
+  const target = href === undefined ? defaultHref : href;
   const [previewOpen, setPreviewOpen] = useState(false);
   const canPreview = previewable && Boolean(imageUrl);
 

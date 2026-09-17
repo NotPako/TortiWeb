@@ -8,6 +8,7 @@ import {
   MY_STATS_QUERY,
   SET_PROFILE_IMAGE_MUTATION,
 } from '@/graphql/operations';
+import { useCurrentGroup } from './useCurrentGroup';
 
 const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -32,12 +33,19 @@ type UseProfileImageUploadResult = {
  */
 export function useProfileImageUpload(): UseProfileImageUploadResult {
   const { update } = useSession();
+  const { slug } = useCurrentGroup();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [setProfileImage] = useMutation<{
     setProfileImage: { imageUrl: string | null };
   }>(SET_PROFILE_IMAGE_MUTATION, {
-    refetchQueries: [{ query: MY_STATS_QUERY }, { query: ME_QUERY }],
+    // Las stats son por grupo: solo se refrescan si estamos dentro de uno.
+    refetchQueries: [
+      { query: ME_QUERY },
+      ...(slug
+        ? [{ query: MY_STATS_QUERY, variables: { groupSlug: slug } }]
+        : []),
+    ],
     awaitRefetchQueries: true,
   });
 

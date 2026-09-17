@@ -3,8 +3,8 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@apollo/client';
-import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import { TortillaManager } from '@/components/TortillaManager';
 import { TortillaEventAdmin } from '@/components/TortillaEventAdmin';
 import {
@@ -35,7 +35,8 @@ function fileToBase64(file: File): Promise<{ base64: string; type: string }> {
 }
 
 export default function AdminPage() {
-  const { userName, isReady, isAdmin } = useUser();
+  // Sesión y pertenencia ya las garantiza GroupGate; aquí solo el rol.
+  const { slug, group, isAdmin, pathFor } = useCurrentGroup();
   const { t } = useLanguage();
   const router = useRouter();
 
@@ -47,10 +48,8 @@ export default function AdminPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isReady) return;
-    if (!userName) router.replace('/login');
-    else if (!isAdmin) router.replace('/');
-  }, [isReady, userName, isAdmin, router]);
+    if (group && !isAdmin) router.replace(pathFor('vote'));
+  }, [group, isAdmin, router, pathFor]);
 
   useEffect(() => {
     if (!file) {
@@ -66,8 +65,8 @@ export default function AdminPage() {
     CREATE_TORTILLA_MUTATION,
     {
       refetchQueries: [
-        { query: CURRENT_TORTILLAS_QUERY },
-        { query: TORTILLAS_QUERY },
+        { query: CURRENT_TORTILLAS_QUERY, variables: { groupSlug: slug } },
+        { query: TORTILLAS_QUERY, variables: { groupSlug: slug } },
       ],
       awaitRefetchQueries: true,
     }
@@ -101,6 +100,7 @@ export default function AdminPage() {
       await createTortilla({
         variables: {
           input: {
+            groupSlug: slug,
             name: name.trim(),
             description: description.trim() || null,
             imageBase64: base64,
@@ -120,7 +120,7 @@ export default function AdminPage() {
     }
   }
 
-  if (!isReady || !userName || !isAdmin) return null;
+  if (!slug || !isAdmin) return null;
 
   const isError = feedback?.startsWith(t('common.errorPrefix'));
 
