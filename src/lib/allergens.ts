@@ -16,7 +16,7 @@ export const ALLERGENS = [
   'peanuts',
   'soy',
   'milk',
-  'nuts',
+  'walnuts',
   'celery',
   'mustard',
   'sesame',
