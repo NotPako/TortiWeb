@@ -1,4 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import { Kind, type EnumTypeDefinitionNode } from 'graphql';
+import { typeDefs } from '@/graphql/typeDefs';
+import {
+  SUPPORTED_LANGUAGES,
+  dictionaries,
+  type TranslationKey,
+} from '@/lib/i18n';
 import {
   ALLERGENS,
   MAX_ALLERGY_NOTES_LENGTH,
@@ -10,9 +17,31 @@ import {
 } from './allergens';
 
 describe('ALLERGENS', () => {
-  it('son los 14 alérgenos oficiales de la UE, sin repetir', () => {
-    expect(ALLERGENS).toHaveLength(14);
-    expect(new Set(ALLERGENS).size).toBe(14);
+  it('son los 14 oficiales de la UE más las nueces, sin repetir', () => {
+    expect(ALLERGENS).toHaveLength(15);
+    expect(new Set(ALLERGENS).size).toBe(15);
+    expect(ALLERGENS).toContain('nuts');
+    expect(ALLERGENS).toContain('walnuts');
+  });
+
+  it('coincide exactamente con el enum Allergen de GraphQL', () => {
+    // Si se añade un alérgeno solo en uno de los dos sitios, GraphQL rechaza
+    // el valor al guardar. Este test lo detecta antes de llegar a producción.
+    const enumDef = typeDefs.definitions.find(
+      (d): d is EnumTypeDefinitionNode =>
+        d.kind === Kind.ENUM_TYPE_DEFINITION && d.name.value === 'Allergen'
+    );
+    const values = enumDef?.values?.map((v) => v.name.value) ?? [];
+    expect(values).toEqual([...ALLERGENS]);
+  });
+
+  it('cada alérgeno tiene traducción en todos los idiomas', () => {
+    for (const lang of SUPPORTED_LANGUAGES) {
+      for (const id of ALLERGENS) {
+        const key = `allergen.${id}` as TranslationKey;
+        expect(dictionaries[lang][key], `${lang}: ${key}`).toBeTruthy();
+      }
+    }
   });
 });
 

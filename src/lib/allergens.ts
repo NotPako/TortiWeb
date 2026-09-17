@@ -2,7 +2,8 @@
  * Alérgenos e intolerancias de los usuarios.
  *
  * La lista son los 14 alérgenos de declaración obligatoria en la UE
- * (Reglamento 1169/2011, anexo II). Usar la lista oficial en vez de texto libre
+ * (Reglamento 1169/2011, anexo II) más las nueces por separado. Usar una lista
+ * cerrada en vez de texto libre
  * permite traducirlos, resumirlos y que "celiaco", "sin gluten" y "gluten" no
  * acaben siendo tres cosas distintas. Lo que no encaje va en `allergyNotes`.
  *
@@ -16,6 +17,9 @@ export const ALLERGENS = [
   'peanuts',
   'soy',
   'milk',
+  'nuts',
+  // No es uno de los 14 oficiales (va incluido en "frutos de cáscara"), pero
+  // se ofrece aparte porque aquí hay quien solo tiene alergia a las nueces.
   'walnuts',
   'celery',
   'mustard',

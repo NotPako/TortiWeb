@@ -51,7 +51,10 @@ export const typeDefs = gql`
     imageUrl: String
   }
 
-  """Alérgenos de declaración obligatoria en la UE (Reglamento 1169/2011)."""
+  """
+  Alérgenos de declaración obligatoria en la UE (Reglamento 1169/2011), más las
+  nueces por separado. Debe coincidir con ALLERGENS de src/lib/allergens.ts.
+  """
   enum Allergen {
     gluten
     crustaceans
@@ -61,6 +64,7 @@ export const typeDefs = gql`
     soy
     milk
     nuts
+    walnuts
     celery
     mustard
     sesame
