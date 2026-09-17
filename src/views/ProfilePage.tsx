@@ -14,6 +14,7 @@ import {
   type AchievementItem,
 } from '@/components/features/AchievementsGrid';
 import { UserChip } from '@/components/features/UserChip';
+import { AllergiesCard } from '@/components/features/AllergiesCard';
 import { MY_STATS_QUERY, USER_STATS_QUERY } from '@/graphql/operations';
 import styles from './ProfilePage.module.css';
 
@@ -173,6 +174,7 @@ export default function ProfilePage({ username }: Props = {}) {
     return (
       <div className={styles.wrap}>
         {header}
+        {isOwn ? <AllergiesCard /> : null}
         <div className={styles.emptyCard}>
           <p className={styles.emptyText}>
             {isOwn
@@ -187,6 +189,9 @@ export default function ProfilePage({ username }: Props = {}) {
   return (
     <div className={styles.wrap}>
       {header}
+
+      {/* Dato de salud: solo en el perfil propio, nunca en perfiles ajenos. */}
+      {isOwn ? <AllergiesCard /> : null}
 
       <div className={styles.statsRow}>
         <div className={styles.statCard}>

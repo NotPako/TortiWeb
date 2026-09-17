@@ -364,3 +364,126 @@ describe('currentTortillas devuelve la jornada completa', () => {
     expect(list).toEqual([]);
   });
 });
+
+describe('alergias: guardado y visibilidad en la convocatoria', () => {
+  type AttendeeOut = {
+    userName: string;
+    allergens: string[] | null;
+    allergyNotes: string | null;
+  };
+  type EventOut = { id: string; attendees: AttendeeOut[] };
+
+  /** Admin convoca; Ana (celiaca) se apunta. Devuelve los ctx y el id. */
+  async function setup() {
+    const { ctx: admin } = await makeUser('jefa', 'admin');
+    const { ctx: ana } = await makeUser('ana', 'user');
+    const { ctx: curioso } = await makeUser('curioso', 'user');
+    await Mutation.setAllergies(
+      null,
+      { input: { allergens: ['milk', 'gluten'], allergyNotes: '  kiwi  ' } },
+      ana
+    );
+    const event = (await Mutation.announceTortilla(
+      null,
+      { input: {} },
+      admin
+    )) as EventOut;
+    await Mutation.setAttendance(null, { id: event.id, attending: true }, ana);
+    return { admin, ana, curioso };
+  }
+
+  it('setAllergies normaliza orden, observaciones y lo devuelve en me', async () => {
+    const { ctx: ana } = await makeUser('ana', 'user');
+    await Mutation.setAllergies(
+      null,
+      { input: { allergens: ['milk', 'gluten', 'milk'], allergyNotes: ' kiwi ' } },
+      ana
+    );
+    const me = (await Query.me(null, {}, ana)) as {
+      allergens: string[];
+      allergyNotes: string | null;
+    };
+    expect(me.allergens).toEqual(['gluten', 'milk']);
+    expect(me.allergyNotes).toBe('kiwi');
+  });
+
+  it('setAllergies con lista vacía y notas vacías lo borra todo', async () => {
+    const { ctx: ana } = await makeUser('ana', 'user');
+    await Mutation.setAllergies(
+      null,
+      { input: { allergens: ['eggs'], allergyNotes: 'kiwi' } },
+      ana
+    );
+    await Mutation.setAllergies(
+      null,
+      { input: { allergens: [], allergyNotes: '' } },
+      ana
+    );
+    const me = (await Query.me(null, {}, ana)) as {
+      allergens: string[];
+      allergyNotes: string | null;
+    };
+    expect(me.allergens).toEqual([]);
+    expect(me.allergyNotes).toBeNull();
+  });
+
+  it('setAllergies rechaza alérgenos desconocidos y exige sesión', async () => {
+    const { ctx: ana } = await makeUser('ana', 'user');
+    await expect(
+      Mutation.setAllergies(
+        null,
+        { input: { allergens: ['chocolate'] } },
+        ana
+      )
+    ).rejects.toThrow(/no válido/i);
+    await expect(
+      Mutation.setAllergies(null, { input: { allergens: [] } }, { session: null })
+    ).rejects.toThrow(/sesión/i);
+  });
+
+  it('el admin ve las alergias de los apuntados', async () => {
+    const { admin } = await setup();
+    const event = (await Query.upcomingTortilla(null, {}, admin)) as EventOut;
+    expect(event.attendees[0]).toMatchObject({
+      userName: 'ana',
+      allergens: ['gluten', 'milk'],
+      allergyNotes: 'kiwi',
+    });
+  });
+
+  it('un apuntado ve las alergias del resto de apuntados', async () => {
+    const { admin, curioso } = await setup();
+    const event = (await Query.upcomingTortilla(null, {}, admin)) as EventOut;
+    await Mutation.setAttendance(
+      null,
+      { id: event.id, attending: true },
+      curioso
+    );
+    const seen = (await Query.upcomingTortilla(null, {}, curioso)) as EventOut;
+    const ana = seen.attendees.find((a) => a.userName === 'ana');
+    expect(ana?.allergens).toEqual(['gluten', 'milk']);
+  });
+
+  it('quien no está apuntado ni es admin recibe null (no "sin alergias")', async () => {
+    const { curioso } = await setup();
+    const seen = (await Query.upcomingTortilla(null, {}, curioso)) as EventOut;
+    expect(seen.attendees[0].allergens).toBeNull();
+    expect(seen.attendees[0].allergyNotes).toBeNull();
+  });
+
+  it('sin sesión tampoco se ven', async () => {
+    await setup();
+    const seen = (await Query.upcomingTortilla(null, {}, { session: null })) as EventOut;
+    expect(seen.attendees[0].allergens).toBeNull();
+  });
+
+  it('el rol de admin se lee de la BD, no de la sesión', async () => {
+    const { curioso } = await setup();
+    // Sesión que dice "admin" pero en BD es un usuario normal.
+    const forged = {
+      session: { user: { ...curioso.session.user, role: 'admin' } },
+    };
+    const seen = (await Query.upcomingTortilla(null, {}, forged)) as EventOut;
+    expect(seen.attendees[0].allergens).toBeNull();
+  });
+});

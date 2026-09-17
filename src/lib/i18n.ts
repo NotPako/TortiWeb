@@ -224,6 +224,39 @@ const es = {
   'achievement.firstHighballer.title': 'El más generoso',
   'achievement.firstHighballer.description':
     'Por primera vez, fuiste el voto más alto de una tortilla.',
+
+  'allergen.gluten': 'Gluten',
+  'allergen.crustaceans': 'Crustáceos',
+  'allergen.eggs': 'Huevo',
+  'allergen.fish': 'Pescado',
+  'allergen.peanuts': 'Cacahuetes',
+  'allergen.soy': 'Soja',
+  'allergen.milk': 'Lácteos',
+  'allergen.nuts': 'Frutos secos',
+  'allergen.walnuts': 'Nueces',
+  'allergen.celery': 'Apio',
+  'allergen.mustard': 'Mostaza',
+  'allergen.sesame': 'Sésamo',
+  'allergen.sulphites': 'Sulfitos',
+  'allergen.lupin': 'Altramuces',
+  'allergen.molluscs': 'Moluscos',
+
+  'allergies.title': 'Alergias e intolerancias',
+  'allergies.subtitle':
+    'Marca lo que no puedes comer para que quien cocine lo tenga en cuenta.',
+  'allergies.privacy':
+    'Solo lo verán los admins y las personas apuntadas a la misma convocatoria que tú. No aparece en tu perfil público.',
+  'allergies.notesLabel': 'Otras alergias u observaciones (opcional)',
+  'allergies.notesPlaceholder': 'Ej.: kiwi, intolerancia leve a la cebolla…',
+  'allergies.save': 'Guardar alergias',
+  'allergies.saved': 'Alergias guardadas.',
+  'allergies.error': 'No se pudieron guardar las alergias.',
+
+  'event.admin.allergiesTitle': 'Atención: alergias entre los apuntados',
+  'event.admin.allergiesNone': 'Ningún apuntado ha indicado alergias.',
+  'event.admin.allergiesCannotEat': '{name} no puede consumir: {list}.',
+  'event.admin.allergiesNotes': 'Observaciones de {name}: {notes}',
+  'event.admin.allergiesSummary': 'Resumen por alérgeno',
 } as const;
 
 type DictKey = keyof typeof es;
@@ -436,6 +469,39 @@ const ca: Record<DictKey, string> = {
   'achievement.firstHighballer.title': 'El més generós',
   'achievement.firstHighballer.description':
     'Per primera vegada, vas ser el vot més alt d\'una truita.',
+
+  'allergen.gluten': 'Gluten',
+  'allergen.crustaceans': 'Crustacis',
+  'allergen.eggs': 'Ou',
+  'allergen.fish': 'Peix',
+  'allergen.peanuts': 'Cacauets',
+  'allergen.soy': 'Soja',
+  'allergen.milk': 'Lactis',
+  'allergen.nuts': 'Fruits de closca',
+  'allergen.walnuts': 'Nous',
+  'allergen.celery': 'Api',
+  'allergen.mustard': 'Mostassa',
+  'allergen.sesame': 'Sèsam',
+  'allergen.sulphites': 'Sulfits',
+  'allergen.lupin': 'Tramussos',
+  'allergen.molluscs': 'Mol·luscs',
+
+  'allergies.title': 'Al·lèrgies i intoleràncies',
+  'allergies.subtitle':
+    'Marca el que no pots menjar perquè qui cuini ho tingui en compte.',
+  'allergies.privacy':
+    'Només ho veuran els admins i les persones apuntades a la mateixa convocatòria que tu. No apareix al teu perfil públic.',
+  'allergies.notesLabel': 'Altres al·lèrgies o observacions (opcional)',
+  'allergies.notesPlaceholder': 'Ex.: kiwi, intolerància lleu a la ceba…',
+  'allergies.save': 'Desar al·lèrgies',
+  'allergies.saved': 'Al·lèrgies desades.',
+  'allergies.error': 'No s\'han pogut desar les al·lèrgies.',
+
+  'event.admin.allergiesTitle': 'Atenció: al·lèrgies entre els apuntats',
+  'event.admin.allergiesNone': 'Cap apuntat ha indicat al·lèrgies.',
+  'event.admin.allergiesCannotEat': '{name} no pot consumir: {list}.',
+  'event.admin.allergiesNotes': 'Observacions de {name}: {notes}',
+  'event.admin.allergiesSummary': 'Resum per al·lergen',
 };
 
 export const dictionaries: Record<Language, Record<DictKey, string>> = {
