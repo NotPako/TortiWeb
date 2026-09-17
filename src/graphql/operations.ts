@@ -203,6 +203,30 @@ export const SET_USERNAME_MUTATION = gql`
   }
 `;
 
+/**
+ * Alergias del propio usuario. Query aparte de `ME_QUERY` a propósito: la
+ * navbar consulta `me` en cada página y no tiene por qué traer datos de salud.
+ */
+export const MY_ALLERGIES_QUERY = gql`
+  query MyAllergies {
+    me {
+      id
+      allergens
+      allergyNotes
+    }
+  }
+`;
+
+export const SET_ALLERGIES_MUTATION = gql`
+  mutation SetAllergies($input: SetAllergiesInput!) {
+    setAllergies(input: $input) {
+      id
+      allergens
+      allergyNotes
+    }
+  }
+`;
+
 export const SET_PROFILE_IMAGE_MUTATION = gql`
   mutation SetProfileImage($input: SetProfileImageInput!) {
     setProfileImage(input: $input) {
@@ -241,6 +265,8 @@ export const TORTILLA_EVENT_FIELDS = gql`
     attendees {
       userName
       imageUrl
+      allergens
+      allergyNotes
     }
   }
 `;

@@ -1,5 +1,26 @@
 # FeatControl
 
+## [2026-09-17] - Alergias en el perfil y aviso en la convocatoria
+**Descripción**: Cada usuario puede indicar en su perfil qué no puede comer, y el panel de convocatoria del admin muestra un aviso con las alergias de los apuntados: "Ana no puede consumir: gluten, lácteos", más un resumen por alérgeno con el número de personas afectadas.
+
+Se usan los **14 alérgenos de declaración obligatoria en la UE** (Reglamento 1169/2011) como casillas, más un campo libre opcional de observaciones. La lista cerrada permite traducir, agrupar y resumir, y evita que "celiaco", "sin gluten" y "gluten" sean tres cosas distintas. En el perfil propio aparece como un panel plegable (ANTD `Collapse`) con el resumen en la cabecera, para no empujar hacia abajo las estadísticas.
+
+**Visibilidad (dato de salud):** las alergias de un apuntado solo las reciben los **admins** y **quienes estén apuntados a esa misma convocatoria**. Para el resto, incluido quien no ha iniciado sesión, `allergens` llega como `null`, que no significa "sin alergias". El rol de admin se lee de la BD, no del JWT, así que una sesión manipulada no da acceso. Nunca se muestran en perfiles ajenos, y el usuario lo ve explicado junto al formulario antes de guardar. En la interfaz el aviso solo se pinta en el panel del admin.
+**Archivos principales**:
+- `src/lib/allergens.ts` + `allergens.test.ts` (nuevo; lista oficial, `normalizeAllergens`, `normalizeAllergyNotes`, `hasAllergies`, `summarizeAllergens`, 13 tests)
+- `src/models/User.ts` (campos `allergens` con enum y `allergyNotes` con límite de 200)
+- `src/graphql/typeDefs.ts` (enum `Allergen`, campos en `User` y `Attendee`, input y mutation `setAllergies`)
+- `src/graphql/resolvers.ts` (`setAllergies`; `me` devuelve las alergias; `eventPayload` decide la visibilidad con el rol leído en la misma consulta de usuarios; resolver de campo `User.allergens` por defecto `[]`)
+- `src/graphql/operations.ts` (`MY_ALLERGIES_QUERY`, `SET_ALLERGIES_MUTATION`, campos en `TORTILLA_EVENT_FIELDS`)
+- `src/components/features/AllergiesCard.tsx` + `.module.css` (nuevo; formulario del perfil)
+- `src/components/features/AttendeeAllergiesAlert.tsx` + `.module.css` (nuevo; aviso del admin)
+- `src/components/TortillaEventAdmin.tsx` (integra el aviso)
+- `src/views/ProfilePage.tsx` (panel solo en el perfil propio)
+- `src/graphql/resolvers.test.ts` (8 tests: guardado, borrado, validación y los casos de visibilidad)
+- `src/lib/i18n.ts` (claves `allergen.*`, `allergies.*`, `event.admin.allergies*`, ES + CA)
+**Tecnologías**: ANTD Collapse / Checkbox.Group / Alert / Tag, Mongoose enum en array
+**Notas**: `MY_ALLERGIES_QUERY` es una query aparte de `ME_QUERY` a propósito: la navbar consulta `me` en cada página y no debe traer datos de salud. No hay migración: los usuarios existentes reciben `allergens: []` por defecto al leerse.
+
 ## [2026-08-05] - Varias tortillas por jornada + racha por día
 **Descripción**: Hasta ahora solo se podía votar **una** tortilla a la vez, pero algunos días se cocinan dos distintas. El concepto pasa de "la tortilla más reciente" a **"la jornada en curso"**: el día de la tortilla más reciente, y son votables **todas** las de ese día que no estén cerradas a mano. Subir una tortilla de un día posterior sigue cerrando la jornada anterior, igual que antes.
 

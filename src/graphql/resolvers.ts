@@ -16,6 +16,7 @@ import { computeAchievements, type VoteForAchievements } from '@/lib/achievement
 import { isSameDay, nextWednesday } from '@/lib/dates';
 import { computeStreaks } from '@/lib/streak';
 import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
+import { normalizeAllergens, normalizeAllergyNotes } from '@/lib/allergens';
 import {
   User,
   normalizeEmail,
@@ -283,22 +284,40 @@ async function eventPayload(
   doc: TortillaEventDocument,
   userKey: string | null
 ) {
-  const keys = Array.from(new Set(doc.attendees.map((a) => a.userKey)));
+  const attendeeKeys = doc.attendees.map((a) => a.userKey);
+  // El visitante entra en la misma consulta: necesitamos su rol para decidir
+  // si puede ver las alergias, sin un segundo viaje a la BD.
+  const keys = Array.from(
+    new Set(userKey ? [...attendeeKeys, userKey] : attendeeKeys)
+  );
   const users = keys.length
     ? await User.find({ usernameKey: { $in: keys } })
-        .select('usernameKey image imageKey')
+        .select('usernameKey image imageKey role allergens allergyNotes')
         .exec()
     : [];
-  const imageByKey = new Map<string, string | null>(
-    users.map((u) => [u.usernameKey, userImageUrl(u)])
-  );
+  const userByKey = new Map(users.map((u) => [u.usernameKey, u]));
+
+  const isAttending = userKey
+    ? doc.attendees.some((a) => a.userKey === userKey)
+    : false;
+  // Las alergias son datos de salud: solo las ven los admins (el rol se lee de
+  // la BD, no del JWT) y quienes están apuntados a esta misma convocatoria.
+  // Para el resto van a null, que NO significa "sin alergias".
+  const canSeeAllergies =
+    isAttending || (userKey ? userByKey.get(userKey)?.role === 'admin' : false);
+
   // Orden de llegada (joinedAt asc) para que la lista sea estable.
   const attendees = [...doc.attendees]
     .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
-    .map((a) => ({
-      userName: a.userName,
-      imageUrl: imageByKey.get(a.userKey) ?? null,
-    }));
+    .map((a) => {
+      const user = userByKey.get(a.userKey);
+      return {
+        userName: a.userName,
+        imageUrl: user ? userImageUrl(user) : null,
+        allergens: canSeeAllergies ? (user?.allergens ?? []) : null,
+        allergyNotes: canSeeAllergies ? (user?.allergyNotes ?? null) : null,
+      };
+    });
   const closedAt = doc.closedAt ?? null;
   return {
     id: (doc._id as Types.ObjectId).toString(),
@@ -306,9 +325,7 @@ async function eventPayload(
     note: doc.note ?? null,
     attendees,
     attendeeCount: attendees.length,
-    isAttending: userKey
-      ? doc.attendees.some((a) => a.userKey === userKey)
-      : false,
+    isAttending,
     closedAt,
     open: !closedAt,
   };
@@ -358,7 +375,7 @@ export const resolvers = {
       if (!ctx.session?.user) return null;
       await connectToDatabase();
       const doc = await User.findById(ctx.session.user.id)
-        .select('username email image imageKey')
+        .select('username email image imageKey allergens allergyNotes')
         .exec();
       const imageUrl = doc ? userImageUrl(doc) : null;
       return {
@@ -366,6 +383,8 @@ export const resolvers = {
         username: ctx.session.user.username,
         email: ctx.session.user.email,
         imageUrl,
+        allergens: doc?.allergens ?? [],
+        allergyNotes: doc?.allergyNotes ?? null,
       };
     },
 
@@ -741,6 +760,38 @@ export const resolvers = {
       };
     },
 
+    async setAllergies(
+      _: unknown,
+      args: {
+        input: { allergens: string[]; allergyNotes?: string | null };
+      },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      if (!ctx.session?.user || ctx.session.user.needsUsername) {
+        throw new Error('Debes iniciar sesión.');
+      }
+      const allergens = normalizeAllergens(args.input.allergens);
+      const allergyNotes = normalizeAllergyNotes(args.input.allergyNotes);
+
+      const user = await User.findById(ctx.session.user.id).exec();
+      if (!user) throw new Error('Usuario no encontrado.');
+
+      user.allergens = allergens;
+      // `undefined` elimina el campo en vez de guardar un null.
+      user.allergyNotes = allergyNotes ?? undefined;
+      await user.save();
+
+      return {
+        id: (user._id as Types.ObjectId).toString(),
+        username: user.username,
+        email: user.email,
+        imageUrl: userImageUrl(user),
+        allergens: user.allergens,
+        allergyNotes: user.allergyNotes ?? null,
+      };
+    },
+
     async addComment(
       _: unknown,
       args: { input: { tortillaId: string; text: string } },
@@ -962,6 +1013,17 @@ export const resolvers = {
         imageUrl: imageByKey.get(c.userKey) ?? null,
         isMine: myKey === c.userKey,
       }));
+    },
+  },
+
+  User: {
+    // `register`, `setUsername` o `setProfileImage` devuelven un User sin estos
+    // campos; el esquema declara `allergens` no nulo, así que damos un vacío.
+    allergens(parent: { allergens?: string[] | null }) {
+      return parent.allergens ?? [];
+    },
+    allergyNotes(parent: { allergyNotes?: string | null }) {
+      return parent.allergyNotes ?? null;
     },
   },
 };

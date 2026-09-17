@@ -1,0 +1,64 @@
+.collapse {
+  background: var(--c-surface);
+  border-color: var(--c-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--c-ink);
+}
+
+/* Resumen de lo guardado, visible con el panel plegado. */
+.summary {
+  font-size: 13px;
+  color: var(--c-ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--c-ink-soft);
+  font-size: 14px;
+}
+
+.grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.notesLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-ink);
+  margin-bottom: -8px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}

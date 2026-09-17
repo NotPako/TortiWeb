@@ -51,11 +51,36 @@ export const typeDefs = gql`
     imageUrl: String
   }
 
+  """Alérgenos de declaración obligatoria en la UE (Reglamento 1169/2011)."""
+  enum Allergen {
+    gluten
+    crustaceans
+    eggs
+    fish
+    peanuts
+    soy
+    milk
+    nuts
+    celery
+    mustard
+    sesame
+    sulphites
+    lupin
+    molluscs
+  }
+
   """Persona apuntada a una convocatoria."""
   type Attendee {
     userName: String!
     """URL del avatar del apuntado, si está disponible."""
     imageUrl: String
+    """
+    Alérgenos del apuntado. Solo visible para admins y para quien esté apuntado
+    a la misma convocatoria; null para el resto (no significa "sin alergias").
+    """
+    allergens: [Allergen!]
+    """Observaciones libres sobre alergias. Misma visibilidad que allergens."""
+    allergyNotes: String
   }
 
   """
@@ -85,6 +110,10 @@ export const typeDefs = gql`
     email: String!
     """URL del avatar (subido por el usuario o externo de Google)."""
     imageUrl: String
+    """Alérgenos que indicó el propio usuario. Solo se expone vía me."""
+    allergens: [Allergen!]!
+    """Observaciones libres sobre alergias del propio usuario."""
+    allergyNotes: String
   }
 
   """Resumen de tortilla para el perfil de usuario."""
@@ -186,6 +215,13 @@ export const typeDefs = gql`
     text: String!
   }
 
+  input SetAllergiesInput {
+    """Lista completa (sustituye a la anterior). Vacía = sin alergias."""
+    allergens: [Allergen!]!
+    """Observaciones libres; vacío o null las borra."""
+    allergyNotes: String
+  }
+
   input AnnounceTortillaInput {
     """Fecha del miércoles; si no se indica, se usa el próximo miércoles."""
     date: Date
@@ -206,6 +242,8 @@ export const typeDefs = gql`
     setUsername(username: String!): User!
     """Sube y asigna una foto de perfil al usuario autenticado."""
     setProfileImage(input: SetProfileImageInput!): User!
+    """Guarda los alérgenos y observaciones del usuario autenticado."""
+    setAllergies(input: SetAllergiesInput!): User!
     """Añade un comentario a una tortilla. Requiere sesión."""
     addComment(input: AddCommentInput!): Comment!
     """Elimina un comentario propio."""

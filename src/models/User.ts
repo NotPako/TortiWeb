@@ -1,5 +1,10 @@
 import mongoose, { Schema, Model, Document, Types } from 'mongoose';
 import { publicUrlFor } from '@/lib/r2';
+import {
+  ALLERGENS,
+  MAX_ALLERGY_NOTES_LENGTH,
+  type AllergenId,
+} from '@/lib/allergens';
 
 export type UserRole = 'user' | 'admin';
 
@@ -14,6 +19,14 @@ export interface UserDocument extends Document {
   image?: string; // URL externa (Google) — fallback si no hay imageKey
   imageKey?: string; // Key en R2 de la foto de perfil subida por el usuario
   imageContentType?: string;
+  /**
+   * Alérgenos que el usuario no puede consumir (lista oficial UE). Dato de
+   * salud: solo lo ven los admins y quienes estén apuntados a la misma
+   * convocatoria. Nunca se expone en el perfil público.
+   */
+  allergens: AllergenId[];
+  /** Observaciones libres (intolerancias no incluidas en la lista, etc.). */
+  allergyNotes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +62,15 @@ const UserSchema = new Schema<UserDocument>(
     image: { type: String },
     imageKey: { type: String },
     imageContentType: { type: String },
+    allergens: {
+      type: [{ type: String, enum: ALLERGENS }],
+      default: [],
+    },
+    allergyNotes: {
+      type: String,
+      trim: true,
+      maxlength: MAX_ALLERGY_NOTES_LENGTH,
+    },
   },
   { timestamps: true }
 );

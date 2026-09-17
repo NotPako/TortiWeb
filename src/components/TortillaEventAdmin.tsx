@@ -9,6 +9,10 @@ import {
   UPCOMING_TORTILLA_QUERY,
 } from '@/graphql/operations';
 import { useLanguage } from './LanguageContext';
+import {
+  AttendeeAllergiesAlert,
+  type AttendeeWithAllergies,
+} from './features/AttendeeAllergiesAlert';
 import styles from './TortillaEventAdmin.module.css';
 
 type TortillaEvent = {
@@ -17,7 +21,7 @@ type TortillaEvent = {
   note: string | null;
   attendeeCount: number;
   open: boolean;
-  attendees: { userName: string; imageUrl: string | null }[];
+  attendees: (AttendeeWithAllergies & { imageUrl: string | null })[];
 };
 
 /** Fecha (yyyy-mm-dd) del próximo miércoles, para el valor por defecto del input. */
@@ -115,6 +119,7 @@ export function TortillaEventAdmin() {
               : t('event.attendeePlural')}
           </p>
           {event.note ? <p className={styles.openNote}>“{event.note}”</p> : null}
+          <AttendeeAllergiesAlert attendees={event.attendees} />
           <button
             type="button"
             onClick={handleClose}
