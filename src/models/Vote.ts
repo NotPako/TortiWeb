@@ -6,8 +6,13 @@ export const REACTIONS: Reaction[] = ['fire', 'yummy', 'meh', 'cringe'];
 
 export interface VoteDocument extends Document {
   tortilla: Types.ObjectId;
-  userName: string;
-  userKey: string; // nombre normalizado (lower-case, trim) para evitar duplicados
+  /**
+   * Autor del voto. Es la referencia buena: el nombre puede cambiar, el id no.
+   * Ausente en los votos históricos de gente que nunca tuvo cuenta.
+   */
+  user?: Types.ObjectId;
+  userName: string; // copia para mostrar; se actualiza si el autor se renombra
+  userKey: string; // nombre normalizado; única referencia de los votos sin cuenta
   score: number; // 0..10 con decimales
   reaction?: Reaction;
   createdAt: Date;
@@ -22,6 +27,7 @@ const VoteSchema = new Schema<VoteDocument>(
       required: true,
       index: true,
     },
+    user: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     userName: { type: String, required: true, trim: true },
     userKey: { type: String, required: true, trim: true, lowercase: true },
     score: {
@@ -43,8 +49,24 @@ const VoteSchema = new Schema<VoteDocument>(
   { timestamps: true }
 );
 
-// Un voto por usuario y tortilla (se actualiza en lugar de duplicarse)
-VoteSchema.index({ tortilla: 1, userKey: 1 }, { unique: true });
+// Un voto por persona y tortilla (se actualiza en lugar de duplicarse). Con
+// cuenta manda el id: si alguien se renombra y otro coge su nombre antiguo,
+// por nombre chocarían. Los votos sin cuenta se siguen acotando por nombre.
+VoteSchema.index(
+  { tortilla: 1, user: 1 },
+  { unique: true, partialFilterExpression: { user: { $exists: true } } }
+);
+// `user: null` en un índice parcial cubre también los documentos sin el campo,
+// que es como están guardados los votos históricos. MongoDB no admite
+// `$exists: false` en `partialFilterExpression`.
+VoteSchema.index(
+  { tortilla: 1, userKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { user: null },
+    name: 'tortilla_1_userKey_1_legacy',
+  }
+);
 
 export const Vote: Model<VoteDocument> =
   mongoose.models.Vote || mongoose.model<VoteDocument>('Vote', VoteSchema);

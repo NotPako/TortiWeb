@@ -27,6 +27,11 @@ export interface UserDocument extends Document {
   allergens: AllergenId[];
   /** Observaciones libres (intolerancias no incluidas en la lista, etc.). */
   allergyNotes?: string;
+  /**
+   * Cuántas veces ha cambiado de nombre. El límite está en
+   * `MAX_NICKNAME_CHANGES`; corregir mayúsculas no cuenta.
+   */
+  nicknameChanges: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,6 +76,7 @@ const UserSchema = new Schema<UserDocument>(
       trim: true,
       maxlength: MAX_ALLERGY_NOTES_LENGTH,
     },
+    nicknameChanges: { type: Number, required: true, default: 0, min: 0 },
   },
   { timestamps: true }
 );

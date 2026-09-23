@@ -17,6 +17,13 @@
   min-width: 0;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .title {
   font-size: 24px;
   font-weight: 700;

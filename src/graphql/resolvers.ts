@@ -18,6 +18,12 @@ import { computeStreaks } from '@/lib/streak';
 import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
 import { normalizeAllergens, normalizeAllergyNotes } from '@/lib/allergens';
 import {
+  MAX_NICKNAME_CHANGES,
+  nicknameChangesLeft,
+  planNicknameChange,
+  validateNickname,
+} from '@/lib/nickname';
+import {
   User,
   normalizeEmail,
   normalizeUsername,
@@ -105,10 +111,66 @@ export type GqlContext = {
   session: Session | null;
 };
 
-function sessionUserKey(session: Session | null): string | null {
-  if (!session?.user?.usernameKey) return null;
-  if (session.user.needsUsername) return null;
-  return session.user.usernameKey;
+/**
+ * Identidad del usuario autenticado. El `id` es la referencia buena: el nombre
+ * puede cambiar y la clave normalizada con él, pero el id no.
+ */
+export type CtxUser = {
+  id: Types.ObjectId;
+  key: string;
+  name: string;
+};
+
+function sessionUser(session: Session | null): CtxUser | null {
+  const user = session?.user;
+  if (!user?.usernameKey || user.needsUsername) return null;
+  if (!Types.ObjectId.isValid(user.id)) return null;
+  return {
+    id: new Types.ObjectId(user.id),
+    key: user.usernameKey,
+    name: user.username,
+  };
+}
+
+/**
+ * Vincula a su cuenta los votos y comentarios anteriores al registro, que solo
+ * llevan nombre. Se hace al crear la cuenta o al elegir nombre por primera vez
+ * (nunca al renombrarse: si no, cambiarse a un nombre histórico heredaría los
+ * votos de otra persona).
+ */
+async function claimDocsByName(
+  userId: Types.ObjectId,
+  usernameKey: string
+): Promise<void> {
+  const orphan = { userKey: usernameKey, user: { $exists: false } };
+  await Promise.all([
+    Vote.updateMany(orphan, { $set: { user: userId } }).exec(),
+    Comment.updateMany(orphan, { $set: { user: userId } }).exec(),
+    TortillaEvent.updateMany(
+      { attendees: { $elemMatch: orphan } },
+      { $set: { 'attendees.$[a].user': userId } },
+      { arrayFilters: [{ 'a.userKey': usernameKey, 'a.user': { $exists: false } }] }
+    ).exec(),
+  ]);
+}
+
+/** Avatares por id de usuario, en una sola consulta. */
+async function imagesByUserId(
+  ids: (Types.ObjectId | undefined)[]
+): Promise<Map<string, string | null>> {
+  const unique = Array.from(
+    new Map(
+      ids.filter((id): id is Types.ObjectId => Boolean(id)).map((id) => [id.toString(), id])
+    ).values()
+  );
+  const users = unique.length
+    ? await User.find({ _id: { $in: unique } })
+        .select('image imageKey')
+        .exec()
+    : [];
+  return new Map(
+    users.map((u) => [(u._id as Types.ObjectId).toString(), userImageUrl(u)])
+  );
 }
 
 /**
@@ -128,7 +190,7 @@ async function requireAdmin(ctx: GqlContext): Promise<void> {
 
 async function tortillaPayload(
   doc: TortillaDocument,
-  userKey: string | null
+  viewer: CtxUser | null
 ) {
   const { averageScore, voteCount } = await computeStats(
     doc._id as Types.ObjectId
@@ -150,31 +212,31 @@ async function tortillaPayload(
     closedAt,
     votingOpen,
     _id: doc._id,
-    _ctxUserKey: userKey,
+    _ctxUserId: viewer?.id ?? null,
   };
 }
 
 type ResolvedTortilla = Awaited<ReturnType<typeof tortillaPayload>>;
 
-// Username: 2-20 caracteres, letras/números/_-.
-const USERNAME_RE = /^[A-Za-z0-9._-]{2,20}$/;
 // Password: mínimo 8 caracteres.
 const MIN_PASSWORD_LENGTH = 8;
 // Email mínimo razonable.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validateUsername(username: string): string {
-  const trimmed = username.trim();
-  if (!USERNAME_RE.test(trimmed)) {
-    throw new Error(
-      'El usuario debe tener entre 2 y 20 caracteres y solo letras, números, _, - o .'
-    );
-  }
-  return trimmed;
-}
-
-async function computeUserStats(userKey: string) {
-  const voteDocs = await Vote.find({ userKey })
+/**
+ * Estadísticas de una persona. Con cuenta se buscan sus votos por id, así que
+ * renombrarse no pierde el historial. Sin cuenta (votos históricos anteriores
+ * al registro) solo queda el nombre.
+ */
+async function computeUserStats(target: {
+  userId: Types.ObjectId | null;
+  userKey: string;
+}) {
+  const { userId, userKey } = target;
+  const voteFilter = userId
+    ? { user: userId }
+    : { userKey, user: { $exists: false } };
+  const voteDocs = await Vote.find(voteFilter)
     .sort({ createdAt: -1 })
     .populate<{ tortilla: TortillaDocument }>('tortilla')
     .exec();
@@ -182,9 +244,9 @@ async function computeUserStats(userKey: string) {
   // Display name: prefer canonical User.username; fallback al primer vote.userName.
   let username = userKey;
   let imageUrl: string | null = null;
-  const userDoc = await User.findOne({ usernameKey: userKey })
-    .select('username image imageKey')
-    .exec();
+  const userDoc = userId
+    ? await User.findById(userId).select('username image imageKey').exec()
+    : null;
   if (userDoc) {
     username = userDoc.username;
     imageUrl = userImageUrl(userDoc);
@@ -282,35 +344,38 @@ async function computeUserStats(userKey: string) {
 
 async function eventPayload(
   doc: TortillaEventDocument,
-  userKey: string | null
+  viewer: CtxUser | null
 ) {
-  const attendeeKeys = doc.attendees.map((a) => a.userKey);
   // El visitante entra en la misma consulta: necesitamos su rol para decidir
   // si puede ver las alergias, sin un segundo viaje a la BD.
-  const keys = Array.from(
-    new Set(userKey ? [...attendeeKeys, userKey] : attendeeKeys)
-  );
-  const users = keys.length
-    ? await User.find({ usernameKey: { $in: keys } })
-        .select('usernameKey image imageKey role allergens allergyNotes')
+  const ids = doc.attendees
+    .map((a) => a.user)
+    .filter((id): id is Types.ObjectId => Boolean(id));
+  if (viewer) ids.push(viewer.id);
+  const users = ids.length
+    ? await User.find({ _id: { $in: ids } })
+        .select('image imageKey role allergens allergyNotes')
         .exec()
     : [];
-  const userByKey = new Map(users.map((u) => [u.usernameKey, u]));
+  const userById = new Map(
+    users.map((u) => [(u._id as Types.ObjectId).toString(), u])
+  );
 
-  const isAttending = userKey
-    ? doc.attendees.some((a) => a.userKey === userKey)
+  const isAttending = viewer
+    ? doc.attendees.some((a) => a.user?.equals(viewer.id))
     : false;
   // Las alergias son datos de salud: solo las ven los admins (el rol se lee de
   // la BD, no del JWT) y quienes están apuntados a esta misma convocatoria.
   // Para el resto van a null, que NO significa "sin alergias".
   const canSeeAllergies =
-    isAttending || (userKey ? userByKey.get(userKey)?.role === 'admin' : false);
+    isAttending ||
+    (viewer ? userById.get(viewer.id.toString())?.role === 'admin' : false);
 
   // Orden de llegada (joinedAt asc) para que la lista sea estable.
   const attendees = [...doc.attendees]
     .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
     .map((a) => {
-      const user = userByKey.get(a.userKey);
+      const user = a.user ? userById.get(a.user.toString()) : undefined;
       return {
         userName: a.userName,
         imageUrl: user ? userImageUrl(user) : null,
@@ -338,8 +403,8 @@ export const resolvers = {
     async tortillas(_: unknown, __: unknown, ctx: GqlContext) {
       await connectToDatabase();
       const docs = await Tortilla.find({}).sort({ date: -1 }).exec();
-      const userKey = sessionUserKey(ctx.session);
-      return Promise.all(docs.map((d) => tortillaPayload(d, userKey)));
+      const viewer = sessionUser(ctx.session);
+      return Promise.all(docs.map((d) => tortillaPayload(d, viewer)));
     },
 
     async tortilla(
@@ -351,7 +416,7 @@ export const resolvers = {
       if (!Types.ObjectId.isValid(args.id)) return null;
       const doc = await Tortilla.findById(args.id).exec();
       if (!doc) return null;
-      return tortillaPayload(doc, sessionUserKey(ctx.session));
+      return tortillaPayload(doc, sessionUser(ctx.session));
     },
 
     async currentTortillas(_: unknown, __: unknown, ctx: GqlContext) {
@@ -367,39 +432,48 @@ export const resolvers = {
         (d) => isSameDay(d.date, latest.date) && !d.closedAt
       );
 
-      const userKey = sessionUserKey(ctx.session);
-      return Promise.all(openToday.map((d) => tortillaPayload(d, userKey)));
+      const viewer = sessionUser(ctx.session);
+      return Promise.all(openToday.map((d) => tortillaPayload(d, viewer)));
     },
 
     async me(_: unknown, __: unknown, ctx: GqlContext) {
       if (!ctx.session?.user) return null;
       await connectToDatabase();
       const doc = await User.findById(ctx.session.user.id)
-        .select('username email image imageKey allergens allergyNotes')
+        .select('username email image imageKey allergens allergyNotes nicknameChanges')
         .exec();
       const imageUrl = doc ? userImageUrl(doc) : null;
       return {
         id: ctx.session.user.id,
-        username: ctx.session.user.username,
-        email: ctx.session.user.email,
+        // El nombre sale de la BD: si se cambió hace un momento, el JWT
+        // todavía lleva el anterior.
+        username: doc?.username ?? ctx.session.user.username,
+        email: doc?.email ?? ctx.session.user.email,
         imageUrl,
         allergens: doc?.allergens ?? [],
         allergyNotes: doc?.allergyNotes ?? null,
+        nicknameChangesLeft: nicknameChangesLeft(doc?.nicknameChanges ?? 0),
       };
     },
 
     async myStats(_: unknown, __: unknown, ctx: GqlContext) {
-      const userKey = sessionUserKey(ctx.session);
-      if (!userKey) return null;
+      const viewer = sessionUser(ctx.session);
+      if (!viewer) return null;
       await connectToDatabase();
-      return computeUserStats(userKey);
+      return computeUserStats({ userId: viewer.id, userKey: viewer.key });
     },
 
     async userStats(_: unknown, args: { username: string }) {
       await connectToDatabase();
       const usernameKey = normalizeUsername(args.username);
       if (!usernameKey) return null;
-      return computeUserStats(usernameKey);
+      // Si hay cuenta con ese nombre, sus estadísticas son las del id. Si no,
+      // puede ser un votante histórico sin cuenta: se busca por nombre.
+      const userDoc = await User.findOne({ usernameKey }).select('_id').exec();
+      return computeUserStats({
+        userId: (userDoc?._id as Types.ObjectId) ?? null,
+        userKey: usernameKey,
+      });
     },
 
     async upcomingTortilla(_: unknown, __: unknown, ctx: GqlContext) {
@@ -408,7 +482,7 @@ export const resolvers = {
         .sort({ date: -1 })
         .exec();
       if (!doc) return null;
-      return eventPayload(doc, sessionUserKey(ctx.session));
+      return eventPayload(doc, sessionUser(ctx.session));
     },
   },
 
@@ -529,13 +603,13 @@ export const resolvers = {
       if (!tortilla) throw new Error('Tortilla no encontrada.');
       if (tortilla.closedAt) {
         // Idempotente: si ya está cerrada, devolvemos el estado actual.
-        return tortillaPayload(tortilla, sessionUserKey(ctx.session));
+        return tortillaPayload(tortilla, sessionUser(ctx.session));
       }
 
       tortilla.closedAt = new Date();
       await tortilla.save();
 
-      return tortillaPayload(tortilla, sessionUserKey(ctx.session));
+      return tortillaPayload(tortilla, sessionUser(ctx.session));
     },
 
     async castVote(
@@ -588,21 +662,24 @@ export const resolvers = {
         );
       }
 
-      const userKey = ctx.session.user.usernameKey;
-      const userName = ctx.session.user.username;
+      const viewer = sessionUser(ctx.session);
+      if (!viewer) throw new Error('Debes iniciar sesión para votar.');
 
       const reactionUpdate: Record<string, unknown> =
         reaction != null
           ? { reaction }
           : {};
 
+      // El voto se identifica por id de usuario: si esta persona se renombra,
+      // sigue siendo el mismo voto.
       const vote = await Vote.findOneAndUpdate(
-        { tortilla: tortilla._id, userKey },
+        { tortilla: tortilla._id, user: viewer.id },
         {
           $set: {
             score: Math.round(score * 10) / 10,
-            userName,
-            userKey,
+            user: viewer.id,
+            userName: viewer.name,
+            userKey: viewer.key,
             tortilla: tortilla._id,
             ...reactionUpdate,
           },
@@ -624,7 +701,7 @@ export const resolvers = {
       args: { input: { username: string; email: string; password: string } }
     ) {
       await connectToDatabase();
-      const username = validateUsername(args.input.username);
+      const username = validateNickname(args.input.username);
       const usernameKey = normalizeUsername(username);
       const email = args.input.email.trim();
       if (!EMAIL_RE.test(email)) {
@@ -652,6 +729,9 @@ export const resolvers = {
         emailKey,
         passwordHash,
       });
+      // Quien votó antes de tener cuenta recupera su historial al registrarse
+      // con el mismo nombre, como hasta ahora.
+      await claimDocsByName(doc._id as Types.ObjectId, usernameKey);
 
       return {
         id: (doc._id as Types.ObjectId).toString(),
@@ -669,7 +749,7 @@ export const resolvers = {
       if (!ctx.session?.user) {
         throw new Error('Debes iniciar sesión.');
       }
-      const username = validateUsername(args.username);
+      const username = validateNickname(args.username);
       const usernameKey = normalizeUsername(username);
 
       const existing = await User.findOne({ usernameKey }).exec();
@@ -686,12 +766,81 @@ export const resolvers = {
       user.username = username;
       user.usernameKey = usernameKey;
       await user.save();
+      // Es el primer nombre de la cuenta (login con Google), no un cambio: no
+      // gasta cupo y sí recupera los votos que dejó antes de registrarse.
+      await claimDocsByName(user._id as Types.ObjectId, usernameKey);
 
       return {
         id: (user._id as Types.ObjectId).toString(),
         username: user.username,
         email: user.email,
         imageUrl: userImageUrl(user),
+      };
+    },
+
+    async changeNickname(
+      _: unknown,
+      args: { username: string },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      const viewer = sessionUser(ctx.session);
+      if (!viewer) throw new Error('Debes iniciar sesión.');
+
+      const user = await User.findById(viewer.id).exec();
+      if (!user) throw new Error('Usuario no encontrado.');
+
+      const change = planNicknameChange({
+        current: user.username,
+        requested: args.username,
+        used: user.nicknameChanges ?? 0,
+      });
+
+      if (change.kind !== 'unchanged') {
+        const taken = await User.findOne({ usernameKey: change.usernameKey })
+          .select('_id')
+          .exec();
+        if (taken && !(taken._id as Types.ObjectId).equals(viewer.id)) {
+          throw new Error('Ese nombre ya está cogido.');
+        }
+
+        user.username = change.username;
+        user.usernameKey = change.usernameKey;
+        if (change.kind === 'rename') {
+          user.nicknameChanges = (user.nicknameChanges ?? 0) + 1;
+        }
+        await user.save();
+
+        // Votos, comentarios y apuntados guardan una copia del nombre para
+        // mostrarlo sin más consultas: hay que refrescarla. La referencia de
+        // verdad (el id) no se toca.
+        const rename = {
+          $set: { userName: change.username, userKey: change.usernameKey },
+        };
+        await Promise.all([
+          Vote.updateMany({ user: user._id }, rename).exec(),
+          Comment.updateMany({ user: user._id }, rename).exec(),
+          TortillaEvent.updateMany(
+            { 'attendees.user': user._id },
+            {
+              $set: {
+                'attendees.$[a].userName': change.username,
+                'attendees.$[a].userKey': change.usernameKey,
+              },
+            },
+            { arrayFilters: [{ 'a.user': user._id }] }
+          ).exec(),
+        ]);
+      }
+
+      return {
+        id: (user._id as Types.ObjectId).toString(),
+        username: user.username,
+        email: user.email,
+        imageUrl: userImageUrl(user),
+        allergens: user.allergens,
+        allergyNotes: user.allergyNotes ?? null,
+        nicknameChangesLeft: nicknameChangesLeft(user.nicknameChanges ?? 0),
       };
     },
 
@@ -817,18 +966,19 @@ export const resolvers = {
         .exec();
       if (!tortilla) throw new Error('Tortilla no encontrada.');
 
-      const userKey = ctx.session.user.usernameKey;
-      const userName = ctx.session.user.username;
+      const viewer = sessionUser(ctx.session);
+      if (!viewer) throw new Error('Debes iniciar sesión para comentar.');
 
       const doc = await Comment.create({
         tortilla: tortilla._id,
-        userKey,
-        userName,
+        user: viewer.id,
+        userKey: viewer.key,
+        userName: viewer.name,
         text,
       });
 
       // Resolvemos la imagen del autor para mantener simetría con el resolver.
-      const userDoc = await User.findOne({ usernameKey: userKey })
+      const userDoc = await User.findById(viewer.id)
         .select('image imageKey')
         .exec();
       const imageUrl = userDoc ? userImageUrl(userDoc) : null;
@@ -855,9 +1005,15 @@ export const resolvers = {
       if (!Types.ObjectId.isValid(args.id)) {
         throw new Error('ID de comentario inválido.');
       }
+      const viewer = sessionUser(ctx.session);
       const doc = await Comment.findById(args.id).exec();
       if (!doc) throw new Error('Comentario no encontrado.');
-      if (doc.userKey !== ctx.session.user.usernameKey) {
+      const isMine = viewer
+        ? doc.user
+          ? doc.user.equals(viewer.id)
+          : doc.userKey === viewer.key
+        : false;
+      if (!isMine) {
         throw new Error('Sólo puedes borrar tus propios comentarios.');
       }
       await doc.deleteOne();
@@ -891,7 +1047,7 @@ export const resolvers = {
         announcedByKey: ctx.session!.user.usernameKey,
       });
 
-      return eventPayload(doc, sessionUserKey(ctx.session));
+      return eventPayload(doc, sessionUser(ctx.session));
     },
 
     async closeTortillaEvent(
@@ -910,7 +1066,7 @@ export const resolvers = {
         doc.closedAt = new Date();
         await doc.save();
       }
-      return eventPayload(doc, sessionUserKey(ctx.session));
+      return eventPayload(doc, sessionUser(ctx.session));
     },
 
     async setAttendance(
@@ -931,19 +1087,24 @@ export const resolvers = {
         throw new Error('Esta convocatoria está cerrada.');
       }
 
-      const userKey = ctx.session.user.usernameKey;
-      const userName = ctx.session.user.username;
-      const idx = doc.attendees.findIndex((a) => a.userKey === userKey);
+      const viewer = sessionUser(ctx.session);
+      if (!viewer) throw new Error('Debes iniciar sesión para apuntarte.');
+      const idx = doc.attendees.findIndex((a) => a.user?.equals(viewer.id));
 
       if (args.attending && idx === -1) {
-        doc.attendees.push({ userKey, userName, joinedAt: new Date() });
+        doc.attendees.push({
+          user: viewer.id,
+          userKey: viewer.key,
+          userName: viewer.name,
+          joinedAt: new Date(),
+        });
         await doc.save();
       } else if (!args.attending && idx !== -1) {
         doc.attendees.splice(idx, 1);
         await doc.save();
       }
 
-      return eventPayload(doc, userKey);
+      return eventPayload(doc, viewer);
     },
   },
 
@@ -953,32 +1114,24 @@ export const resolvers = {
       const docs = await Vote.find({ tortilla: parent._id })
         .sort({ createdAt: -1 })
         .exec();
-      const keys = Array.from(new Set(docs.map((v) => v.userKey)));
-      const users = keys.length
-        ? await User.find({ usernameKey: { $in: keys } })
-            .select('usernameKey image imageKey')
-            .exec()
-        : [];
-      const imageByKey = new Map<string, string | null>(
-        users.map((u) => [u.usernameKey, userImageUrl(u)])
-      );
+      const imageById = await imagesByUserId(docs.map((v) => v.user));
       return docs.map((v: VoteDocument) => ({
         id: (v._id as Types.ObjectId).toString(),
         userName: v.userName,
         score: v.score,
         reaction: v.reaction ?? null,
         createdAt: v.createdAt,
-        imageUrl: imageByKey.get(v.userKey) ?? null,
+        imageUrl: v.user ? (imageById.get(v.user.toString()) ?? null) : null,
       }));
     },
 
     async myVote(parent: ResolvedTortilla) {
-      const userKey = parent._ctxUserKey;
-      if (!userKey) return null;
+      const userId = parent._ctxUserId;
+      if (!userId) return null;
       await connectToDatabase();
       const v = await Vote.findOne({
         tortilla: parent._id,
-        userKey,
+        user: userId,
       }).exec();
       if (!v) return null;
       return {
@@ -995,23 +1148,15 @@ export const resolvers = {
       const docs = await Comment.find({ tortilla: parent._id })
         .sort({ createdAt: 1 })
         .exec();
-      const keys = Array.from(new Set(docs.map((c) => c.userKey)));
-      const users = keys.length
-        ? await User.find({ usernameKey: { $in: keys } })
-            .select('usernameKey image imageKey')
-            .exec()
-        : [];
-      const imageByKey = new Map<string, string | null>(
-        users.map((u) => [u.usernameKey, userImageUrl(u)])
-      );
-      const myKey = parent._ctxUserKey;
+      const imageById = await imagesByUserId(docs.map((c) => c.user));
+      const myId = parent._ctxUserId;
       return docs.map((c: CommentDocument) => ({
         id: (c._id as Types.ObjectId).toString(),
         userName: c.userName,
         text: c.text,
         createdAt: c.createdAt,
-        imageUrl: imageByKey.get(c.userKey) ?? null,
-        isMine: myKey === c.userKey,
+        imageUrl: c.user ? (imageById.get(c.user.toString()) ?? null) : null,
+        isMine: Boolean(myId && c.user?.equals(myId)),
       }));
     },
   },
@@ -1024,6 +1169,11 @@ export const resolvers = {
     },
     allergyNotes(parent: { allergyNotes?: string | null }) {
       return parent.allergyNotes ?? null;
+    },
+    // `register` y `setUsername` devuelven un User sin este campo: una cuenta
+    // recién creada tiene todos los cambios disponibles.
+    nicknameChangesLeft(parent: { nicknameChangesLeft?: number | null }) {
+      return parent.nicknameChangesLeft ?? MAX_NICKNAME_CHANGES;
     },
   },
 };

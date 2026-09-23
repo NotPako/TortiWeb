@@ -227,6 +227,26 @@ export const SET_ALLERGIES_MUTATION = gql`
   }
 `;
 
+export const MY_NICKNAME_QUERY = gql`
+  query MyNickname {
+    me {
+      id
+      username
+      nicknameChangesLeft
+    }
+  }
+`;
+
+export const CHANGE_NICKNAME_MUTATION = gql`
+  mutation ChangeNickname($username: String!) {
+    changeNickname(username: $username) {
+      id
+      username
+      nicknameChangesLeft
+    }
+  }
+`;
+
 export const SET_PROFILE_IMAGE_MUTATION = gql`
   mutation SetProfileImage($input: SetProfileImageInput!) {
     setProfileImage(input: $input) {

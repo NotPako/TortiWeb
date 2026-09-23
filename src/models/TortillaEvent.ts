@@ -2,8 +2,10 @@ import mongoose, { Schema, Model, Document, Types } from 'mongoose';
 
 /** Apuntado a una convocatoria. Denormaliza userName igual que Vote/Comment. */
 export interface AttendeeSub {
-  userKey: string; // normalizado (lower-case, trim) — coincide con User.usernameKey
-  userName: string; // display name capturado al apuntarse
+  /** Quién se apuntó. Ausente solo en convocatorias previas a la migración. */
+  user?: Types.ObjectId;
+  userKey: string; // normalizado (lower-case, trim) — copia del nombre
+  userName: string; // copia para mostrar; se actualiza si se renombra
   joinedAt: Date;
 }
 
@@ -25,6 +27,7 @@ export interface TortillaEventDocument extends Document {
 
 const AttendeeSchema = new Schema<AttendeeSub>(
   {
+    user: { type: Schema.Types.ObjectId, ref: 'User' },
     userKey: { type: String, required: true, trim: true, lowercase: true },
     userName: { type: String, required: true, trim: true },
     joinedAt: { type: Date, required: true, default: () => new Date() },

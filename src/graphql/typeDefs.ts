@@ -118,6 +118,10 @@ export const typeDefs = gql`
     allergens: [Allergen!]!
     """Observaciones libres sobre alergias del propio usuario."""
     allergyNotes: String
+    """
+    Cambios de nombre que le quedan. Corregir mayúsculas no gasta ninguno.
+    """
+    nicknameChangesLeft: Int!
   }
 
   """Resumen de tortilla para el perfil de usuario."""
@@ -244,6 +248,12 @@ export const typeDefs = gql`
     register(input: RegisterInput!): User!
     """Asigna un username a un usuario autenticado por Google sin username."""
     setUsername(username: String!): User!
+    """
+    Cambia el nombre del usuario autenticado. El historial no se pierde (va por
+    id), el nombre anterior queda libre y solo se permite un número limitado de
+    veces.
+    """
+    changeNickname(username: String!): User!
     """Sube y asigna una foto de perfil al usuario autenticado."""
     setProfileImage(input: SetProfileImageInput!): User!
     """Guarda los alérgenos y observaciones del usuario autenticado."""
