@@ -3,8 +3,10 @@ import { MAX_COMMENT_LENGTH } from '@/lib/comments';
 
 export interface CommentDocument extends Document {
   tortilla: Types.ObjectId;
-  userKey: string; // normalizado (lower-case, trim) — coincide con User.usernameKey
-  userName: string; // display name capturado en el momento de comentar
+  /** Autor. Ausente solo en comentarios anteriores a la migración a ids. */
+  user?: Types.ObjectId;
+  userKey: string; // normalizado; copia del nombre del autor en su momento
+  userName: string; // copia para mostrar; se actualiza si el autor se renombra
   text: string;
   createdAt: Date;
   updatedAt: Date;
@@ -18,6 +20,7 @@ const CommentSchema = new Schema<CommentDocument>(
       required: true,
       index: true,
     },
+    user: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     userKey: { type: String, required: true, trim: true, lowercase: true },
     userName: { type: String, required: true, trim: true },
     text: {

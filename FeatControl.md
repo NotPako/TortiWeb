@@ -1,5 +1,26 @@
 # FeatControl
 
+## [2026-09-23] - Cambiar de nombre (nickname) y referencias por id de usuario
+**Descripción**: Desde el perfil propio se puede cambiar el nombre de usuario, con un máximo de **3 cambios por cuenta**. El botón abre un modal que avisa de cuántos quedan antes de confirmar; al agotarlos queda deshabilitado con la explicación en un tooltip. Corregir solo mayúsculas ("pako" → "Pako") **no gasta cambio**: no altera a quién apunta nada ni cómo te encuentran los demás. El nombre anterior queda libre para quien lo quiera.
+
+**El cambio de fondo**: hasta ahora una persona se identificaba por su nombre normalizado (`userKey`), así que renombrarse habría dejado huérfanos sus votos, comentarios y apuntados. Ahora **la referencia es el id de la cuenta** (`user`) y el nombre queda como copia para mostrar, que se refresca en esos documentos al renombrarse. Por eso el historial, la racha y los logros sobreviven al cambio, y por eso quien coja tu nombre antiguo **no hereda** nada tuyo (test incluido).
+
+**Votos históricos**: los del Excel no tienen cuenta a la que apuntar, así que se quedan identificados por nombre. Se vinculan a una cuenta al **registrarse** con ese mismo nombre (o al elegirlo por primera vez con Google), como hasta ahora; renombrarse **no** los reclama, para que cambiarse a un nombre histórico no herede los votos de otra persona.
+
+**Índice único de votos**: `{tortilla, userKey}` se parte en dos índices parciales, uno por id y otro por nombre para los votos sin cuenta. Si no, dos personas distintas que hayan usado el mismo nombre en momentos distintos chocarían al votar la misma tortilla. Ojo: MongoDB no admite `$exists: false` en `partialFilterExpression`; el filtro del índice histórico es `{ user: null }`, que también cubre los documentos sin el campo.
+**Archivos principales**:
+- `src/lib/nickname.ts` + `nickname.test.ts` (nuevo; `planNicknameChange` decide si un cambio es nada, solo mayúsculas o gasta cupo, `MAX_NICKNAME_CHANGES`, validación del formato que estaba en `resolvers.ts`)
+- `src/models/User.ts` (`nicknameChanges`), `Vote.ts` / `Comment.ts` / `TortillaEvent.ts` (campo `user` y nuevos índices)
+- `src/graphql/resolvers.ts` (`sessionUser` con id en vez de clave; `changeNickname`; `claimDocsByName` en registro y primer nombre; `computeUserStats` por id con respaldo por nombre para los históricos; voto, comentario, apuntarse, `myVote` e `isMine` por id)
+- `src/graphql/typeDefs.ts` (`User.nicknameChangesLeft`, mutation `changeNickname`), `operations.ts` (`MY_NICKNAME_QUERY`, `CHANGE_NICKNAME_MUTATION`)
+- `src/components/features/ChangeNicknameButton.tsx` (nuevo; botón + modal con ANTD Form/Modal/Alert/Tooltip)
+- `src/views/ProfilePage.tsx` + `.module.css` (acciones de la cabecera del perfil propio)
+- `src/graphql/resolvers.test.ts` (10 tests: cupo, mayúsculas gratis, nombre cogido, historial conservado, nombres actualizados en votos/comentarios/apuntados, el nombre liberado no hereda historial, reclamo al registrarse)
+- `scripts/migrate-votes-to-user-id.mjs` (nuevo)
+- `src/lib/i18n.ts` (claves `nickname.*` y `common.cancel`, ES + CA)
+**Tecnologías**: Mongoose (índices parciales únicos, `arrayFilters` para actualizar subdocumentos), NextAuth `update()` para refrescar el nombre del JWT, ANTD Modal + Form
+**Notas**: **Requiere migración antes de desplegar**: `node scripts/migrate-votes-to-user-id.mjs` (dry-run) y luego `--execute`. Rellena `user` en votos, comentarios y apuntados, y sustituye el índice único antiguo. Es idempotente. Mientras no se ejecute, los votos existentes no cuentan en las estadísticas de su dueño, porque las consultas van por id.
+
 ## [2026-09-17] - Alergias en el perfil y aviso en la convocatoria
 **Descripción**: Cada usuario puede indicar en su perfil qué no puede comer, y el panel de convocatoria del admin muestra un aviso con las alergias de los apuntados: "Ana no puede consumir: gluten, lácteos", más un resumen por alérgeno con el número de personas afectadas.
 

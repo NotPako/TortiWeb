@@ -64,6 +64,20 @@ const es = {
   'common.loading': 'Cargando…',
   'common.retry': 'reintentar',
   'common.errorPrefix': 'Error',
+  'common.cancel': 'Cancelar',
+
+  'nickname.change': 'Cambiar nombre',
+  'nickname.title': 'Cambiar tu nombre',
+  'nickname.label': 'Nuevo nombre',
+  'nickname.invalid':
+    'Entre 2 y 20 caracteres: letras, números, punto, guion o guion bajo.',
+  'nickname.remaining': 'Te quedan {n} cambios de {max}.',
+  'nickname.remainingOne': 'Te queda 1 cambio: piénsalo bien.',
+  'nickname.exhausted': 'Ya has gastado todos tus cambios de nombre.',
+  'nickname.warning':
+    'Tus votos, comentarios y logros se conservan. Tu nombre anterior quedará libre para quien lo quiera, y corregir solo mayúsculas no gasta ningún cambio.',
+  'nickname.submit': 'Cambiar nombre',
+  'nickname.success': 'Nombre actualizado.',
 
   'vote.errorLoading': 'Error cargando la tortilla:',
   'vote.empty.title': 'Aún no hay tortilla para votar.',
@@ -309,6 +323,20 @@ const ca: Record<DictKey, string> = {
   'common.loading': 'Carregant…',
   'common.retry': 'tornar a intentar',
   'common.errorPrefix': 'Error',
+  'common.cancel': 'Cancel·lar',
+
+  'nickname.change': 'Canviar el nom',
+  'nickname.title': 'Canviar el teu nom',
+  'nickname.label': 'Nom nou',
+  'nickname.invalid':
+    'Entre 2 i 20 caràcters: lletres, números, punt, guió o guió baix.',
+  'nickname.remaining': 'Et queden {n} canvis de {max}.',
+  'nickname.remainingOne': "Et queda 1 canvi: pensa-t'ho bé.",
+  'nickname.exhausted': 'Ja has gastat tots els teus canvis de nom.',
+  'nickname.warning':
+    "Els teus vots, comentaris i assoliments es conserven. El teu nom anterior quedarà lliure per a qui el vulgui, i corregir només majúscules no gasta cap canvi.",
+  'nickname.submit': 'Canviar el nom',
+  'nickname.success': 'Nom actualitzat.',
 
   'vote.errorLoading': 'Error carregant la truita:',
   'vote.empty.title': 'Encara no hi ha truita per votar.',

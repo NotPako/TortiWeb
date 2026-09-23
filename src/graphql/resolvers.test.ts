@@ -28,6 +28,8 @@ import { resolvers } from './resolvers';
 import { User } from '@/models/User';
 import { Tortilla } from '@/models/Tortilla';
 import { TortillaEvent } from '@/models/TortillaEvent';
+import { Vote } from '@/models/Vote';
+import { Comment } from '@/models/Comment';
 
 type AnyResolver = (parent: unknown, args: unknown, ctx: unknown) => unknown;
 const Query = resolvers.Query as Record<string, AnyResolver>;
@@ -485,5 +487,212 @@ describe('alergias: guardado y visibilidad en la convocatoria', () => {
     };
     const seen = (await Query.upcomingTortilla(null, {}, forged)) as EventOut;
     expect(seen.attendees[0].allergens).toBeNull();
+  });
+});
+
+describe('changeNickname', () => {
+  /** Ana vota una tortilla y comenta; devuelve su ctx y la tortilla. */
+  async function anaWithHistory() {
+    const { ctx: ana, doc } = await makeUser('Ana');
+    const tortilla = await Tortilla.create({
+      name: 'De patata',
+      date: new Date(2026, 5, 10),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+    const tortillaId = tortilla._id.toString();
+    await Mutation.castVote(null, { input: { tortillaId, score: 8 } }, ana);
+    await Mutation.addComment(
+      null,
+      { input: { tortillaId, text: 'Buenísima' } },
+      ana
+    );
+    return { ana, doc, tortilla };
+  }
+
+  function change(ctx: unknown, username: string) {
+    return Mutation.changeNickname(null, { username }, ctx) as Promise<{
+      username: string;
+      nicknameChangesLeft: number;
+    }>;
+  }
+
+  it('cambia el nombre y descuenta un cambio', async () => {
+    const { ctx } = await makeUser('Ana');
+    const me = await change(ctx, 'Anita');
+    expect(me).toMatchObject({ username: 'Anita', nicknameChangesLeft: 2 });
+
+    const saved = await User.findOne({ usernameKey: 'anita' }).exec();
+    expect(saved?.username).toBe('Anita');
+    expect(await User.findOne({ usernameKey: 'ana' }).exec()).toBeNull();
+  });
+
+  it('conserva votos, comentarios y estadísticas', async () => {
+    const { ana } = await anaWithHistory();
+    await change(ana, 'Anita');
+
+    const stats = (await Query.myStats(null, {}, ana)) as {
+      username: string;
+      totalVotes: number;
+      averageGiven: number;
+    };
+    expect(stats).toMatchObject({
+      username: 'Anita',
+      totalVotes: 1,
+      averageGiven: 8,
+    });
+  });
+
+  it('actualiza el nombre mostrado en votos, comentarios y apuntados', async () => {
+    const { ana } = await anaWithHistory();
+    const { ctx: admin } = await makeUser('jefa', 'admin');
+    const event = (await Mutation.announceTortilla(
+      null,
+      { input: {} },
+      admin
+    )) as { id: string };
+    await Mutation.setAttendance(null, { id: event.id, attending: true }, ana);
+
+    await change(ana, 'Anita');
+
+    expect((await Vote.findOne({ userKey: 'anita' }).exec())?.userName).toBe(
+      'Anita'
+    );
+    expect((await Comment.findOne({ userKey: 'anita' }).exec())?.userName).toBe(
+      'Anita'
+    );
+    const seen = (await Query.upcomingTortilla(null, {}, admin)) as {
+      attendees: { userName: string }[];
+    };
+    expect(seen.attendees.map((a) => a.userName)).toContain('Anita');
+  });
+
+  it('permite 3 cambios y rechaza el cuarto', async () => {
+    const { ctx } = await makeUser('Ana');
+    expect((await change(ctx, 'Ana2')).nicknameChangesLeft).toBe(2);
+    expect((await change(ctx, 'Ana3')).nicknameChangesLeft).toBe(1);
+    expect((await change(ctx, 'Ana4')).nicknameChangesLeft).toBe(0);
+    await expect(change(ctx, 'Ana5')).rejects.toThrow(/no te quedan/i);
+    // Y el nombre no se ha tocado.
+    expect(await User.findOne({ usernameKey: 'ana4' }).exec()).not.toBeNull();
+  });
+
+  it('corregir mayúsculas no gasta cambios ni con el cupo agotado', async () => {
+    const { ctx } = await makeUser('ana');
+    await change(ctx, 'Ana2');
+    await change(ctx, 'Ana3');
+    await change(ctx, 'Ana4');
+    const me = await change(ctx, 'ANA4');
+    expect(me).toMatchObject({ username: 'ANA4', nicknameChangesLeft: 0 });
+  });
+
+  it('rechaza un nombre que ya tiene otra persona', async () => {
+    const { ctx } = await makeUser('Ana');
+    await makeUser('Vic');
+    await expect(change(ctx, 'vic')).rejects.toThrow(/ya está cogido/i);
+  });
+
+  it('exige sesión y valida el formato', async () => {
+    const { ctx } = await makeUser('Ana');
+    await expect(
+      Mutation.changeNickname(null, { username: 'X' }, { session: null })
+    ).rejects.toThrow(/sesión/i);
+    await expect(change(ctx, 'x')).rejects.toThrow(/entre 2 y 20/i);
+  });
+
+  it('quien coge el nombre libre no hereda el historial del anterior', async () => {
+    const { ana } = await anaWithHistory();
+    await change(ana, 'Anita');
+
+    // Otra persona se registra con el nombre que Ana ha dejado libre.
+    await Mutation.register(
+      null,
+      {
+        input: {
+          username: 'Ana',
+          email: 'otra@test.dev',
+          password: 'password1',
+        },
+      },
+      { session: null }
+    );
+    const suplantadora = await User.findOne({ usernameKey: 'ana' }).exec();
+    const ctx = {
+      session: {
+        user: {
+          id: suplantadora!._id.toString(),
+          username: 'Ana',
+          usernameKey: 'ana',
+          email: 'otra@test.dev',
+          needsUsername: false,
+          role: 'user',
+        },
+      },
+    };
+    const stats = (await Query.myStats(null, {}, ctx)) as { totalVotes: number };
+    expect(stats.totalVotes).toBe(0);
+    // Y el voto sigue siendo de Ana (ahora Anita).
+    const vote = await Vote.findOne({}).exec();
+    expect(vote?.user?.toString()).not.toBe(suplantadora!._id.toString());
+  });
+
+  it('al registrarse sí se recuperan los votos previos sin cuenta', async () => {
+    const tortilla = await Tortilla.create({
+      name: 'Vieja',
+      date: new Date(2026, 0, 1),
+      imageKey: 'k0',
+      imageContentType: 'image/png',
+    });
+    // Voto histórico: solo nombre, sin cuenta (como los del Excel).
+    await Vote.create({
+      tortilla: tortilla._id,
+      userKey: 'legacy',
+      userName: 'Legacy',
+      score: 7,
+    });
+
+    await Mutation.register(
+      null,
+      {
+        input: {
+          username: 'Legacy',
+          email: 'legacy@test.dev',
+          password: 'password1',
+        },
+      },
+      { session: null }
+    );
+
+    const user = await User.findOne({ usernameKey: 'legacy' }).exec();
+    const vote = await Vote.findOne({ userKey: 'legacy' }).exec();
+    expect(vote?.user?.toString()).toBe(user!._id.toString());
+
+    const stats = (await Query.userStats(
+      null,
+      { username: 'Legacy' },
+      { session: null }
+    )) as { totalVotes: number };
+    expect(stats.totalVotes).toBe(1);
+  });
+
+  it('userStats encuentra a quien votó sin llegar a registrarse', async () => {
+    const tortilla = await Tortilla.create({
+      name: 'Vieja',
+      date: new Date(2026, 0, 1),
+      imageKey: 'k0',
+      imageContentType: 'image/png',
+    });
+    await Vote.create({
+      tortilla: tortilla._id,
+      userKey: 'fantasma',
+      userName: 'Fantasma',
+      score: 5,
+    });
+    const stats = (await Query.userStats(
+      null,
+      { username: 'Fantasma' },
+      { session: null }
+    )) as { username: string; totalVotes: number };
+    expect(stats).toMatchObject({ username: 'Fantasma', totalVotes: 1 });
   });
 });

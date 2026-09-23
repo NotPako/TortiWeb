@@ -15,6 +15,7 @@ import {
 } from '@/components/features/AchievementsGrid';
 import { UserChip } from '@/components/features/UserChip';
 import { AllergiesCard } from '@/components/features/AllergiesCard';
+import { ChangeNicknameButton } from '@/components/features/ChangeNicknameButton';
 import { MY_STATS_QUERY, USER_STATS_QUERY } from '@/graphql/operations';
 import styles from './ProfilePage.module.css';
 
@@ -151,20 +152,23 @@ export default function ProfilePage({ username }: Props = {}) {
       <div className={styles.headerText}>
         <h1 className={styles.title}>{title}</h1>
         {isOwn ? (
-          <Upload
-            accept="image/*"
-            showUploadList={false}
-            beforeUpload={handleBeforeUpload}
-            disabled={uploading}
-          >
-            <Button
-              size="small"
-              icon={<UploadOutlined />}
-              loading={uploading}
+          <div className={styles.headerActions}>
+            <Upload
+              accept="image/*"
+              showUploadList={false}
+              beforeUpload={handleBeforeUpload}
+              disabled={uploading}
             >
-              {t('profile.changePhoto')}
-            </Button>
-          </Upload>
+              <Button
+                size="small"
+                icon={<UploadOutlined />}
+                loading={uploading}
+              >
+                {t('profile.changePhoto')}
+              </Button>
+            </Upload>
+            <ChangeNicknameButton />
+          </div>
         ) : null}
       </div>
     </header>
