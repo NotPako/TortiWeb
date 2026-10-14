@@ -79,6 +79,26 @@ const DEFS: Array<{
   { id: 'firstHighballer', emoji: '⭐', check: isFirstHighballer },
 ];
 
+/** Ids válidos, en el orden en que se muestran. */
+export const ACHIEVEMENT_IDS: readonly AchievementId[] = DEFS.map((d) => d.id);
+
+export function isAchievementId(id: string): id is AchievementId {
+  return (ACHIEVEMENT_IDS as readonly string[]).includes(id);
+}
+
+/**
+ * Logros desbloqueados que el usuario aún no ha visto celebrar. Un logro que
+ * se pierde y se recupera (p. ej. "El más duro" cuando alguien pone una nota
+ * más baja) no se vuelve a celebrar: sigue en `seen`.
+ */
+export function unseenAchievements(
+  achievements: Achievement[],
+  seen: readonly string[]
+): Achievement[] {
+  const seenSet = new Set(seen);
+  return achievements.filter((a) => a.unlocked && !seenSet.has(a.id));
+}
+
 export function computeAchievements(args: {
   totalVotes: number;
   bestStreak: number;

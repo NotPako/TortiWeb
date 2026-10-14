@@ -32,6 +32,12 @@ export interface UserDocument extends Document {
    * `MAX_NICKNAME_CHANGES`; corregir mayúsculas no cuenta.
    */
   nicknameChanges: number;
+  /**
+   * Logros cuyo aviso de "logro desbloqueado" ya se ha mostrado. `undefined`
+   * = aún no se ha fijado la línea base: la primera consulta marca como vistos
+   * los que ya tuviera, para no celebrar de golpe todo el historial.
+   */
+  seenAchievements?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +83,8 @@ const UserSchema = new Schema<UserDocument>(
       maxlength: MAX_ALLERGY_NOTES_LENGTH,
     },
     nicknameChanges: { type: Number, required: true, default: 0, min: 0 },
+    // Sin default: Mongoose pondría [] y no distinguiríamos "sin línea base".
+    seenAchievements: { type: [String], default: undefined },
   },
   { timestamps: true }
 );
