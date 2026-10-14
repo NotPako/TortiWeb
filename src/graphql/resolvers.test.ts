@@ -770,3 +770,99 @@ describe('avisos de logros nuevos', () => {
     ).rejects.toThrow(/sesión/i);
   });
 });
+
+describe('cumpleaños', () => {
+  it('register guarda el cumpleaños opcional y lo valida', async () => {
+    await Mutation.register(
+      null,
+      {
+        input: {
+          username: 'Ana',
+          email: 'ana@test.dev',
+          password: '12345678',
+          birthday: { day: 14, month: 10 },
+        },
+      },
+      {}
+    );
+    const ana = await User.findOne({ usernameKey: 'ana' }).lean();
+    expect(ana?.birthday).toEqual({ day: 14, month: 10 });
+
+    await Mutation.register(
+      null,
+      { input: { username: 'Sin', email: 'sin@test.dev', password: '12345678' } },
+      {}
+    );
+    const sin = await User.findOne({ usernameKey: 'sin' }).lean();
+    expect(sin?.birthday).toBeUndefined();
+
+    await expect(
+      Mutation.register(
+        null,
+        {
+          input: {
+            username: 'Mal',
+            email: 'mal@test.dev',
+            password: '12345678',
+            birthday: { day: 30, month: 2 },
+          },
+        },
+        {}
+      )
+    ).rejects.toThrow(/día/);
+    expect(await User.findOne({ usernameKey: 'mal' })).toBeNull();
+  });
+
+  it('setBirthday lo cambia y con null lo borra', async () => {
+    const { doc, ctx } = await makeUser('pepe');
+    const saved = (await Mutation.setBirthday(
+      null,
+      { birthday: { day: 3, month: 7 } },
+      ctx
+    )) as { birthday: unknown };
+    expect(saved.birthday).toEqual({ day: 3, month: 7 });
+
+    const me = (await Query.me(null, {}, ctx)) as { birthday: unknown };
+    expect(me.birthday).toEqual({ day: 3, month: 7 });
+
+    await Mutation.setBirthday(null, { birthday: null }, ctx);
+    const user = await User.findById(doc._id).lean();
+    expect(user?.birthday).toBeUndefined();
+
+    await expect(
+      Mutation.setBirthday(null, { birthday: { day: 3 } }, { session: null })
+    ).rejects.toThrow(/sesión/i);
+  });
+
+  describe('birthdaysToday', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function withBirthday(name: string, day: number, month: number) {
+      const { doc } = await makeUser(name);
+      await User.updateOne({ _id: doc._id }, { $set: { birthday: { day, month } } });
+    }
+
+    it('devuelve solo a quien cumple hoy en Madrid', async () => {
+      await withBirthday('Ana', 14, 10);
+      await withBirthday('Luis', 13, 10);
+      await makeUser('Pepe');
+      // 23:30 UTC del 13 = ya es 14 en Madrid.
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(Date.UTC(2026, 9, 13, 23, 30)));
+
+      expect(await Query.birthdaysToday(null, {}, {})).toEqual(['Ana']);
+    });
+
+    it('el 28 de febrero no bisiesto incluye a quien nació el 29', async () => {
+      await withBirthday('Bisi', 29, 2);
+      await withBirthday('Normal', 28, 2);
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(Date.UTC(2027, 1, 28, 12)));
+
+      const names = (await Query.birthdaysToday(null, {}, {})) as string[];
+      expect(names.sort()).toEqual(['Bisi', 'Normal']);
+    });
+  });
+});

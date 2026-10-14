@@ -118,6 +118,8 @@ export const typeDefs = gql`
     allergens: [Allergen!]!
     """Observaciones libres sobre alergias del propio usuario."""
     allergyNotes: String
+    """Cumpleaños del propio usuario (solo día y mes). Solo se expone vía me."""
+    birthday: Birthday
     """
     Cambios de nombre que le quedan. Corregir mayúsculas no gasta ninguno.
     """
@@ -159,6 +161,13 @@ export const typeDefs = gql`
     achievements: [Achievement!]!
   }
 
+  """Día y mes de cumpleaños, sin año."""
+  type Birthday {
+    day: Int!
+    """1 = enero … 12 = diciembre."""
+    month: Int!
+  }
+
   """Logro desbloqueable por el usuario."""
   type Achievement {
     """Identificador estable para el frontend (clave i18n y emoji)."""
@@ -188,6 +197,11 @@ export const typeDefs = gql`
     vacío, para no celebrar los logros que ya tenía.
     """
     newAchievements: [Achievement!]!
+    """
+    Nombres de quienes cumplen años hoy (hora de Madrid), para el gorro de
+    fiesta. No revela la fecha de nadie más.
+    """
+    birthdaysToday: [String!]!
     """Estadísticas y votos de cualquier usuario por nombre de usuario."""
     userStats(username: String!): UserStats
     """Convocatoria abierta de la próxima tortilla, o null si no hay ninguna."""
@@ -211,10 +225,18 @@ export const typeDefs = gql`
     reaction: Reaction
   }
 
+  input BirthdayInput {
+    day: Int!
+    """1 = enero … 12 = diciembre."""
+    month: Int!
+  }
+
   input RegisterInput {
     username: String!
     email: String!
     password: String!
+    """Opcional."""
+    birthday: BirthdayInput
   }
 
   input SetProfileImageInput {
@@ -253,7 +275,7 @@ export const typeDefs = gql`
     """Crea una cuenta con usuario+contraseña. Devuelve el usuario."""
     register(input: RegisterInput!): User!
     """Asigna un username a un usuario autenticado por Google sin username."""
-    setUsername(username: String!): User!
+    setUsername(username: String!, birthday: BirthdayInput): User!
     """
     Cambia el nombre del usuario autenticado. El historial no se pierde (va por
     id), el nombre anterior queda libre y solo se permite un número limitado de
@@ -266,6 +288,8 @@ export const typeDefs = gql`
     setAllergies(input: SetAllergiesInput!): User!
     """Marca como vistos los avisos de esos logros. Ignora ids desconocidos."""
     markAchievementsSeen(ids: [String!]!): Boolean!
+    """Guarda el cumpleaños del usuario autenticado. null lo borra."""
+    setBirthday(birthday: BirthdayInput): User!
     """Añade un comentario a una tortilla. Requiere sesión."""
     addComment(input: AddCommentInput!): Comment!
     """Elimina un comentario propio."""

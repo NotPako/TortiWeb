@@ -5,6 +5,7 @@ import {
   MAX_ALLERGY_NOTES_LENGTH,
   type AllergenId,
 } from '@/lib/allergens';
+import type { Birthday } from '@/lib/birthday';
 
 export type UserRole = 'user' | 'admin';
 
@@ -38,6 +39,11 @@ export interface UserDocument extends Document {
    * los que ya tuviera, para no celebrar de golpe todo el historial.
    */
   seenAchievements?: string[];
+  /**
+   * Cumpleaños (solo día y mes), opcional. No se muestra en el perfil: solo
+   * sirve para poner el gorro de fiesta en el avatar ese día.
+   */
+  birthday?: Birthday;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -85,8 +91,24 @@ const UserSchema = new Schema<UserDocument>(
     nicknameChanges: { type: Number, required: true, default: 0, min: 0 },
     // Sin default: Mongoose pondría [] y no distinguiríamos "sin línea base".
     seenAchievements: { type: [String], default: undefined },
+    birthday: {
+      type: new Schema(
+        {
+          day: { type: Number, required: true, min: 1, max: 31 },
+          month: { type: Number, required: true, min: 1, max: 12 },
+        },
+        { _id: false }
+      ),
+      required: false,
+    },
   },
   { timestamps: true }
+);
+
+// `birthdaysToday` busca por mes y día.
+UserSchema.index(
+  { 'birthday.month': 1, 'birthday.day': 1 },
+  { sparse: true }
 );
 
 export function normalizeUsername(name: string): string {

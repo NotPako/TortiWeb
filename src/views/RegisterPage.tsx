@@ -8,12 +8,15 @@ import { signIn, useSession } from 'next-auth/react';
 import { Alert, Button, Form, Input } from 'antd';
 import { useLanguage } from '@/components/LanguageContext';
 import { REGISTER_MUTATION } from '@/graphql/operations';
+import { BirthdayField, birthdayRule } from '@/components/features/BirthdayField';
+import { birthdayFromDraft, type BirthdayDraft } from '@/lib/birthday';
 import styles from './LoginPage.module.css';
 
 type RegisterValues = {
   username: string;
   email: string;
   password: string;
+  birthday?: BirthdayDraft | null;
 };
 
 export default function RegisterPage() {
@@ -43,6 +46,7 @@ export default function RegisterPage() {
             username: values.username.trim(),
             email: values.email.trim(),
             password: values.password,
+            birthday: birthdayFromDraft(values.birthday),
           },
         },
       });
@@ -103,6 +107,14 @@ export default function RegisterPage() {
             ]}
           >
             <Input.Password autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item
+            label={t('birthday.label')}
+            name="birthday"
+            extra={t('birthday.hint')}
+            rules={[birthdayRule(t)]}
+          >
+            <BirthdayField />
           </Form.Item>
           {error ? (
             <Form.Item>

@@ -267,6 +267,19 @@ const es = {
   'allergies.saved': 'Alergias guardadas.',
   'allergies.error': 'No se pudieron guardar las alergias.',
 
+  'birthday.title': 'Cumpleaños',
+  'birthday.label': 'Cumpleaños (opcional)',
+  'birthday.day': 'Día',
+  'birthday.month': 'Mes',
+  'birthday.hint':
+    'Solo día y mes. Ese día llevarás un gorro de fiesta en tu avatar y todo el mundo lo verá. La fecha no aparece en tu perfil.',
+  'birthday.incomplete': 'Elige el día y el mes, o deja los dos vacíos.',
+  'birthday.empty': 'Sin indicar',
+  'birthday.save': 'Guardar cumpleaños',
+  'birthday.saved': 'Cumpleaños guardado.',
+  'birthday.error': 'No se pudo guardar el cumpleaños.',
+  'birthday.hatLabel': '¡Hoy es su cumpleaños!',
+
   'event.admin.allergiesTitle': 'Atención: alergias entre los apuntados',
   'event.admin.allergiesNone': 'Ningún apuntado ha indicado alergias.',
   'event.admin.allergiesCannotEat': '{name} no puede consumir: {list}.',
@@ -526,6 +539,19 @@ const ca: Record<DictKey, string> = {
   'allergies.save': 'Desar al·lèrgies',
   'allergies.saved': 'Al·lèrgies desades.',
   'allergies.error': 'No s\'han pogut desar les al·lèrgies.',
+
+  'birthday.title': 'Aniversari',
+  'birthday.label': 'Aniversari (opcional)',
+  'birthday.day': 'Dia',
+  'birthday.month': 'Mes',
+  'birthday.hint':
+    'Només dia i mes. Aquell dia portaràs un barret de festa a l\'avatar i tothom el veurà. La data no apareix al teu perfil.',
+  'birthday.incomplete': 'Tria el dia i el mes, o deixa\'ls tots dos buits.',
+  'birthday.empty': 'Sense indicar',
+  'birthday.save': 'Desar aniversari',
+  'birthday.saved': 'Aniversari desat.',
+  'birthday.error': 'No s\'ha pogut desar l\'aniversari.',
+  'birthday.hatLabel': 'Avui és el seu aniversari!',
 
   'event.admin.allergiesTitle': 'Atenció: al·lèrgies entre els apuntats',
   'event.admin.allergiesNone': 'Cap apuntat ha indicat al·lèrgies.',

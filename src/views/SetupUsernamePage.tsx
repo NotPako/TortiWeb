@@ -7,10 +7,13 @@ import { useSession } from 'next-auth/react';
 import { Alert, Button, Form, Input } from 'antd';
 import { useLanguage } from '@/components/LanguageContext';
 import { SET_USERNAME_MUTATION } from '@/graphql/operations';
+import { BirthdayField, birthdayRule } from '@/components/features/BirthdayField';
+import { birthdayFromDraft, type BirthdayDraft } from '@/lib/birthday';
 import styles from './LoginPage.module.css';
 
 type SetupValues = {
   username: string;
+  birthday?: BirthdayDraft | null;
 };
 
 export default function SetupUsernamePage() {
@@ -37,7 +40,10 @@ export default function SetupUsernamePage() {
     setError(null);
     try {
       await setUsernameMutation({
-        variables: { username: values.username.trim() },
+        variables: {
+          username: values.username.trim(),
+          birthday: birthdayFromDraft(values.birthday),
+        },
       });
       await update();
       router.replace('/vote');
@@ -72,6 +78,14 @@ export default function SetupUsernamePage() {
             rules={[{ required: true, message: t('auth.usernameLabel') }]}
           >
             <Input autoComplete="username" autoFocus />
+          </Form.Item>
+          <Form.Item
+            label={t('birthday.label')}
+            name="birthday"
+            extra={t('birthday.hint')}
+            rules={[birthdayRule(t)]}
+          >
+            <BirthdayField />
           </Form.Item>
           {error ? (
             <Form.Item>
