@@ -99,12 +99,37 @@ export const typeDefs = gql`
     note: String
     attendees: [Attendee!]!
     attendeeCount: Int!
+    """
+    Plazas. Al llenarse, apuntarse deja una solicitud en cola; el admin puede
+    aprobarla aunque se pase del tope.
+    """
+    capacity: Int!
     """True si el usuario autenticado está apuntado."""
     isAttending: Boolean!
+    """Estado de la solicitud del usuario autenticado; null si no tiene."""
+    myRequestStatus: SpotRequestStatus
+    """Puesto en la cola (1 = la siguiente en entrar) si la solicitud está pendiente."""
+    myQueuePosition: Int
+    pendingRequestCount: Int!
+    """Solicitudes pendientes, por orden de llegada. Solo para admins; null para el resto."""
+    pendingRequests: [PendingSpotRequest!]
     """Fecha de cierre (auto al subir la tortilla o manual). Null si sigue abierta."""
     closedAt: Date
     """True si la convocatoria sigue abierta para apuntarse."""
     open: Boolean!
+  }
+
+  enum SpotRequestStatus {
+    PENDING
+    """El admin no la aprobó: no se puede volver a pedir en esta convocatoria."""
+    REJECTED
+  }
+
+  type PendingSpotRequest {
+    userId: ID!
+    userName: String!
+    imageUrl: String
+    requestedAt: Date!
   }
 
   """Usuario autenticado."""
@@ -302,6 +327,8 @@ export const typeDefs = gql`
     date: Date
     """Nota opcional para los apuntados."""
     note: String
+    """Plazas (1–100). Si no se indica, 12."""
+    capacity: Int
   }
 
   type Mutation {
@@ -337,7 +364,13 @@ export const typeDefs = gql`
     announceTortilla(input: AnnounceTortillaInput!): TortillaEvent!
     """Cierra manualmente una convocatoria. Requiere rol de admin."""
     closeTortillaEvent(id: ID!): TortillaEvent!
-    """Apunta o desapunta al usuario autenticado de una convocatoria."""
+    """
+    Apuntarse o desapuntarse. Con la convocatoria llena, apuntarse deja una
+    solicitud en cola; desapuntarse (o retirar la solicitud) deja entrar a la
+    más antigua.
+    """
     setAttendance(id: ID!, attending: Boolean!): TortillaEvent!
+    """Aprueba (entra aunque se pase del tope) o rechaza una solicitud. Requiere rol de admin."""
+    reviewSpotRequest(eventId: ID!, userId: ID!, approve: Boolean!): TortillaEvent!
   }
 `;

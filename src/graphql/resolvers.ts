@@ -1,5 +1,5 @@
 import { GraphQLScalarType, Kind } from 'graphql';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import {
@@ -28,6 +28,15 @@ import {
 } from '@/lib/ranking';
 import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
 import { normalizeAllergens, normalizeAllergyNotes } from '@/lib/allergens';
+import {
+  join as joinSpots,
+  leave as leaveSpots,
+  pendingRequests,
+  requestStatusFor,
+  review as reviewSpots,
+  validateCapacity,
+  type SpotsState,
+} from '@/lib/eventSpots';
 import {
   birthdaysCelebratedOn,
   todayInTimeZone,
@@ -364,13 +373,82 @@ async function computeUserStats(target: {
   };
 }
 
+/** Plazas del documento como estado plano para `eventSpots`. */
+function spotsStateOf(doc: TortillaEventDocument): SpotsState {
+  return {
+    capacity: doc.capacity,
+    attendees: doc.attendees.map((a) => ({
+      // Apuntados anteriores a la migración por id: no coinciden con nadie.
+      user: a.user?.toString() ?? '',
+      userKey: a.userKey,
+      userName: a.userName,
+      joinedAt: a.joinedAt,
+    })),
+    requests: doc.requests.map((r) => ({
+      user: r.user.toString(),
+      userKey: r.userKey,
+      userName: r.userName,
+      requestedAt: r.requestedAt,
+      status: r.status,
+    })),
+  };
+}
+
+function writeSpotsState(doc: TortillaEventDocument, state: SpotsState) {
+  doc.set(
+    'attendees',
+    state.attendees.map((a) => ({
+      user: a.user ? new Types.ObjectId(a.user) : undefined,
+      userKey: a.userKey,
+      userName: a.userName,
+      joinedAt: a.joinedAt,
+    }))
+  );
+  doc.set(
+    'requests',
+    state.requests.map((r) => ({
+      user: new Types.ObjectId(r.user),
+      userKey: r.userKey,
+      userName: r.userName,
+      requestedAt: r.requestedAt,
+      status: r.status,
+    }))
+  );
+}
+
+/**
+ * Carga la convocatoria, aplica un cambio de plazas y guarda. Si otra
+ * petición guardó entre medias (dos personas a por la última plaza), el
+ * esquema lanza VersionError y se repite con el estado nuevo.
+ */
+async function updateEventSpots(
+  id: string,
+  change: (state: SpotsState) => void
+): Promise<TortillaEventDocument> {
+  for (let attempt = 1; ; attempt++) {
+    const doc = await TortillaEvent.findById(id).exec();
+    if (!doc) throw new Error('Convocatoria no encontrada.');
+    if (doc.closedAt) throw new Error('Esta convocatoria está cerrada.');
+    const state = spotsStateOf(doc);
+    change(state);
+    writeSpotsState(doc, state);
+    try {
+      await doc.save();
+      return doc;
+    } catch (err) {
+      if (err instanceof mongoose.Error.VersionError && attempt < 5) continue;
+      throw err;
+    }
+  }
+}
+
 async function eventPayload(
   doc: TortillaEventDocument,
   viewer: CtxUser | null
 ) {
   // El visitante entra en la misma consulta: necesitamos su rol para decidir
   // si puede ver las alergias, sin un segundo viaje a la BD.
-  const ids = doc.attendees
+  const ids = [...doc.attendees, ...doc.requests]
     .map((a) => a.user)
     .filter((id): id is Types.ObjectId => Boolean(id));
   if (viewer) ids.push(viewer.id);
@@ -389,9 +467,14 @@ async function eventPayload(
   // Las alergias son datos de salud: solo las ven los admins (el rol se lee de
   // la BD, no del JWT) y quienes están apuntados a esta misma convocatoria.
   // Para el resto van a null, que NO significa "sin alergias".
-  const canSeeAllergies =
-    isAttending ||
-    (viewer ? userById.get(viewer.id.toString())?.role === 'admin' : false);
+  const isAdmin = viewer
+    ? userById.get(viewer.id.toString())?.role === 'admin'
+    : false;
+  const canSeeAllergies = isAttending || isAdmin;
+
+  const state = spotsStateOf(doc);
+  const myRequest = viewer ? requestStatusFor(state, viewer.id.toString()) : null;
+  const pending = pendingRequests(state);
 
   // Orden de llegada (joinedAt asc) para que la lista sea estable.
   const attendees = [...doc.attendees]
@@ -412,7 +495,23 @@ async function eventPayload(
     note: doc.note ?? null,
     attendees,
     attendeeCount: attendees.length,
+    capacity: doc.capacity,
     isAttending,
+    myRequestStatus: myRequest ? myRequest.status.toUpperCase() : null,
+    myQueuePosition: myRequest?.position ?? null,
+    pendingRequestCount: pending.length,
+    // La cola con nombres solo la ve el admin, que es quien decide.
+    pendingRequests: isAdmin
+      ? pending.map((r) => {
+          const user = userById.get(r.user);
+          return {
+            userId: r.user,
+            userName: r.userName,
+            imageUrl: user ? userImageUrl(user) : null,
+            requestedAt: r.requestedAt,
+          };
+        })
+      : null,
     closedAt,
     open: !closedAt,
   };
@@ -1000,6 +1099,16 @@ export const resolvers = {
             },
             { arrayFilters: [{ 'a.user': user._id }] }
           ).exec(),
+          TortillaEvent.updateMany(
+            { 'requests.user': user._id },
+            {
+              $set: {
+                'requests.$[r].userName': change.username,
+                'requests.$[r].userKey': change.usernameKey,
+              },
+            },
+            { arrayFilters: [{ 'r.user': user._id }] }
+          ).exec(),
         ]);
       }
 
@@ -1234,11 +1343,18 @@ export const resolvers = {
 
     async announceTortilla(
       _: unknown,
-      args: { input: { date?: string | Date | null; note?: string | null } },
+      args: {
+        input: {
+          date?: string | Date | null;
+          note?: string | null;
+          capacity?: number | null;
+        };
+      },
       ctx: GqlContext
     ) {
       await connectToDatabase();
       await requireAdmin(ctx);
+      const capacity = validateCapacity(args.input.capacity);
 
       const existing = await TortillaEvent.findOne({ closedAt: null }).exec();
       if (existing) {
@@ -1255,7 +1371,9 @@ export const resolvers = {
       const doc = await TortillaEvent.create({
         date,
         note,
+        capacity,
         attendees: [],
+        requests: [],
         announcedByKey: ctx.session!.user.usernameKey,
       });
 
@@ -1293,30 +1411,43 @@ export const resolvers = {
       if (!Types.ObjectId.isValid(args.id)) {
         throw new Error('ID de convocatoria inválido.');
       }
-      const doc = await TortillaEvent.findById(args.id).exec();
-      if (!doc) throw new Error('Convocatoria no encontrada.');
-      if (doc.closedAt) {
-        throw new Error('Esta convocatoria está cerrada.');
-      }
-
       const viewer = sessionUser(ctx.session);
       if (!viewer) throw new Error('Debes iniciar sesión para apuntarte.');
-      const idx = doc.attendees.findIndex((a) => a.user?.equals(viewer.id));
 
-      if (args.attending && idx === -1) {
-        doc.attendees.push({
-          user: viewer.id,
-          userKey: viewer.key,
-          userName: viewer.name,
-          joinedAt: new Date(),
-        });
-        await doc.save();
-      } else if (!args.attending && idx !== -1) {
-        doc.attendees.splice(idx, 1);
-        await doc.save();
-      }
-
+      // Apuntarse con la convocatoria llena deja una solicitud en cola;
+      // desapuntarse (o retirar la solicitud) deja entrar a la siguiente.
+      const doc = await updateEventSpots(args.id, (state) => {
+        const now = new Date();
+        if (args.attending) {
+          joinSpots(
+            state,
+            { user: viewer.id.toString(), userKey: viewer.key, userName: viewer.name },
+            now
+          );
+        } else {
+          leaveSpots(state, viewer.id.toString(), now);
+        }
+      });
       return eventPayload(doc, viewer);
+    },
+
+    async reviewSpotRequest(
+      _: unknown,
+      args: { eventId: string; userId: string; approve: boolean },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      await requireAdmin(ctx);
+      if (
+        !Types.ObjectId.isValid(args.eventId) ||
+        !Types.ObjectId.isValid(args.userId)
+      ) {
+        throw new Error('ID inválido.');
+      }
+      const doc = await updateEventSpots(args.eventId, (state) => {
+        reviewSpots(state, args.userId, args.approve, new Date());
+      });
+      return eventPayload(doc, sessionUser(ctx.session));
     },
   },
 

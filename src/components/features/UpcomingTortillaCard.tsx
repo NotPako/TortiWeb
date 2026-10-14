@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import {
   SET_ATTENDANCE_MUTATION,
@@ -15,7 +16,10 @@ type TortillaEvent = {
   date: string;
   note: string | null;
   attendeeCount: number;
+  capacity: number;
   isAttending: boolean;
+  myRequestStatus: 'PENDING' | 'REJECTED' | null;
+  myQueuePosition: number | null;
   open: boolean;
   attendees: Attendee[];
 };
@@ -27,6 +31,7 @@ export function UpcomingTortillaCard() {
     { fetchPolicy: 'cache-and-network' }
   );
   const [setAttendance, { loading }] = useMutation(SET_ATTENDANCE_MUTATION);
+  const [error, setError] = useState<string | null>(null);
 
   const event = data?.upcomingTortilla ?? null;
   if (!event || !event.open) return null;
@@ -43,21 +48,40 @@ export function UpcomingTortillaCard() {
     }
   };
 
+  // Quien está apuntado o en la cola "sale"; el resto "entra" (o pide plaza).
+  const inside = event.isAttending || event.myRequestStatus === 'PENDING';
+
   async function toggle() {
     if (!event) return;
+    setError(null);
     try {
       await setAttendance({
-        variables: { id: event.id, attending: !event.isAttending },
+        variables: { id: event.id, attending: !inside },
       });
-    } catch {
-      // Errores de red: la UI no cambia; el usuario puede reintentar.
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('common.errorPrefix'));
     }
   }
 
-  const countLabel =
-    event.attendeeCount === 1
-      ? t('event.attendeeSingular')
-      : t('event.attendeePlural');
+  const full = event.attendeeCount >= event.capacity;
+  const spotsLeft = Math.max(0, event.capacity - event.attendeeCount);
+  const spotsLabel = full
+    ? t('event.spots.full')
+    : spotsLeft === 1
+      ? t('event.spots.leftOne')
+      : t('event.spots.left', { n: spotsLeft });
+  const rejected = event.myRequestStatus === 'REJECTED';
+  const pending = event.myRequestStatus === 'PENDING';
+
+  const buttonLabel = loading
+    ? t('event.saving')
+    : event.isAttending
+      ? t('event.leave')
+      : pending
+        ? t('event.request.cancel')
+        : full
+          ? t('event.request.send')
+          : t('event.join');
 
   return (
     <section className={styles.card}>
@@ -72,8 +96,8 @@ export function UpcomingTortillaCard() {
         <span className={styles.attendeesTitle}>
           {t('event.attendeesTitle')}
         </span>
-        <span className={styles.count}>
-          {event.attendeeCount} {countLabel}
+        <span className={full ? `${styles.count} ${styles.countFull}` : styles.count}>
+          {event.attendeeCount}/{event.capacity} · {spotsLabel}
         </span>
       </div>
 
@@ -93,22 +117,35 @@ export function UpcomingTortillaCard() {
         </ul>
       )}
 
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={loading}
-        className={
-          event.isAttending
-            ? `${styles.toggle} ${styles.toggleLeave}`
-            : `${styles.toggle} ${styles.toggleJoin}`
-        }
-      >
-        {loading
-          ? t('event.saving')
-          : event.isAttending
-            ? t('event.leave')
-            : t('event.join')}
-      </button>
+      {pending ? (
+        <p className={styles.notice}>
+          ⏳ {t('event.request.pending', { n: event.myQueuePosition ?? 1 })}
+        </p>
+      ) : full && !event.isAttending && !rejected ? (
+        <p className={styles.notice}>{t('event.request.explain')}</p>
+      ) : null}
+
+      {rejected ? (
+        // El admin dijo que no: sin botón, no se puede volver a pedir.
+        <p className={`${styles.notice} ${styles.noticeRejected}`}>
+          {t('event.request.rejected')}
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={loading}
+          className={
+            inside
+              ? `${styles.toggle} ${styles.toggleLeave}`
+              : `${styles.toggle} ${styles.toggleJoin}`
+          }
+        >
+          {buttonLabel}
+        </button>
+      )}
+
+      {error ? <p className={styles.error}>{error}</p> : null}
     </section>
   );
 }

@@ -61,6 +61,32 @@
 .count {
   font-size: 13px;
   color: var(--color-tortilla-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.countFull {
+  font-weight: 700;
+  color: var(--color-danger-fg);
+}
+
+.notice {
+  font-size: 14px;
+  color: var(--c-ink-soft);
+  background: var(--c-amber-50);
+  border: 1px solid var(--c-amber-100);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.noticeRejected {
+  color: var(--color-danger-fg);
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--color-danger-fg);
 }
 
 .empty {

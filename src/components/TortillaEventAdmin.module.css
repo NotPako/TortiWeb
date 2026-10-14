@@ -151,3 +151,89 @@
 .feedbackSuccess {
   color: var(--color-success-fg);
 }
+
+.inputNarrow {
+  max-width: 120px;
+}
+
+.fieldHint {
+  font-size: 12px;
+  color: var(--c-muted);
+  margin-top: 4px;
+}
+
+/* Cola de solicitudes: lo primero que debe ver el admin al entrar. */
+.requests {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  border: 1px solid var(--c-amber-200);
+}
+
+.requestsTitle {
+  font-weight: 700;
+  color: var(--c-ink);
+}
+
+.requestsHint {
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+.requestList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.requestRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--c-ink);
+}
+
+.requestActions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.approve,
+.reject {
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+
+.approve {
+  background: var(--c-success);
+  color: var(--c-on-success);
+}
+
+.approve:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.reject {
+  background: var(--c-surface);
+  color: var(--color-danger-fg);
+  border: 1px solid var(--color-danger-border);
+}
+
+.reject:hover:not(:disabled) {
+  background: var(--color-danger-bg);
+}
+
+.approve:disabled,
+.reject:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
