@@ -79,7 +79,8 @@ export function TortillaVoteCard({
   );
 
   const [castVote, { loading: voting }] = useMutation(CAST_VOTE_MUTATION, {
-    refetchQueries,
+    // Por nombre: solo se refresca si el aviso de logros está montado.
+    refetchQueries: [...refetchQueries, 'NewAchievements'],
     awaitRefetchQueries: true,
   });
 

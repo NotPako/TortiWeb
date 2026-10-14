@@ -151,6 +151,22 @@ export const MY_STATS_QUERY = gql`
   }
 `;
 
+export const NEW_ACHIEVEMENTS_QUERY = gql`
+  query NewAchievements {
+    newAchievements {
+      id
+      emoji
+      unlocked
+    }
+  }
+`;
+
+export const MARK_ACHIEVEMENTS_SEEN_MUTATION = gql`
+  mutation MarkAchievementsSeen($ids: [String!]!) {
+    markAchievementsSeen(ids: $ids)
+  }
+`;
+
 export const USER_STATS_QUERY = gql`
   query UserStats($username: String!) {
     userStats(username: $username) {

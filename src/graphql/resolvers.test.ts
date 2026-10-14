@@ -696,3 +696,77 @@ describe('changeNickname', () => {
     expect(stats).toMatchObject({ username: 'Fantasma', totalVotes: 1 });
   });
 });
+
+describe('avisos de logros nuevos', () => {
+  type Item = { id: string };
+  const ids = (list: unknown) => (list as Item[]).map((a) => a.id);
+
+  async function votableTortilla() {
+    return Tortilla.create({
+      name: 'De patata',
+      date: new Date(2026, 5, 10),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+  }
+
+  it('sin sesión devuelve vacío', async () => {
+    expect(await Query.newAchievements(null, {}, { session: null })).toEqual([]);
+  });
+
+  it('la primera consulta fija la línea base sin celebrar lo que ya tenía', async () => {
+    const { doc, ctx } = await makeUser('pepe');
+    const t = await votableTortilla();
+    await Mutation.castVote(
+      null,
+      { input: { tortillaId: t._id.toString(), score: 10 } },
+      ctx
+    );
+
+    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
+    const user = await User.findById(doc._id).lean();
+    expect(user?.seenAchievements).toEqual(
+      expect.arrayContaining(['firstVote', 'perfectScore'])
+    );
+    // Y ya no hay nada pendiente.
+    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
+  });
+
+  it('devuelve lo desbloqueado después hasta que se marca como visto', async () => {
+    const { ctx } = await makeUser('pepe');
+    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
+
+    const t = await votableTortilla();
+    await Mutation.castVote(
+      null,
+      { input: { tortillaId: t._id.toString(), score: 7 } },
+      ctx
+    );
+
+    const fresh = ids(await Query.newAchievements(null, {}, ctx));
+    expect(fresh).toContain('firstVote');
+    expect(fresh).not.toContain('perfectScore');
+
+    await Mutation.markAchievementsSeen(
+      null,
+      { ids: [...fresh, 'inventado'] },
+      ctx
+    );
+    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
+  });
+
+  it('markAchievementsSeen ignora ids desconocidos y exige sesión', async () => {
+    const { doc, ctx } = await makeUser('pepe');
+    await Mutation.markAchievementsSeen(
+      null,
+      { ids: ['firstVote', 'firstVote', 'hackeado'] },
+      ctx
+    );
+    const user = await User.findById(doc._id).lean();
+    expect(user?.seenAchievements).toEqual(['firstVote']);
+
+    await expect(
+      Mutation.markAchievementsSeen(null, { ids: ['firstVote'] }, { session: null })
+    ).rejects.toThrow(/sesión/i);
+  });
+});

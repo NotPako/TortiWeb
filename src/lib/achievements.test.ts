@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { computeAchievements, type AchievementId } from './achievements';
+import {
+  computeAchievements,
+  unseenAchievements,
+  type AchievementId,
+} from './achievements';
 
 /** Helper: mapa id -> unlocked para asertar cómodamente. */
 function unlockedMap(args: Parameters<typeof computeAchievements>[0]) {
@@ -68,5 +72,20 @@ describe('computeAchievements', () => {
     });
     expect(m.get('firstLowballer')).toBe(true);
     expect(m.get('firstHighballer')).toBe(false);
+  });
+});
+
+describe('unseenAchievements', () => {
+  it('devuelve solo los desbloqueados que no se han visto', () => {
+    const all = computeAchievements({ ...empty, totalVotes: 10 });
+    const fresh = unseenAchievements(all, ['firstVote']);
+    expect(fresh.map((a) => a.id)).toEqual(['tenVotes']);
+  });
+
+  it('no repite un logro visto aunque se perdiera y se recuperara', () => {
+    const all = computeAchievements({ ...empty, totalVotes: 1 });
+    expect(unseenAchievements(all, ['firstVote', 'firstLowballer'])).toEqual(
+      []
+    );
   });
 });

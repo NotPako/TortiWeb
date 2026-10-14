@@ -9,6 +9,7 @@ import { ApolloWrapper } from '@/components/ApolloWrapper';
 import { SessionWrapper } from '@/components/SessionWrapper';
 import { LanguageProvider } from '@/components/LanguageContext';
 import { NavBar } from '@/components/NavBar';
+import { AchievementUnlockToast } from '@/components/features/AchievementUnlockToast';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <LanguageProvider>
                 <NavBar />
                 <main className={styles.main}>{children}</main>
+                <AchievementUnlockToast />
               </LanguageProvider>
             </ApolloWrapper>
           </SessionWrapper>

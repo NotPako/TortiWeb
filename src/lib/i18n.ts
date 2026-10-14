@@ -206,6 +206,7 @@ const es = {
   'profile.uploadError': 'No se pudo actualizar la foto.',
   'profile.achievementsTitle': 'Logros',
   'profile.achievementLocked': 'Aún no desbloqueado',
+  'achievement.unlockedToast': 'Logro desbloqueado',
 
   'comments.title': 'Comentarios',
   'comments.empty': 'Aún no hay comentarios. ¡Sé el primero!',
@@ -465,6 +466,7 @@ const ca: Record<DictKey, string> = {
   'profile.uploadError': 'No s\'ha pogut actualitzar la foto.',
   'profile.achievementsTitle': 'Assoliments',
   'profile.achievementLocked': 'Encara no desbloquejat',
+  'achievement.unlockedToast': 'Assoliment desbloquejat',
 
   'comments.title': 'Comentaris',
   'comments.empty': 'Encara no hi ha comentaris. Sigues el primer!',

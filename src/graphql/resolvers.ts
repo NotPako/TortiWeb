@@ -12,7 +12,12 @@ import { Vote, VoteDocument, REACTIONS } from '@/models/Vote';
 import type { Reaction } from '@/models/Vote';
 import { Comment, CommentDocument } from '@/models/Comment';
 import { TortillaEvent, TortillaEventDocument } from '@/models/TortillaEvent';
-import { computeAchievements, type VoteForAchievements } from '@/lib/achievements';
+import {
+  computeAchievements,
+  isAchievementId,
+  unseenAchievements,
+  type VoteForAchievements,
+} from '@/lib/achievements';
 import { isSameDay, nextWednesday } from '@/lib/dates';
 import { computeStreaks } from '@/lib/streak';
 import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
@@ -461,6 +466,36 @@ export const resolvers = {
       if (!viewer) return null;
       await connectToDatabase();
       return computeUserStats({ userId: viewer.id, userKey: viewer.key });
+    },
+
+    async newAchievements(_: unknown, __: unknown, ctx: GqlContext) {
+      const viewer = sessionUser(ctx.session);
+      if (!viewer) return [];
+      await connectToDatabase();
+      const doc = await User.findById(viewer.id)
+        .select('seenAchievements')
+        .lean()
+        .exec();
+      if (!doc) return [];
+      const { achievements } = await computeUserStats({
+        userId: viewer.id,
+        userKey: viewer.key,
+      });
+      if (!doc.seenAchievements) {
+        // Primera vez: lo que ya tenía no es "nuevo".
+        await User.updateOne(
+          { _id: viewer.id, seenAchievements: { $exists: false } },
+          {
+            $set: {
+              seenAchievements: achievements
+                .filter((a) => a.unlocked)
+                .map((a) => a.id),
+            },
+          }
+        ).exec();
+        return [];
+      }
+      return unseenAchievements(achievements, doc.seenAchievements);
     },
 
     async userStats(_: unknown, args: { username: string }) {
@@ -939,6 +974,23 @@ export const resolvers = {
         allergens: user.allergens,
         allergyNotes: user.allergyNotes ?? null,
       };
+    },
+
+    async markAchievementsSeen(
+      _: unknown,
+      args: { ids: string[] },
+      ctx: GqlContext
+    ) {
+      const viewer = sessionUser(ctx.session);
+      if (!viewer) throw new Error('Debes iniciar sesión.');
+      const ids = [...new Set(args.ids)].filter(isAchievementId);
+      if (ids.length === 0) return true;
+      await connectToDatabase();
+      await User.updateOne(
+        { _id: viewer.id },
+        { $addToSet: { seenAchievements: { $each: ids } } }
+      ).exec();
+      return true;
     },
 
     async addComment(

@@ -182,6 +182,12 @@ export const typeDefs = gql`
     me: User
     """Estadísticas y votos del usuario autenticado."""
     myStats: UserStats
+    """
+    Logros desbloqueados del usuario autenticado cuyo aviso aún no se ha
+    mostrado. Vacío sin sesión. La primera vez fija la línea base y devuelve
+    vacío, para no celebrar los logros que ya tenía.
+    """
+    newAchievements: [Achievement!]!
     """Estadísticas y votos de cualquier usuario por nombre de usuario."""
     userStats(username: String!): UserStats
     """Convocatoria abierta de la próxima tortilla, o null si no hay ninguna."""
@@ -258,6 +264,8 @@ export const typeDefs = gql`
     setProfileImage(input: SetProfileImageInput!): User!
     """Guarda los alérgenos y observaciones del usuario autenticado."""
     setAllergies(input: SetAllergiesInput!): User!
+    """Marca como vistos los avisos de esos logros. Ignora ids desconocidos."""
+    markAchievementsSeen(ids: [String!]!): Boolean!
     """Añade un comentario a una tortilla. Requiere sesión."""
     addComment(input: AddCommentInput!): Comment!
     """Elimina un comentario propio."""

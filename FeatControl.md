@@ -1,5 +1,21 @@
 # FeatControl
 
+## [2026-10-14] - Aviso animado de "logro desbloqueado" (estilo Xbox)
+**Descripción**: Al conseguir un logro aparece abajo y centrado un aviso al estilo de los logros de Xbox: el círculo con el emoji del logro entra con un rebote y un anillo de pulso, se despliega la píldora con "🏆 Logro desbloqueado" y el nombre, pasa un brillo, y a los ~6,5 s se pliega y desaparece. Suena un "bloop" corto sintetizado con Web Audio (sin ficheros; si el navegador bloquea el audio, se queda mudo). Si hay varios, salen de uno en uno. Al pulsarlo lleva al perfil. Con `prefers-reduced-motion` solo aparece y se desvanece.
+
+**Cómo se sabe qué es nuevo**: los logros se siguen calculando al vuelo, así que el usuario guarda en `seenAchievements` cuáles ya se le han celebrado. La consulta `newAchievements` devuelve los desbloqueados que no están ahí, y el cliente los marca con `markAchievementsSeen` en cuanto los encola, para que no se repitan al recargar. La **primera** consulta de cada usuario (campo sin definir) fija la línea base con lo que ya tenía y no muestra nada, para no celebrar de golpe todo el historial. Un logro que se pierde y se recupera ("El más duro", "El más generoso") no se vuelve a celebrar.
+
+**Cuándo se comprueba**: al cargar la app y tras votar (`castVote` refresca `NewAchievements` por nombre). Los logros que dependen de votos ajenos se ven en la siguiente carga.
+**Archivos principales**:
+- `src/components/features/AchievementUnlockToast.tsx` + `.module.css` (nuevo, montado en `src/app/layout.tsx`)
+- `src/lib/achievements.ts` (`ACHIEVEMENT_IDS`, `isAchievementId`, `unseenAchievements`)
+- `src/models/User.ts` (`seenAchievements`, sin default a propósito)
+- `src/graphql/typeDefs.ts`, `resolvers.ts`, `operations.ts` (`newAchievements`, `markAchievementsSeen`)
+- `src/components/features/TortillaVoteCard.tsx` (refetch tras votar)
+- `src/lib/i18n.ts` (`achievement.unlockedToast`, ES + CA)
+**Tecnologías**: CSS keyframes sincronizadas, Web Audio API, Apollo `refetchQueries` por nombre, Mongoose `$addToSet`
+**Notas**: No requiere migración: cada usuario fija su línea base la primera vez que entra.
+
 ## [2026-09-23] - Cambiar de nombre (nickname) y referencias por id de usuario
 **Descripción**: Desde el perfil propio se puede cambiar el nombre de usuario, con un máximo de **3 cambios por cuenta**. El botón abre un modal que avisa de cuántos quedan antes de confirmar; al agotarlos queda deshabilitado con la explicación en un tooltip. Corregir solo mayúsculas ("pako" → "Pako") **no gasta cambio**: no altera a quién apunta nada ni cómo te encuentran los demás. El nombre anterior queda libre para quien lo quiera.
 
