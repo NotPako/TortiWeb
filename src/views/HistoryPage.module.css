@@ -81,7 +81,7 @@
 }
 
 .emptyCard {
-  background: white;
+  background: var(--c-surface);
   border: 1px solid var(--color-tortilla-100);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -101,7 +101,7 @@
 }
 
 .card {
-  background: white;
+  background: var(--c-surface);
   border: 1px solid var(--color-tortilla-100);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -120,7 +120,7 @@
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(28, 20, 7, 0.1);
   border-color: var(--color-tortilla-200);
 }
 
@@ -146,8 +146,12 @@
 .modalDate {
   font-size: 14px;
   color: var(--color-tortilla-600);
-  text-transform: capitalize;
   margin-bottom: 8px;
+}
+
+/* Solo la primera letra: `capitalize` ponía "14 De Octubre De 2026". */
+.modalDate::first-letter {
+  text-transform: uppercase;
 }
 
 .modalDescription {
@@ -182,6 +186,39 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+}
+
+/*
+ * Móvil estrecho (una columna): tarjeta horizontal con miniatura. Con la foto
+ * cuadrada a todo el ancho cada tortilla ocupaba casi una pantalla.
+ */
+@media (max-width: 479px) {
+  .card {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .image {
+    width: 104px;
+    aspect-ratio: auto;
+    min-height: 104px;
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  .description {
+    -webkit-line-clamp: 2;
+  }
+
+  .tortillaName {
+    font-size: 16px;
+  }
+
+  .badge {
+    font-size: 13px;
+    padding: 2px 7px;
+  }
 }
 
 @media (min-width: 640px) {
@@ -198,6 +235,8 @@
 }
 
 .tortillaName {
+  /* Es un <h2>: sin tamaño explícito heredaba 1.5em y no cabía en móvil. */
+  font-size: 18px;
   font-weight: 600;
   color: var(--color-tortilla-800);
   line-height: 1.2;
@@ -233,6 +272,8 @@
 .badge {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
   border-radius: var(--radius-full);
   padding: 2px 8px;
   font-size: 14px;

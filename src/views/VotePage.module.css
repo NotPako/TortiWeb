@@ -36,24 +36,3 @@
   cursor: pointer;
   padding: 0;
 }
-
-.emptyCard {
-  background: var(--c-surface);
-  border: 1px solid var(--c-line);
-  border-radius: 18px;
-  box-shadow: var(--shadow-card);
-  padding: 24px;
-  text-align: center;
-}
-
-.emptyTitle {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 18px;
-  color: var(--c-ink);
-}
-
-.emptySubtitle {
-  color: var(--c-ink-soft);
-  margin-top: 8px;
-}

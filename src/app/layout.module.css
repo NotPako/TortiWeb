@@ -2,6 +2,8 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  /* En móvil, que el final de la página no quede bajo las pestañas. */
+  padding-bottom: calc(20px + var(--tabbar-h));
 }
 
 @media (min-width: 900px) {

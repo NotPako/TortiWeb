@@ -3,10 +3,11 @@
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
-import { Skeleton } from 'antd';
 import { useUser } from '@/components/UserContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { UpcomingTortillaCard } from '@/components/features/UpcomingTortillaCard';
+import { NextTortillaHero } from '@/components/features/NextTortillaHero';
+import { VotePageSkeleton } from '@/components/features/PageSkeletons';
 import {
   TortillaVoteCard,
   type VotableTortilla,
@@ -57,12 +58,7 @@ export default function VotePage() {
   if (!isReady || !userName) return null;
 
   if (loading && !data) {
-    return (
-      <>
-        <UpcomingTortillaCard />
-        <Skeleton active paragraph={{ rows: 6 }} />
-      </>
-    );
+    return <VotePageSkeleton />;
   }
   if (error) {
     return (
@@ -78,14 +74,12 @@ export default function VotePage() {
     );
   }
   if (tortillas.length === 0) {
+    // Sin tortilla abierta: cuánto falta y, si hay convocatoria, apuntarse.
     return (
-      <>
+      <div className={styles.page}>
+        <NextTortillaHero />
         <UpcomingTortillaCard />
-        <div className={styles.emptyCard}>
-          <p className={styles.emptyTitle}>{t('vote.empty.title')}</p>
-          <p className={styles.emptySubtitle}>{t('vote.empty.subtitle')}</p>
-        </div>
-      </>
+      </div>
     );
   }
 

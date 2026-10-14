@@ -22,3 +22,18 @@ export function nextWednesday(from: Date = new Date()): Date {
   d.setHours(12, 0, 0, 0);
   return d;
 }
+
+/**
+ * Días naturales (en la zona de la app) que faltan hasta `target`: 0 si es
+ * hoy, 1 si es mañana. Negativo si ya pasó.
+ */
+export function daysUntil(
+  target: Date,
+  from: Date = new Date(),
+  tz: string = APP_TIMEZONE
+): number {
+  // Medianoche UTC de cada día natural: la resta da días enteros sin que el
+  // cambio de hora (23 o 25 h) descuadre el resultado.
+  const toUtcDay = (d: Date) => Date.parse(`${dayKey(d, tz)}T00:00:00Z`);
+  return Math.round((toUtcDay(target) - toUtcDay(from)) / 86_400_000);
+}

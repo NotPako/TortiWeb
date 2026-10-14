@@ -3,8 +3,9 @@
   /* === Rebrand palette === */
   --c-ink: #1c1407;
   --c-ink-soft: #574a36;
-  --c-muted: #9c8c72;
-  --c-faint: #bcae97;
+  /* Muted y faint ajustados para llegar a 4,5:1 sobre el papel (WCAG AA). */
+  --c-muted: #7a6a50;
+  --c-faint: #85745a;
   --c-line: #efe5d4;
   --c-line-soft: #f6efe2;
   --c-paper: #fffdf8;
@@ -17,6 +18,13 @@
   --c-amber-100: #ffeccb;
   --c-amber-200: #ffd88c;
   --c-success: #1f7a43;
+  /* Texto sobre fondos de tinta (botón principal, avisos oscuros). */
+  --c-on-ink: #ffffff;
+  /* Texto sobre ámbar: el blanco no llega a 3:1, la tinta sí (y en ambos modos). */
+  --c-on-amber: #1c1407;
+  --c-on-success: #ffffff;
+  /* Hueco para la barra de pestañas inferior en móvil (0 en escritorio). */
+  --tabbar-h: 0px;
 
   /* === Legacy palette (kept for backwards compatibility) === */
   --color-tortilla-50: var(--c-amber-50);
@@ -25,7 +33,8 @@
   --color-tortilla-300: #ffc347;
   --color-tortilla-400: var(--c-amber-lite);
   --color-tortilla-500: var(--c-amber);
-  --color-tortilla-600: var(--c-amber-deep);
+  /* Se usa sobre todo como color de texto: el ámbar oscuro sí contrasta. */
+  --color-tortilla-600: var(--c-amber-dark);
   --color-tortilla-700: var(--c-amber-dark);
   --color-tortilla-800: var(--c-ink);
   --color-tortilla-900: #5a2d00;
@@ -58,6 +67,54 @@
   --shadow-thumb: 0 2px 6px rgba(120, 70, 0, 0.28);
 
   color-scheme: light;
+}
+
+/*
+ * Modo oscuro. `data-theme` lo fija un script en el <head> antes de pintar
+ * (preferencia guardada o la del sistema), así que no hay parpadeo. Los
+ * tonos ámbar claros, que se usan como fondos suaves, pasan a ser tintes
+ * oscuros; los oscuros, que se usan como texto, pasan a ser claros.
+ */
+:root[data-theme='dark'] {
+  --c-ink: #f3ead9;
+  --c-ink-soft: #c9b99d;
+  --c-muted: #a8987c;
+  --c-faint: #948469;
+  --c-line: #3a2f1f;
+  --c-line-soft: #2b2316;
+  --c-paper: #17120a;
+  --c-surface: #211a0f;
+  --c-amber-deep: #e88a0c;
+  --c-amber-dark: #ffb43c;
+  --c-amber-lite: #ffc96e;
+  --c-amber-50: #2a1f0f;
+  --c-amber-100: #3a2a12;
+  --c-amber-200: #5c3f14;
+  --c-success: #4ade80;
+  --c-on-ink: #1c1407;
+  --c-on-success: #0b2a16;
+
+  --color-tortilla-300: #8a5a12;
+  --color-tortilla-900: #ffd88c;
+
+  --color-success-bg: #12301d;
+  --color-warning-fg: #fde68a;
+  --color-warning-bg: #3a300a;
+  --color-danger-fg: #fca5a5;
+  --color-danger-bg: #3b1414;
+  --color-danger-border: #7f1d1d;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-cta: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --shadow-thumb: 0 2px 6px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}
+
+@media (max-width: 700px) {
+  :root {
+    --tabbar-h: calc(62px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* === Reset minimalista === */

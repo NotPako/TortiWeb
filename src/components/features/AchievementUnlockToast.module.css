@@ -9,7 +9,8 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  /* Por encima de la barra de pestañas en móvil. */
+  bottom: calc(24px + max(var(--tabbar-h), env(safe-area-inset-bottom, 0px)));
   z-index: 2000;
   display: flex;
   justify-content: center;

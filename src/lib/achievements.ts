@@ -22,6 +22,13 @@ export type Achievement = {
   id: AchievementId;
   emoji: string;
   unlocked: boolean;
+  /**
+   * Avance hacia el logro, solo en los que se cuentan (votos, rachas). Los de
+   * sí/no (nota perfecta, el más duro…) no tienen. `progress` nunca pasa de
+   * `goal`.
+   */
+  progress: number | null;
+  goal: number | null;
 };
 
 export type VoteForAchievements = {
@@ -59,17 +66,31 @@ function isFirstHighballer(input: Input): boolean {
   return false;
 }
 
-const DEFS: Array<{
+type Def = {
   id: AchievementId;
   emoji: string;
   check: (i: Input) => boolean;
-}> = [
-  { id: 'firstVote', emoji: '🥇', check: (i) => i.totalVotes >= 1 },
-  { id: 'tenVotes', emoji: '🔟', check: (i) => i.totalVotes >= 10 },
-  { id: 'fiftyVotes', emoji: '💯', check: (i) => i.totalVotes >= 50 },
-  { id: 'streak3', emoji: '🔥', check: (i) => i.bestStreak >= 3 },
-  { id: 'streak5', emoji: '⚡', check: (i) => i.bestStreak >= 5 },
-  { id: 'streak10', emoji: '👑', check: (i) => i.bestStreak >= 10 },
+  /** Solo en los logros por umbral: qué se cuenta y cuánto hace falta. */
+  counter?: { goal: number; value: (i: Input) => number };
+};
+
+/** Logro por umbral: se desbloquea al llegar a `goal` y enseña el avance. */
+function threshold(
+  id: AchievementId,
+  emoji: string,
+  goal: number,
+  value: (i: Input) => number
+): Def {
+  return { id, emoji, check: (i) => value(i) >= goal, counter: { goal, value } };
+}
+
+const DEFS: Def[] = [
+  threshold('firstVote', '🥇', 1, (i) => i.totalVotes),
+  threshold('tenVotes', '🔟', 10, (i) => i.totalVotes),
+  threshold('fiftyVotes', '💯', 50, (i) => i.totalVotes),
+  threshold('streak3', '🔥', 3, (i) => i.bestStreak),
+  threshold('streak5', '⚡', 5, (i) => i.bestStreak),
+  threshold('streak10', '👑', 10, (i) => i.bestStreak),
   {
     id: 'perfectScore',
     emoji: '💎',
@@ -131,5 +152,9 @@ export function computeAchievements(args: {
     id: d.id,
     emoji: d.emoji,
     unlocked: d.check(input),
+    progress: d.counter
+      ? Math.min(d.counter.value(input), d.counter.goal)
+      : null,
+    goal: d.counter?.goal ?? null,
   }));
 }

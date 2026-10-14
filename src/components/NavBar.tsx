@@ -3,10 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@apollo/client';
+import { MoonOutlined, SunOutlined } from '@ant-design/icons';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Brand } from './Brand';
+import { useTheme } from './ThemeContext';
+import { isActive, navLinks } from './navLinks';
 import { UserChip } from './features/UserChip';
 import { ME_QUERY } from '@/graphql/operations';
 import styles from './NavBar.module.css';
@@ -19,6 +22,7 @@ export function NavBar() {
   const pathname = usePathname();
   const { userName, userImage, signOut, isReady, isAdmin } = useUser();
   const { t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
 
   const { data: meData } = useQuery<MeQueryResult>(ME_QUERY, {
     skip: !isReady || !userName,
@@ -26,14 +30,19 @@ export function NavBar() {
   });
   const avatarSrc = meData?.me?.imageUrl ?? userImage ?? undefined;
 
-  const links = [
-    { href: '/vote', labelKey: 'nav.vote' as const },
-    { href: '/history', labelKey: 'nav.history' as const },
-    { href: '/profile', labelKey: 'nav.profile' as const },
-    ...(isAdmin
-      ? [{ href: '/admin', labelKey: 'nav.admin' as const }]
-      : []),
-  ];
+  const themeLabel =
+    theme === 'dark' ? t('theme.toLight') : t('theme.toDark');
+  const themeToggle = (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className={styles.themeToggle}
+      aria-label={themeLabel}
+      title={themeLabel}
+    >
+      {theme === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+    </button>
+  );
 
   return (
     <header className={styles.header}>
@@ -44,13 +53,18 @@ export function NavBar() {
 
         {isReady && userName ? (
           <nav className={styles.nav}>
-            {links.map((l) => {
-              const active = pathname === l.href;
+            {navLinks(isAdmin).map((l) => {
+              const active = isActive(pathname, l.href);
               const linkClass = active
                 ? `${styles.navLink} ${styles.navLinkActive}`
                 : styles.navLink;
               return (
-                <Link key={l.href} href={l.href} className={linkClass}>
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={linkClass}
+                  aria-current={active ? 'page' : undefined}
+                >
                   {t(l.labelKey)}
                 </Link>
               );
@@ -66,6 +80,7 @@ export function NavBar() {
                 <strong className={styles.userName}>{userName}</strong>
               </span>
               <LanguageSwitcher />
+              {themeToggle}
               <UserChip
                 userName={userName}
                 imageUrl={avatarSrc}
@@ -86,6 +101,7 @@ export function NavBar() {
           ) : (
             <>
               <LanguageSwitcher />
+              {themeToggle}
               <Link href="/login" className={styles.signIn}>
                 {t('nav.signIn')}
               </Link>

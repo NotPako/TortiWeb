@@ -89,3 +89,23 @@ describe('unseenAchievements', () => {
     );
   });
 });
+
+describe('progreso de los logros', () => {
+  it('los de umbral cuentan hasta la meta y no la pasan', () => {
+    const byId = new Map(
+      computeAchievements({ ...empty, totalVotes: 12, bestStreak: 4 }).map(
+        (a) => [a.id, a]
+      )
+    );
+    expect(byId.get('tenVotes')).toMatchObject({ progress: 10, goal: 10 });
+    expect(byId.get('fiftyVotes')).toMatchObject({ progress: 12, goal: 50 });
+    expect(byId.get('streak5')).toMatchObject({ progress: 4, goal: 5 });
+  });
+
+  it('los de sí/no no tienen progreso', () => {
+    const perfect = computeAchievements(empty).find(
+      (a) => a.id === 'perfectScore'
+    );
+    expect(perfect).toMatchObject({ progress: null, goal: null });
+  });
+});

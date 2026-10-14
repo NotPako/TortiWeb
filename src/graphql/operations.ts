@@ -53,6 +53,16 @@ export const CURRENT_TORTILLAS_QUERY = gql`
   }
 `;
 
+/** Solo fechas: para saber si la jornada de hoy ya pasó, sin traer votos. */
+export const TORTILLA_DATES_QUERY = gql`
+  query TortillaDates {
+    tortillas {
+      id
+      date
+    }
+  }
+`;
+
 export const TORTILLAS_QUERY = gql`
   ${TORTILLA_FIELDS}
   query Tortillas {
@@ -140,6 +150,8 @@ const USER_STATS_FIELDS = `
     id
     emoji
     unlocked
+    progress
+    goal
   }
 `;
 
@@ -239,6 +251,37 @@ export const SET_ALLERGIES_MUTATION = gql`
       id
       allergens
       allergyNotes
+    }
+  }
+`;
+
+const RANKED_VOTER_FIELDS = `
+  userName
+  imageUrl
+  value
+  voteCount
+`;
+
+export const RANKING_QUERY = gql`
+  query Ranking {
+    ranking {
+      year
+      minVotesPerTortilla
+      minVotesPerVoter
+      bestTortillas {
+        averageScore
+        voteCount
+        tortilla {
+          id
+          name
+          date
+          imageUrl
+        }
+      }
+      toughest { ${RANKED_VOTER_FIELDS} }
+      generous { ${RANKED_VOTER_FIELDS} }
+      streaks { ${RANKED_VOTER_FIELDS} }
+      mostVotes { ${RANKED_VOTER_FIELDS} }
     }
   }
 `;

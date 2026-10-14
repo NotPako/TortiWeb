@@ -168,6 +168,39 @@ export const typeDefs = gql`
     month: Int!
   }
 
+  """Tortilla en el podio del ranking."""
+  type RankedTortilla {
+    tortilla: TortillaSummary!
+    averageScore: Float!
+    voteCount: Int!
+  }
+
+  """Persona en un podio del ranking."""
+  type RankedVoter {
+    userName: String!
+    imageUrl: String
+    """Media dada, racha o número de votos, según la lista."""
+    value: Float!
+    voteCount: Int!
+  }
+
+  """Ranking del grupo. Tortillas: año en curso. Personas: histórico."""
+  type Ranking {
+    year: Int!
+    """Mejores medias del año (con un mínimo de votos)."""
+    bestTortillas: [RankedTortilla!]!
+    """Media dada más baja (con un mínimo de votos)."""
+    toughest: [RankedVoter!]!
+    """Media dada más alta (con un mínimo de votos)."""
+    generous: [RankedVoter!]!
+    """Mejores rachas de jornadas seguidas."""
+    streaks: [RankedVoter!]!
+    """Quién ha votado más tortillas."""
+    mostVotes: [RankedVoter!]!
+    minVotesPerTortilla: Int!
+    minVotesPerVoter: Int!
+  }
+
   """Logro desbloqueable por el usuario."""
   type Achievement {
     """Identificador estable para el frontend (clave i18n y emoji)."""
@@ -175,6 +208,10 @@ export const typeDefs = gql`
     """Emoji representativo."""
     emoji: String!
     unlocked: Boolean!
+    """Avance en los logros por umbral (votos, rachas); null en los de sí/no."""
+    progress: Int
+    """Umbral del logro; null en los de sí/no."""
+    goal: Int
   }
 
   type Query {
@@ -202,6 +239,8 @@ export const typeDefs = gql`
     fiesta. No revela la fecha de nadie más.
     """
     birthdaysToday: [String!]!
+    """Podios del grupo: mejores tortillas del año, más duro, más generoso…"""
+    ranking: Ranking!
     """Estadísticas y votos de cualquier usuario por nombre de usuario."""
     userStats(username: String!): UserStats
     """Convocatoria abierta de la próxima tortilla, o null si no hay ninguna."""

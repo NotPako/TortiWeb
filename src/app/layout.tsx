@@ -9,6 +9,8 @@ import { ApolloWrapper } from '@/components/ApolloWrapper';
 import { SessionWrapper } from '@/components/SessionWrapper';
 import { LanguageProvider } from '@/components/LanguageContext';
 import { BirthdayProvider } from '@/components/BirthdayContext';
+import { THEME_INIT_SCRIPT, ThemeProvider } from '@/components/ThemeContext';
+import { MobileTabBar } from '@/components/MobileTabBar';
 import { NavBar } from '@/components/NavBar';
 import { AchievementUnlockToast } from '@/components/features/AchievementUnlockToast';
 
@@ -44,20 +46,28 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="es"
       className={`${spaceGrotesk.variable} ${manrope.variable}`}
+      // El script del <head> añade `data-theme` antes de hidratar.
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>
         <AntdRegistry>
-          <SessionWrapper>
-            <ApolloWrapper>
-              <LanguageProvider>
-                <BirthdayProvider>
-                  <NavBar />
-                  <main className={styles.main}>{children}</main>
-                  <AchievementUnlockToast />
-                </BirthdayProvider>
-              </LanguageProvider>
-            </ApolloWrapper>
-          </SessionWrapper>
+          <ThemeProvider>
+            <SessionWrapper>
+              <ApolloWrapper>
+                <LanguageProvider>
+                  <BirthdayProvider>
+                    <NavBar />
+                    <main className={styles.main}>{children}</main>
+                    <AchievementUnlockToast />
+                    <MobileTabBar />
+                  </BirthdayProvider>
+                </LanguageProvider>
+              </ApolloWrapper>
+            </SessionWrapper>
+          </ThemeProvider>
         </AntdRegistry>
       </body>
     </html>

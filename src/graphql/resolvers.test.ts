@@ -866,3 +866,51 @@ describe('cumpleaños', () => {
     });
   });
 });
+
+describe('ranking', () => {
+  it('agrupa por cuenta, pone el nombre actual y cuenta los votos históricos', async () => {
+    const { doc: ana } = await makeUser('Ana');
+    const tortillas = await Promise.all(
+      [3, 10, 17, 24, 31].map((d) =>
+        Tortilla.create({
+          name: `T${d}`,
+          date: new Date(2026, 6, d),
+          imageKey: `k${d}`,
+          imageContentType: 'image/png',
+        })
+      )
+    );
+    // Ana vota las cinco con su cuenta; un votante histórico sin cuenta, tres.
+    await Vote.insertMany([
+      ...tortillas.map((t, i) => ({
+        tortilla: t._id,
+        user: ana._id,
+        userName: 'ana-antes',
+        userKey: 'ana-antes',
+        score: 8 + (i % 2),
+      })),
+      ...tortillas.slice(0, 3).map((t) => ({
+        tortilla: t._id,
+        userName: 'Viejo',
+        userKey: 'viejo',
+        score: 4,
+      })),
+    ]);
+
+    const ranking = (await Query.ranking(null, {}, {})) as {
+      mostVotes: { userName: string; value: number }[];
+      generous: { userName: string }[];
+      bestTortillas: { tortilla: { name: string } }[];
+    };
+
+    // El nombre sale de la cuenta, no del voto (que tenía el antiguo).
+    expect(ranking.mostVotes).toEqual([
+      expect.objectContaining({ userName: 'Ana', value: 5 }),
+      expect.objectContaining({ userName: 'Viejo', value: 3 }),
+    ]);
+    // Viejo no llega al mínimo de votos para las medias.
+    expect(ranking.generous.map((v) => v.userName)).toEqual(['Ana']);
+    // Las tres primeras tienen 2 votos: ninguna llega al mínimo de 3.
+    expect(ranking.bestTortillas).toEqual([]);
+  });
+});

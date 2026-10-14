@@ -7,7 +7,7 @@
 }
 
 .card {
-  background: white;
+  background: var(--c-surface);
   border: 1px solid var(--color-tortilla-100);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -52,7 +52,7 @@
   padding: 10px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--color-tortilla-200);
-  background: white;
+  background: var(--c-surface);
   outline: none;
   font-size: 16px; /* anti-zoom en iOS */
   transition:
@@ -117,12 +117,12 @@
   padding: 10px 16px;
   font-weight: 500;
   background: var(--color-tortilla-500);
-  color: white;
+  color: var(--c-on-amber);
   transition: background-color 0.15s;
 }
 
 .submit:hover:not(:disabled) {
-  background: var(--color-tortilla-600);
+  background: var(--c-amber-deep);
 }
 
 .submit:disabled {

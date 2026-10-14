@@ -1,0 +1,245 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--c-ink);
+}
+
+.subtitle {
+  color: var(--c-ink-soft);
+  font-size: 15px;
+}
+
+.error {
+  color: var(--color-danger-fg);
+}
+
+/* === Podio de tortillas === */
+.podiumCard {
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(90% 70% at 50% 0%, var(--c-amber-50), transparent 75%),
+    var(--c-surface);
+  box-shadow: var(--shadow-card);
+  padding: 22px 16px 0;
+  overflow: hidden;
+}
+
+.podiumTitle {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--c-ink);
+  margin-bottom: 18px;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 10px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stepMedal {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.stepPhoto {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--c-surface);
+  box-shadow: 0 0 0 2px var(--c-amber-200);
+  margin: 4px 0;
+}
+
+.step1 .stepPhoto {
+  width: 96px;
+  height: 96px;
+  box-shadow: 0 0 0 3px var(--c-amber);
+}
+
+.stepName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--c-ink);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stepDate {
+  font-size: 12px;
+  color: var(--c-muted);
+}
+
+/* El escalón: más alto para el primero. */
+.stepBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-radius: 14px 14px 0 0;
+  background: var(--c-amber-100);
+}
+
+.step1 .stepBlock {
+  height: 120px;
+  background: linear-gradient(180deg, var(--c-amber-200), var(--c-amber-100));
+}
+
+.step2 .stepBlock {
+  height: 88px;
+}
+
+.step3 .stepBlock {
+  height: 66px;
+}
+
+.stepScore {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--c-amber-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.step1 .stepScore {
+  font-size: 30px;
+}
+
+.stepVotes {
+  font-size: 12px;
+  color: var(--c-ink-soft);
+}
+
+/* === Podios de personas === */
+.boards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .boards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.board {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.boardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.boardEmoji {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--c-amber-50);
+  font-size: 22px;
+}
+
+.boardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-ink);
+}
+
+.boardHint {
+  font-size: 12.5px;
+  color: var(--c-muted);
+}
+
+.boardEmpty {
+  font-size: 14px;
+  color: var(--c-ink-soft);
+  text-align: center;
+  padding: 8px 0 20px;
+}
+
+.boardList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  color: var(--c-ink);
+  font-size: 15px;
+}
+
+.rowFirst {
+  background: var(--c-amber-50);
+}
+
+.medal {
+  font-size: 20px;
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.chip {
+  flex: 1;
+  min-width: 0;
+}
+
+.value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--c-amber-dark);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
