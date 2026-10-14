@@ -1,5 +1,25 @@
 # FeatControl
 
+## [2026-10-14] - Gorro de cumpleaños en el avatar
+**Descripción**: Cada usuario puede indicar su cumpleaños (**solo día y mes**, opcional) al registrarse, al elegir nombre tras entrar con Google, o desde un panel plegable en su perfil. Ese día, su avatar lleva un gorro de fiesta ladeado en todos los sitios donde sale (`UserChip`: navbar, votos, comentarios, apuntados, cabecera del perfil). No se guarda el año, así que tampoco la edad.
+
+**Cómo llega al gorro**: `UserChip` solo conoce el nombre, así que en vez de añadir un campo a cada voto/comentario hay **una sola consulta** `birthdaysToday` (nombres de quienes cumplen hoy) que hace `BirthdayProvider` en el layout, con refresco cada 30 min para que una pestaña abierta cambie de día. Guardar el cumpleaños en el perfil la refresca, así que el gorro aparece o desaparece al momento.
+
+**"Hoy" es hoy en Madrid** (`Europe/Madrid`), no en UTC: si no, el gorro cambiaría de día a las 22:00 o 23:00. Quien nació el **29 de febrero** lo celebra el 28 en los años no bisiestos.
+
+**Privacidad**: la fecha no se muestra en ningún perfil; solo se expone vía `me`. `birthdaysToday` es pública (los chips también lo son) y solo revela quién cumple hoy, que es justo lo que enseña el gorro. Se avisa de ello junto al formulario.
+**Archivos principales**:
+- `src/lib/birthday.ts` (nuevo: validación, día en Madrid, 29 de febrero, borrador del formulario, formato)
+- `src/components/BirthdayContext.tsx` (nuevo, montado en `src/app/layout.tsx`)
+- `src/components/features/UserChip.tsx` + `.module.css` (gorro SVG; en avatares grandes deja hueco arriba para no cortarse)
+- `src/components/features/BirthdayField.tsx` (nuevo: selector día + mes) y `BirthdayCard.tsx` (nuevo: panel del perfil)
+- `src/views/RegisterPage.tsx`, `SetupUsernamePage.tsx`, `ProfilePage.tsx`
+- `src/models/User.ts` (`birthday`, índice por mes/día)
+- `src/graphql/typeDefs.ts`, `resolvers.ts`, `operations.ts` (`birthdaysToday`, `setBirthday`, `birthday` en `register`/`setUsername`/`me`)
+- `src/lib/i18n.ts` (claves `birthday.*`, ES + CA)
+**Tecnologías**: `Intl.DateTimeFormat` con `timeZone`, React Context, SVG inline con `useId`, ANTD Select/Collapse/Form
+**Notas**: No requiere migración: el campo es opcional y quien no lo tenga simplemente no lleva gorro.
+
 ## [2026-10-14] - Aviso animado de "logro desbloqueado" (estilo Xbox)
 **Descripción**: Al conseguir un logro aparece abajo y centrado un aviso al estilo de los logros de Xbox: el círculo con el emoji del logro entra con un rebote y un anillo de pulso, se despliega la píldora con "🏆 Logro desbloqueado" y el nombre, pasa un brillo, y a los ~6,5 s se pliega y desaparece. Suena un "bloop" corto sintetizado con Web Audio (sin ficheros; si el navegador bloquea el audio, se queda mudo). Si hay varios, salen de uno en uno. Al pulsarlo lleva al perfil. Con `prefers-reduced-motion` solo aparece y se desvanece.
 

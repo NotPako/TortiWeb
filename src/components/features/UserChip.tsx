@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import Link from 'next/link';
 import { Avatar, Image } from 'antd';
+import { useIsBirthday } from '@/components/BirthdayContext';
+import { useLanguage } from '@/components/LanguageContext';
 import styles from './UserChip.module.css';
 
 /**
@@ -41,6 +43,51 @@ type Props = {
   className?: string;
 };
 
+/** Gorro de fiesta que se apoya, ladeado, sobre el avatar. */
+function BirthdayHat({ size, label }: { size: number; label: string }) {
+  const width = Math.round(size * 0.62);
+  // Un id por gorro: puede haber varios chips del mismo usuario en pantalla.
+  const clipId = `birthday-hat-${useId().replace(/:/g, '')}`;
+  return (
+    <span
+      className={styles.hat}
+      role="img"
+      aria-label={label}
+      title={label}
+      style={{
+        width,
+        height: Math.round(width * 1.2),
+        top: -Math.round(size * 0.52),
+        left: Math.round(size * 0.06),
+      }}
+    >
+      <svg viewBox="0 0 40 48" width="100%" height="100%" aria-hidden>
+        <defs>
+          <clipPath id={clipId}>
+            <path d="M20 7 L37 45 Q20 50 3 45 Z" />
+          </clipPath>
+        </defs>
+        <path d="M20 7 L37 45 Q20 50 3 45 Z" fill="#e8467c" />
+        <g clipPath={`url(#${clipId})`} fill="#ffb43c">
+          <path d="M0 20 L40 12 L40 19 L0 27 Z" />
+          <path d="M0 34 L40 26 L40 33 L0 41 Z" />
+        </g>
+        <circle cx="13" cy="31" r="1.6" fill="#fff" />
+        <circle cx="25" cy="38" r="1.6" fill="#fff" />
+        <circle cx="22" cy="22" r="1.4" fill="#fff" />
+        <path
+          d="M3 45 Q20 50 37 45"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <circle cx="20" cy="6" r="5" fill="#fff8ec" stroke="#ffb43c" strokeWidth="1.5" />
+      </svg>
+    </span>
+  );
+}
+
 export function profileHref(userName: string): string {
   return `/profile/${encodeURIComponent(userName)}`;
 }
@@ -60,8 +107,10 @@ export function UserChip({
   const target = href === undefined ? profileHref(userName) : href;
   const [previewOpen, setPreviewOpen] = useState(false);
   const canPreview = previewable && Boolean(imageUrl);
+  const isBirthday = useIsBirthday(userName);
+  const { t } = useLanguage();
 
-  const avatar = (
+  const avatarImage = (
     <Avatar
       src={imageUrl ?? undefined}
       size={size}
@@ -77,6 +126,22 @@ export function UserChip({
     >
       {userName.charAt(0).toUpperCase()}
     </Avatar>
+  );
+
+  // El cumpleaños se decide aquí, como el resto de la identidad del usuario:
+  // así el gorro sale igual en votos, comentarios, apuntados y navbar.
+  const avatar = isBirthday ? (
+    <span
+      className={styles.avatarWrap}
+      // En listas el gorro sobresale sin mover nada; un avatar grande (cabecera
+      // del perfil) suele estar pegado arriba y necesita hueco para no cortarse.
+      style={size >= 64 ? { marginTop: Math.round(size * 0.3) } : undefined}
+    >
+      {avatarImage}
+      <BirthdayHat size={size} label={t('birthday.hatLabel')} />
+    </span>
+  ) : (
+    avatarImage
   );
 
   const body = (

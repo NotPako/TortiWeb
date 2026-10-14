@@ -60,3 +60,19 @@
   outline: 2px solid var(--c-amber);
   outline-offset: 2px;
 }
+
+/* Avatar con gorro de cumpleaños: el gorro sobresale sin mover el layout. */
+.avatarWrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.hat {
+  position: absolute;
+  z-index: 1;
+  transform: rotate(-22deg);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 1px 1px rgba(28, 20, 7, 0.25));
+  line-height: 0;
+}

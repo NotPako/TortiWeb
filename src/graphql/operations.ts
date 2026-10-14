@@ -210,8 +210,8 @@ export const REGISTER_MUTATION = gql`
 `;
 
 export const SET_USERNAME_MUTATION = gql`
-  mutation SetUsername($username: String!) {
-    setUsername(username: $username) {
+  mutation SetUsername($username: String!, $birthday: BirthdayInput) {
+    setUsername(username: $username, birthday: $birthday) {
       id
       username
       email
@@ -239,6 +239,36 @@ export const SET_ALLERGIES_MUTATION = gql`
       id
       allergens
       allergyNotes
+    }
+  }
+`;
+
+export const BIRTHDAYS_TODAY_QUERY = gql`
+  query BirthdaysToday {
+    birthdaysToday
+  }
+`;
+
+export const MY_BIRTHDAY_QUERY = gql`
+  query MyBirthday {
+    me {
+      id
+      birthday {
+        day
+        month
+      }
+    }
+  }
+`;
+
+export const SET_BIRTHDAY_MUTATION = gql`
+  mutation SetBirthday($birthday: BirthdayInput) {
+    setBirthday(birthday: $birthday) {
+      id
+      birthday {
+        day
+        month
+      }
     }
   }
 `;

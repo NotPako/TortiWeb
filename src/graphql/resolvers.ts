@@ -23,6 +23,12 @@ import { computeStreaks } from '@/lib/streak';
 import { MAX_COMMENT_LENGTH, normalizeCommentText } from '@/lib/comments';
 import { normalizeAllergens, normalizeAllergyNotes } from '@/lib/allergens';
 import {
+  birthdaysCelebratedOn,
+  todayInTimeZone,
+  validateBirthday,
+  type Birthday,
+} from '@/lib/birthday';
+import {
   MAX_NICKNAME_CHANGES,
   nicknameChangesLeft,
   planNicknameChange,
@@ -125,6 +131,11 @@ export type CtxUser = {
   key: string;
   name: string;
 };
+
+/** El subdocumento de Mongoose lleva más cosas: devolvemos solo día y mes. */
+function birthdayPayload(b: Birthday | null | undefined): Birthday | null {
+  return b ? { day: b.day, month: b.month } : null;
+}
 
 function sessionUser(session: Session | null): CtxUser | null {
   const user = session?.user;
@@ -445,7 +456,9 @@ export const resolvers = {
       if (!ctx.session?.user) return null;
       await connectToDatabase();
       const doc = await User.findById(ctx.session.user.id)
-        .select('username email image imageKey allergens allergyNotes nicknameChanges')
+        .select(
+          'username email image imageKey allergens allergyNotes nicknameChanges birthday'
+        )
         .exec();
       const imageUrl = doc ? userImageUrl(doc) : null;
       return {
@@ -458,7 +471,22 @@ export const resolvers = {
         allergens: doc?.allergens ?? [],
         allergyNotes: doc?.allergyNotes ?? null,
         nicknameChangesLeft: nicknameChangesLeft(doc?.nicknameChanges ?? 0),
+        birthday: birthdayPayload(doc?.birthday),
       };
+    },
+
+    async birthdaysToday() {
+      await connectToDatabase();
+      const docs = await User.find({
+        $or: birthdaysCelebratedOn(todayInTimeZone()).map((b) => ({
+          'birthday.month': b.month,
+          'birthday.day': b.day,
+        })),
+      })
+        .select('username')
+        .lean()
+        .exec();
+      return docs.map((d) => d.username);
     },
 
     async myStats(_: unknown, __: unknown, ctx: GqlContext) {
@@ -733,7 +761,14 @@ export const resolvers = {
 
     async register(
       _: unknown,
-      args: { input: { username: string; email: string; password: string } }
+      args: {
+        input: {
+          username: string;
+          email: string;
+          password: string;
+          birthday?: Birthday | null;
+        };
+      }
     ) {
       await connectToDatabase();
       const username = validateNickname(args.input.username);
@@ -747,6 +782,10 @@ export const resolvers = {
           `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
         );
       }
+
+      const birthday = args.input.birthday
+        ? validateBirthday(args.input.birthday)
+        : undefined;
 
       const emailKey = normalizeEmail(email);
       const [existingByUsername, existingByEmail] = await Promise.all([
@@ -763,6 +802,7 @@ export const resolvers = {
         email,
         emailKey,
         passwordHash,
+        birthday,
       });
       // Quien votó antes de tener cuenta recupera su historial al registrarse
       // con el mismo nombre, como hasta ahora.
@@ -777,7 +817,7 @@ export const resolvers = {
 
     async setUsername(
       _: unknown,
-      args: { username: string },
+      args: { username: string; birthday?: Birthday | null },
       ctx: GqlContext
     ) {
       await connectToDatabase();
@@ -785,6 +825,7 @@ export const resolvers = {
         throw new Error('Debes iniciar sesión.');
       }
       const username = validateNickname(args.username);
+      const birthday = args.birthday ? validateBirthday(args.birthday) : null;
       const usernameKey = normalizeUsername(username);
 
       const existing = await User.findOne({ usernameKey }).exec();
@@ -800,6 +841,7 @@ export const resolvers = {
 
       user.username = username;
       user.usernameKey = usernameKey;
+      if (birthday) user.birthday = birthday;
       await user.save();
       // Es el primer nombre de la cuenta (login con Google), no un cambio: no
       // gasta cupo y sí recupera los votos que dejó antes de registrarse.
@@ -991,6 +1033,31 @@ export const resolvers = {
         { $addToSet: { seenAchievements: { $each: ids } } }
       ).exec();
       return true;
+    },
+
+    async setBirthday(
+      _: unknown,
+      args: { birthday?: Birthday | null },
+      ctx: GqlContext
+    ) {
+      await connectToDatabase();
+      const viewer = sessionUser(ctx.session);
+      if (!viewer) throw new Error('Debes iniciar sesión.');
+      const birthday = args.birthday ? validateBirthday(args.birthday) : null;
+
+      const user = await User.findById(viewer.id).exec();
+      if (!user) throw new Error('Usuario no encontrado.');
+      // `undefined` elimina el campo en vez de guardar un null.
+      user.birthday = birthday ?? undefined;
+      await user.save();
+
+      return {
+        id: (user._id as Types.ObjectId).toString(),
+        username: user.username,
+        email: user.email,
+        imageUrl: userImageUrl(user),
+        birthday: birthdayPayload(user.birthday),
+      };
     },
 
     async addComment(

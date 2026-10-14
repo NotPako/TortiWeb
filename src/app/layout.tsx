@@ -8,6 +8,7 @@ import styles from './layout.module.css';
 import { ApolloWrapper } from '@/components/ApolloWrapper';
 import { SessionWrapper } from '@/components/SessionWrapper';
 import { LanguageProvider } from '@/components/LanguageContext';
+import { BirthdayProvider } from '@/components/BirthdayContext';
 import { NavBar } from '@/components/NavBar';
 import { AchievementUnlockToast } from '@/components/features/AchievementUnlockToast';
 
@@ -49,9 +50,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <SessionWrapper>
             <ApolloWrapper>
               <LanguageProvider>
-                <NavBar />
-                <main className={styles.main}>{children}</main>
-                <AchievementUnlockToast />
+                <BirthdayProvider>
+                  <NavBar />
+                  <main className={styles.main}>{children}</main>
+                  <AchievementUnlockToast />
+                </BirthdayProvider>
               </LanguageProvider>
             </ApolloWrapper>
           </SessionWrapper>
