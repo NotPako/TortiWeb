@@ -33,42 +33,80 @@
 
 .statsRow {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
-@media (max-width: 640px) {
-  .statsRow {
-    grid-template-columns: 1fr;
-  }
-}
-
 .statCard {
-  background: white;
+  background: var(--c-surface);
   border: 1px solid var(--color-tortilla-100);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: 20px 24px;
-}
-
-.streakCard {
+  padding: 18px 22px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
-.streakEmoji {
-  margin-right: 4px;
+.statLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-muted);
 }
 
-.streakBest {
+.statValue {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--c-amber-dark);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.statSuffix {
+  font-size: 0.55em;
+  font-weight: 600;
+  color: var(--c-muted);
+  margin-left: 2px;
+}
+
+.statFoot {
   font-size: 12px;
-  color: var(--color-tortilla-600);
-  margin-top: 2px;
+  color: var(--c-muted);
+}
+
+/* Móvil: las tres en fila, compactas, en vez de tres tarjetas apiladas. */
+@media (max-width: 640px) {
+  .statsRow {
+    gap: 8px;
+  }
+
+  .statCard {
+    padding: 12px 10px;
+    border-radius: var(--radius);
+    align-items: center;
+    text-align: center;
+  }
+
+  .statLabel {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .statValue {
+    font-size: 21px;
+  }
+
+  .statFoot {
+    font-size: 11px;
+    line-height: 1.2;
+  }
 }
 
 .bestCard {
-  background: white;
+  background: var(--c-surface);
   border: 1px solid var(--color-tortilla-100);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -113,7 +151,6 @@
 .bestDate {
   font-size: 13px;
   color: var(--color-tortilla-600);
-  text-transform: capitalize;
 }
 
 .bestScoreRow {
@@ -129,11 +166,19 @@
 }
 
 .historyCard {
-  background: white;
+  background: var(--c-surface);
   border: 1px solid var(--color-tortilla-100);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   padding: 4px 20px 16px;
+}
+
+.voteThumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .voteRight {
@@ -149,7 +194,7 @@
 }
 
 .emptyCard {
-  background: white;
+  background: var(--c-surface);
   border: 1px solid var(--color-tortilla-100);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);

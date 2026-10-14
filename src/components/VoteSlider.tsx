@@ -13,6 +13,11 @@ type Props = {
   bigSize?: number;
   /** Texto opcional bajo el label. Ej: "Ya votaste un 7,5 · puedes cambiarlo". */
   hint?: string | null;
+  /**
+   * Cambia tras cada voto guardado: el número da un salto para confirmar.
+   * 0 (o sin indicar) = sin animación.
+   */
+  celebrateKey?: number;
 };
 
 const MIN = 0;
@@ -28,6 +33,7 @@ export function VoteSlider({
   disabled = false,
   bigSize = 44,
   hint,
+  celebrateKey = 0,
 }: Props) {
   const { t } = useLanguage();
   const trackRef = useRef<HTMLDivElement>(null);
@@ -99,7 +105,13 @@ export function VoteSlider({
             –
           </button>
           <div
-            className={styles.bigValue}
+            // La `key` reinicia la animación en cada voto.
+            key={celebrateKey}
+            className={
+              celebrateKey
+                ? `${styles.bigValue} ${styles.bigValuePop}`
+                : styles.bigValue
+            }
             style={{
               fontSize: bigSize,
               minWidth: bigSize * 1.5,

@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { useLanguage } from '@/components/LanguageContext';
 import { VoteSlider } from '@/components/VoteSlider';
 import { AvgPill } from '@/components/AvgPill';
 import { ReactionPicker } from './ReactionPicker';
 import { CommentsSection, type CommentItem } from './CommentsSection';
+import { TortillaImage } from './TortillaImage';
+import { ConfettiBurst } from './ConfettiBurst';
 import type { Reaction } from '@/models/Vote';
 import { fmt } from '@/lib/format';
 import {
@@ -62,6 +64,13 @@ export function TortillaVoteCard({
   );
   const [feedback, setFeedback] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  // Sube en cada voto guardado: hace saltar el número en el slider.
+  const [celebrateKey, setCelebrateKey] = useState(0);
+  // Un 10 se celebra con confeti desde el botón.
+  const [confettiFrom, setConfettiFrom] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const ctaRef = useRef<HTMLButtonElement>(null);
 
   const myVoteId = tortilla.myVote?.id ?? null;
   useEffect(() => {
@@ -96,6 +105,13 @@ export function TortillaVoteCard({
         variables: { input: { tortillaId: tortilla.id, score, reaction } },
       });
       setSubmitted(true);
+      setCelebrateKey((k) => k + 1);
+      if (score >= 10) {
+        const rect = ctaRef.current?.getBoundingClientRect();
+        if (rect) {
+          setConfettiFrom({ x: rect.left + rect.width / 2, y: rect.top });
+        }
+      }
       window.setTimeout(() => setSubmitted(false), 2400);
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';
@@ -121,39 +137,37 @@ export function TortillaVoteCard({
 
   return (
     <section className={styles.card}>
-      <div className={styles.grid}>
-        {/* Columna izquierda: identidad de la tortilla */}
-        <div className={styles.identityCol}>
+      {/* Cabecera tipo ficha: la foto manda y el nombre va encima. */}
+      <header className={styles.hero}>
+        <TortillaImage
+          src={tortilla.imageUrl}
+          alt={tortilla.name}
+          className={styles.photo}
+        />
+        <div className={styles.heroShade} aria-hidden />
+        <div className={styles.heroText}>
           <div className={styles.eyebrow}>
             <span className={styles.eyebrowDot} aria-hidden />
             <span className={styles.eyebrowText}>
               {eyebrowDate} · {t('vote.eyebrow')}
             </span>
           </div>
-
-          <div className={styles.photoWrap}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={tortilla.imageUrl}
-              alt={tortilla.name}
-              className={styles.photo}
-            />
-          </div>
-
           <h2 className={styles.title}>{tortilla.name}</h2>
-
           <AvgPill
             average={tortilla.averageScore}
             voteCount={tortilla.voteCount}
             size="lg"
+            onPhoto
           />
-
-          {tortilla.description ? (
-            <p className={styles.description}>{tortilla.description}</p>
-          ) : null}
         </div>
+      </header>
 
-        {/* Columna derecha: panel de votación */}
+      {tortilla.description ? (
+        <p className={styles.description}>{tortilla.description}</p>
+      ) : null}
+
+      <div className={styles.grid}>
+        {/* Panel de votación; en escritorio, los comentarios al lado. */}
         <div className={styles.votePanel}>
           <h3 className={styles.panelTitle}>{t('vote.title')}</h3>
 
@@ -164,6 +178,7 @@ export function TortillaVoteCard({
                 onChange={setScore}
                 disabled={voting}
                 hint={hint}
+                celebrateKey={celebrateKey}
               />
 
               <div className={styles.divider} />
@@ -175,6 +190,7 @@ export function TortillaVoteCard({
               />
 
               <button
+                ref={ctaRef}
                 type="button"
                 className={
                   submitted ? `${styles.cta} ${styles.ctaSuccess}` : styles.cta
@@ -229,13 +245,21 @@ export function TortillaVoteCard({
             </p>
           ) : null}
         </div>
+
+        <CommentsSection
+          tortillaId={tortilla.id}
+          comments={tortilla.comments}
+          onChanged={onChanged}
+        />
       </div>
 
-      <CommentsSection
-        tortillaId={tortilla.id}
-        comments={tortilla.comments}
-        onChanged={onChanged}
-      />
+      {confettiFrom ? (
+        <ConfettiBurst
+          origin={confettiFrom}
+          onDone={() => setConfettiFrom(null)}
+        />
+      ) : null}
+
     </section>
   );
 }

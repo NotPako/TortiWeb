@@ -24,7 +24,7 @@
 
 .buttonActive {
   background: var(--c-amber);
-  color: #fff;
+  color: var(--c-on-amber);
 }
 
 .buttonActive:hover {

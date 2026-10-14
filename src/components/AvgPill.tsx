@@ -11,9 +11,16 @@ type Props = {
   voteCount: number;
   /** Tamaño visual: lg en desktop, sm en móvil. */
   size?: 'sm' | 'lg';
+  /** Sobre una foto: el recuento de votos va en claro para leerse. */
+  onPhoto?: boolean;
 };
 
-export function AvgPill({ average, voteCount, size = 'sm' }: Props) {
+export function AvgPill({
+  average,
+  voteCount,
+  size = 'sm',
+  onPhoto = false,
+}: Props) {
   const { t } = useLanguage();
   const big = size === 'lg';
   return (
@@ -24,7 +31,9 @@ export function AvgPill({ average, voteCount, size = 'sm' }: Props) {
         </span>
         <span className={styles.suffix}>{t('avg.suffix')}</span>
       </div>
-      <span className={styles.votes}>
+      <span
+        className={onPhoto ? `${styles.votes} ${styles.votesOnPhoto}` : styles.votes}
+      >
         {voteCount}{' '}
         {voteCount === 1 ? t('history.voteSingular') : t('history.votePlural')}
       </span>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
-import { Avatar, Button, List, Skeleton, Statistic, Tag, Upload, message } from 'antd';
+import { Button, List, Tag, Upload, message } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import type { RcFile } from 'antd/es/upload/interface';
 import { useUser } from '@/components/UserContext';
@@ -14,6 +14,8 @@ import {
   type AchievementItem,
 } from '@/components/features/AchievementsGrid';
 import { UserChip } from '@/components/features/UserChip';
+import { TortillaImage } from '@/components/features/TortillaImage';
+import { ProfilePageSkeleton } from '@/components/features/PageSkeletons';
 import { AllergiesCard } from '@/components/features/AllergiesCard';
 import { BirthdayCard } from '@/components/features/BirthdayCard';
 import { ChangeNicknameButton } from '@/components/features/ChangeNicknameButton';
@@ -120,7 +122,7 @@ export default function ProfilePage({ username }: Props = {}) {
   if (isOwn && (!isReady || !userName)) return null;
 
   if (loading && !data) {
-    return <Skeleton active paragraph={{ rows: 8 }} />;
+    return <ProfilePageSkeleton />;
   }
 
   const displayName = stats?.username ?? username ?? '';
@@ -202,41 +204,28 @@ export default function ProfilePage({ username }: Props = {}) {
 
       <div className={styles.statsRow}>
         <div className={styles.statCard}>
-          <Statistic
-            title={t('profile.totalVotes')}
-            value={stats.totalVotes}
-            valueStyle={{ color: 'var(--color-tortilla-700)', fontWeight: 700 }}
-          />
+          <span className={styles.statLabel}>{t('profile.totalVotes')}</span>
+          <span className={styles.statValue}>{stats.totalVotes}</span>
         </div>
         <div className={styles.statCard}>
-          <Statistic
-            title={t('profile.averageGiven')}
-            value={
-              stats.averageGiven !== null
-                ? stats.averageGiven.toFixed(2)
-                : '—'
-            }
-            suffix="/ 10"
-            valueStyle={{ color: 'var(--color-tortilla-700)', fontWeight: 700 }}
-          />
+          <span className={styles.statLabel}>{t('profile.averageGiven')}</span>
+          <span className={styles.statValue}>
+            {stats.averageGiven !== null ? stats.averageGiven.toFixed(2) : '—'}
+            <span className={styles.statSuffix}>/10</span>
+          </span>
         </div>
-        <div className={`${styles.statCard} ${styles.streakCard}`}>
-          <Statistic
-            title={t('profile.currentStreak')}
-            value={stats.currentStreak}
-            prefix={<span className={styles.streakEmoji}>🔥</span>}
-            suffix={
-              stats.currentStreak === 1
+        <div className={styles.statCard}>
+          <span className={styles.statLabel}>{t('profile.currentStreak')}</span>
+          <span className={styles.statValue}>
+            <span aria-hidden>🔥</span> {stats.currentStreak}
+          </span>
+          <span className={styles.statFoot}>
+            {stats.bestStreak > stats.currentStreak
+              ? t('profile.bestStreak', { n: stats.bestStreak })
+              : stats.currentStreak === 1
                 ? t('profile.streakUnitSingular')
-                : t('profile.streakUnit')
-            }
-            valueStyle={{ color: 'var(--color-tortilla-700)', fontWeight: 700 }}
-          />
-          {stats.bestStreak > 0 && stats.bestStreak > stats.currentStreak ? (
-            <p className={styles.streakBest}>
-              {t('profile.bestStreak', { n: stats.bestStreak })}
-            </p>
-          ) : null}
+                : t('profile.streakUnit')}
+          </span>
         </div>
       </div>
 
@@ -248,8 +237,7 @@ export default function ProfilePage({ username }: Props = {}) {
         <div className={styles.bestCard}>
           <p className={styles.bestLabel}>{t('profile.bestTortilla')}</p>
           <div className={styles.bestInner}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <TortillaImage
               src={stats.bestVote.tortilla.imageUrl}
               alt={stats.bestVote.tortilla.name}
               className={styles.bestImage}
@@ -298,11 +286,11 @@ export default function ProfilePage({ username }: Props = {}) {
             <List.Item>
               <List.Item.Meta
                 avatar={
-                  <Avatar
+                  <TortillaImage
                     src={vote.tortilla.imageUrl}
-                    shape="square"
-                    size={48}
-                    style={{ borderRadius: 8, flexShrink: 0 }}
+                    alt={vote.tortilla.name}
+                    className={styles.voteThumb}
+                    loading="lazy"
                   />
                 }
                 title={vote.tortilla.name}

@@ -9,6 +9,8 @@ export type AchievementItem = {
   id: string;
   emoji: string;
   unlocked: boolean;
+  progress?: number | null;
+  goal?: number | null;
 };
 
 type Props = {
@@ -33,6 +35,15 @@ export function AchievementsGrid({ achievements }: Props) {
           const descKey = `achievement.${a.id}.description` as TranslationKey;
           const title = t(titleKey);
           const desc = t(descKey);
+          // Solo tiene sentido enseñar avance si hay más de un paso.
+          const showProgress =
+            !a.unlocked && a.goal != null && a.goal > 1 && a.progress != null;
+          const progressText = showProgress
+            ? t('profile.achievementProgress', {
+                n: a.progress ?? 0,
+                goal: a.goal ?? 0,
+              })
+            : null;
           return (
             <Tooltip
               key={a.id}
@@ -44,7 +55,11 @@ export function AchievementsGrid({ achievements }: Props) {
                   {!a.unlocked ? (
                     <>
                       <br />
-                      <em>{t('profile.achievementLocked')}</em>
+                      <em>
+                        {progressText
+                          ? `${t('profile.achievementLocked')} · ${progressText}`
+                          : t('profile.achievementLocked')}
+                      </em>
                     </>
                   ) : null}
                 </span>
@@ -62,6 +77,28 @@ export function AchievementsGrid({ achievements }: Props) {
                   {a.emoji}
                 </span>
                 <span className={styles.label}>{title}</span>
+                {showProgress ? (
+                  <span className={styles.progress}>
+                    <span
+                      className={styles.progressBar}
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={a.goal ?? 0}
+                      aria-valuenow={a.progress ?? 0}
+                      aria-label={progressText ?? undefined}
+                    >
+                      <span
+                        className={styles.progressFill}
+                        style={{
+                          width: `${((a.progress ?? 0) / (a.goal ?? 1)) * 100}%`,
+                        }}
+                      />
+                    </span>
+                    <span className={styles.progressText}>
+                      {a.progress}/{a.goal}
+                    </span>
+                  </span>
+                ) : null}
               </div>
             </Tooltip>
           );

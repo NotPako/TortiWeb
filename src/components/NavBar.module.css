@@ -97,32 +97,47 @@
   color: var(--c-amber-dark);
 }
 
-/* === Mobile (<= 700px): top bar más compacta, nav debajo === */
+/* Botón de tema: mismo tamaño que el selector de idioma. */
+.themeToggle {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  color: var(--c-ink-soft);
+  font-size: 16px;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.themeToggle:hover {
+  background: var(--c-amber-50);
+  color: var(--c-amber-dark);
+}
+
+.themeToggle:focus-visible {
+  outline: 2px solid var(--c-amber);
+  outline-offset: 2px;
+}
+
+/*
+ * Móvil (<= 700px): barra superior compacta de una sola fila. Las secciones
+ * pasan a la barra de pestañas inferior (`MobileTabBar`).
+ */
 @media (max-width: 700px) {
   .inner {
-    flex-wrap: wrap;
-    height: auto;
-    min-height: 58px;
-    padding: 8px 20px;
+    height: 58px;
+    padding: 0 16px;
     gap: 10px;
   }
 
-  .nav {
-    order: 99;
-    width: 100%;
-    margin-left: 0;
-    justify-content: space-between;
-    border-top: 1px solid var(--c-line);
-    padding-top: 8px;
-  }
-
-  .navLink {
-    flex: 1;
-    text-align: center;
-    padding: 7px 8px;
-  }
-
+  .nav,
   .greeting {
     display: none;
+  }
+
+  .right {
+    gap: 8px;
   }
 }

@@ -93,7 +93,7 @@ export function ChangeNicknameButton() {
         cancelText={t('common.cancel')}
         confirmLoading={loading}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Alert
           type="info"

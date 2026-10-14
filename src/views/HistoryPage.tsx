@@ -8,6 +8,8 @@ import {
   type CommentItem,
 } from '@/components/features/CommentsSection';
 import { UserChip } from '@/components/features/UserChip';
+import { TortillaImage } from '@/components/features/TortillaImage';
+import { HistoryPageSkeleton } from '@/components/features/PageSkeletons';
 import { Input, List, Modal, Pagination, Segmented, Skeleton, Tag } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { useUser } from '@/components/UserContext';
@@ -183,7 +185,7 @@ export default function HistoryPage() {
   if (!isReady || !userName) return null;
 
   if (loading && !data) {
-    return <Skeleton active paragraph={{ rows: 8 }} />;
+    return <HistoryPageSkeleton />;
   }
   if (error) {
     return (
@@ -261,8 +263,7 @@ export default function HistoryPage() {
             onClick={() => setSelectedId(tortilla.id)}
             aria-label={`${t('history.viewDetails')} — ${tortilla.name}`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <TortillaImage
               src={tortilla.imageUrl}
               alt={tortilla.name}
               className={styles.image}
@@ -325,15 +326,14 @@ export default function HistoryPage() {
         footer={null}
         title={detail?.name ?? ''}
         width={520}
-        destroyOnClose
+        destroyOnHidden
       >
         {detailLoading && !detail ? (
           <Skeleton active avatar paragraph={{ rows: 4 }} />
         ) : detail ? (
           <div>
             <div className={styles.modalImageWrap}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <TortillaImage
                 src={detail.imageUrl}
                 alt={detail.name}
                 className={styles.modalImage}

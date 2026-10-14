@@ -1,5 +1,29 @@
 # FeatControl
 
+## [2026-10-14] - Mejoras de UI/UX: modo oscuro, ranking, pestañas en móvil y más
+**Descripción**: Repaso visual de toda la app.
+- **Estilos de antd en login/registro**: `@ant-design/nextjs-registry` 1.3 declara `@ant-design/cssinjs >=1` como peer y npm instalaba la 2.x, distinta de la 1.x que usa antd 5. Con dos copias, el HTML del servidor salía sin estilos de antd. Se fija `@ant-design/cssinjs@^1.24` como dependencia directa.
+- **Tema de antd con la marca** (`ThemeContext.tsx`): naranja en vez del azul por defecto, botón principal con texto tinta (blanco sobre ámbar no llega a 3:1) y cabeceras de `Collapse` sin el gris frío.
+- **Contraste**: `--c-muted`, `--c-faint` y el ámbar usado como texto pasan el mínimo AA (4,5:1). Los botones ámbar llevan texto oscuro (`--c-on-amber`).
+- **Modo oscuro**: paleta oscura bajo `:root[data-theme='dark']`. Sigue al sistema hasta que se pulsa el botón ☀️/🌙 de la barra (se guarda en `localStorage`). Un script en el `<head>` fija el tema antes de pintar; los fondos `white` pasan a `var(--c-surface)`.
+- **Fotos con respaldo** (`TortillaImage`): si la foto no carga, fondo de la marca con 🍳 en vez del icono roto; mientras carga, tono ámbar.
+- **Fechas**: `text-transform: capitalize` ponía "14 De Octubre De 2026"; ahora solo la primera letra.
+- **Perfil**: estadísticas compactas en fila también en móvil; logros bloqueados con barra de progreso ("9/10") gracias a `progress`/`goal` en `Achievement`.
+- **Votar**: cabecera tipo ficha (foto grande con el nombre encima) y, en escritorio, voto y comentarios lado a lado. Al votar, el número da un salto; con un 10, confeti (`ConfettiBurst`, canvas sin dependencias).
+- **Sin tortilla abierta**: cuenta atrás hasta la próxima (convocatoria si la hay; si no, el próximo miércoles, o el de la semana siguiente si la de hoy ya se cerró) y la convocatoria debajo para apuntarse.
+- **Móvil**: barra superior de una fila y pestañas fijas abajo (`MobileTabBar`); las tarjetas del historial pasan a horizontales con miniatura.
+- **Carga**: esqueletos con la forma de cada pantalla (`PageSkeletons`).
+- **Ranking** (`/ranking`): podio de las mejores tortillas del año (mínimo 3 votos) y podios de el más duro / el más generoso (mínimo 5 votos), mejores rachas y más tortillas votadas. Personas agrupadas por cuenta; votos históricos sin cuenta, por nombre.
+**Archivos principales**:
+- `src/components/ThemeContext.tsx`, `MobileTabBar.tsx`, `navLinks.tsx` (nuevos); `src/app/layout.tsx`, `globals.css`
+- `src/components/features/TortillaImage.tsx`, `ConfettiBurst.tsx`, `NextTortillaHero.tsx`, `PageSkeletons.tsx` (nuevos)
+- `src/lib/ranking.ts` (nuevo), `src/views/RankingPage.tsx` (nuevo), `src/app/ranking/page.tsx`
+- `src/lib/achievements.ts` (progreso), `src/lib/dates.ts` (`daysUntil`)
+- `src/components/features/TortillaVoteCard.tsx`, `VoteSlider.tsx`, `AchievementsGrid.tsx`, `src/views/ProfilePage.tsx`, `HistoryPage.tsx`, `VotePage.tsx`
+- `src/graphql/typeDefs.ts`, `resolvers.ts`, `operations.ts` (`ranking`, `Achievement.progress/goal`)
+**Tecnologías**: ANTD `ConfigProvider` (`darkAlgorithm`), CSS custom properties, container queries (`cqmin`), Canvas 2D
+**Notas**: En modo oscuro, al cargar una página entera los componentes de antd se pintan un instante en claro antes de pasar a oscuro (el servidor no conoce el tema; las variables CSS sí son correctas desde el primer frame). Quitarlo del todo exigiría guardar el tema en cookie y renderizar todas las páginas en el servidor.
+
 ## [2026-10-14] - Gorro de cumpleaños en el avatar
 **Descripción**: Cada usuario puede indicar su cumpleaños (**solo día y mes**, opcional) al registrarse, al elegir nombre tras entrar con Google, o desde un panel plegable en su perfil. Ese día, su avatar lleva un gorro de fiesta ladeado en todos los sitios donde sale (`UserChip`: navbar, votos, comentarios, apuntados, cabecera del perfil). No se guarda el año, así que tampoco la edad.
 
