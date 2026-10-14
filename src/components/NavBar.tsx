@@ -9,7 +9,7 @@ import { useLanguage } from './LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Brand } from './Brand';
 import { useTheme } from './ThemeContext';
-import { isActive, navLinks } from './navLinks';
+import { isActive, navLinks, usePendingRequestCount } from './navLinks';
 import { UserChip } from './features/UserChip';
 import { ME_QUERY } from '@/graphql/operations';
 import styles from './NavBar.module.css';
@@ -23,6 +23,7 @@ export function NavBar() {
   const { userName, userImage, signOut, isReady, isAdmin } = useUser();
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const pendingRequests = usePendingRequestCount(isAdmin);
 
   const { data: meData } = useQuery<MeQueryResult>(ME_QUERY, {
     skip: !isReady || !userName,
@@ -66,6 +67,14 @@ export function NavBar() {
                   aria-current={active ? 'page' : undefined}
                 >
                   {t(l.labelKey)}
+                  {l.href === '/admin' && pendingRequests > 0 ? (
+                    <span
+                      className={styles.badge}
+                      aria-label={t('nav.adminPending', { n: pendingRequests })}
+                    >
+                      {pendingRequests}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

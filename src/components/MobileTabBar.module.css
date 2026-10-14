@@ -41,6 +41,7 @@
 }
 
 .icon {
+  position: relative;
   display: grid;
   place-items: center;
   width: 44px;
@@ -63,4 +64,30 @@
 
 .tabActive .icon {
   background: var(--c-amber-50);
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-danger-fg);
+  color: var(--c-surface);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

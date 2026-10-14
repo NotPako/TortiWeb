@@ -368,7 +368,17 @@ export const TORTILLA_EVENT_FIELDS = gql`
     date
     note
     attendeeCount
+    capacity
     isAttending
+    myRequestStatus
+    myQueuePosition
+    pendingRequestCount
+    pendingRequests {
+      userId
+      userName
+      imageUrl
+      requestedAt
+    }
     closedAt
     open
     attendees {
@@ -376,6 +386,15 @@ export const TORTILLA_EVENT_FIELDS = gql`
       imageUrl
       allergens
       allergyNotes
+    }
+  }
+`;
+
+export const REVIEW_SPOT_REQUEST_MUTATION = gql`
+  ${TORTILLA_EVENT_FIELDS}
+  mutation ReviewSpotRequest($eventId: ID!, $userId: ID!, $approve: Boolean!) {
+    reviewSpotRequest(eventId: $eventId, userId: $userId, approve: $approve) {
+      ...TortillaEventFields
     }
   }
 `;

@@ -1,5 +1,29 @@
 # FeatControl
 
+## [2026-10-14] - Tope de plazas en la convocatoria y solicitudes al admin
+**Descripción**: Cada convocatoria tiene un número de plazas que el admin elige al convocar (12 por defecto, entre 1 y 100). Mientras quede hueco, apuntarse entra directamente. Lleno, el botón pasa a **"Solicitar plaza"** y la solicitud queda en una cola por orden de llegada; quien la envía ve su puesto ("eres el n.º 2 de la cola") y puede retirarla.
+
+**Reglas**:
+- Si alguien se desapunta, **entra sola la solicitud más antigua**.
+- El admin ve la cola en su panel y puede **aprobar** (entra aunque se pase del tope: 13/12) o **rechazar**. Rechazar es definitivo para esa convocatoria: esa persona ve el aviso y ya no puede pedir ni apuntarse, aunque se libere una plaza.
+- La pestaña Admin muestra un contador rojo con las solicitudes pendientes (se consulta cada minuto).
+- Los nombres de la cola solo los ve el admin; el resto solo ve cuántas plazas quedan.
+
+**Concurrencia**: dos personas pulsando a la vez por la última plaza no pueden entrar las dos. El esquema usa `optimisticConcurrency`: la segunda en guardar recibe un `VersionError` y el resolver repite la operación con el estado nuevo, así que acaba en la cola (test incluido).
+
+Las reglas viven en `src/lib/eventSpots.ts` como funciones puras sobre un estado plano; el resolver carga la convocatoria, aplica la operación y guarda.
+**Archivos principales**:
+- `src/lib/eventSpots.ts` + test (nuevo)
+- `src/models/TortillaEvent.ts` (`capacity`, `requests`, `optimisticConcurrency`)
+- `src/graphql/typeDefs.ts`, `resolvers.ts`, `operations.ts` (`capacity`, `myRequestStatus`, `myQueuePosition`, `pendingRequests`, `reviewSpotRequest`)
+- `src/graphql/typeDefs.test.ts` (nuevo: valida que el esquema compila)
+- `src/components/features/UpcomingTortillaCard.tsx`, `src/components/TortillaEventAdmin.tsx`
+- `src/components/navLinks.tsx`, `NavBar.tsx`, `MobileTabBar.tsx` (contador de pendientes)
+- `src/components/TortillaManager.tsx` (foto con respaldo, se quedó fuera en 0020)
+- `src/lib/i18n.ts` (claves `event.spots.*`, `event.request.*`, `event.admin.*`)
+**Tecnologías**: Mongoose `optimisticConcurrency` + reintentos, GraphQL enum, Apollo `pollInterval`
+**Notas**: No requiere migración: las convocatorias anteriores toman 12 plazas por defecto al leerse y no tienen solicitudes. Al renombrarse, el nombre también se actualiza en las solicitudes.
+
 ## [2026-10-14] - Mejoras de UI/UX: modo oscuro, ranking, pestañas en móvil y más
 **Descripción**: Repaso visual de toda la app.
 - **Estilos de antd en login/registro**: `@ant-design/nextjs-registry` 1.3 declara `@ant-design/cssinjs >=1` como peer y npm instalaba la 2.x, distinta de la 1.x que usa antd 5. Con dos copias, el HTML del servidor salía sin estilos de antd. Se fija `@ant-design/cssinjs@^1.24` como dependencia directa.

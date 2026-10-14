@@ -9,6 +9,7 @@ import {
   TORTILLAS_QUERY,
 } from '@/graphql/operations';
 import { useLanguage } from './LanguageContext';
+import { TortillaImage } from './features/TortillaImage';
 import styles from './TortillaManager.module.css';
 
 type Tortilla = {
@@ -99,8 +100,7 @@ export function TortillaManager() {
         <ul className={styles.list}>
           {pagedList.map((tortilla) => (
             <li key={tortilla.id} className={styles.item}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <TortillaImage
                 src={tortilla.imageUrl}
                 alt={tortilla.name}
                 className={styles.thumb}

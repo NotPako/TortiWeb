@@ -914,3 +914,120 @@ describe('ranking', () => {
     expect(ranking.bestTortillas).toEqual([]);
   });
 });
+
+describe('plazas de la convocatoria', () => {
+  type EventView = {
+    id: string;
+    attendeeCount: number;
+    capacity: number;
+    isAttending: boolean;
+    myRequestStatus: string | null;
+    myQueuePosition: number | null;
+    pendingRequestCount: number;
+    pendingRequests: { userId: string; userName: string }[] | null;
+  };
+
+  async function eventWithCapacity(capacity: number) {
+    const { ctx: admin } = await makeUser('jefa', 'admin');
+    const event = (await Mutation.announceTortilla(
+      null,
+      { input: { capacity } },
+      admin
+    )) as EventView;
+    return { admin, event };
+  }
+
+  const attend = (id: string, ctx: unknown, attending = true) =>
+    Mutation.setAttendance(null, { id, attending }, ctx) as Promise<EventView>;
+
+  it('lleno, apuntarse deja una solicitud en cola', async () => {
+    const { event } = await eventWithCapacity(1);
+    const { ctx: ana } = await makeUser('ana');
+    const { ctx: pepe } = await makeUser('pepe');
+    await attend(event.id, ana);
+
+    const view = await attend(event.id, pepe);
+    expect(view.isAttending).toBe(false);
+    expect(view.attendeeCount).toBe(1);
+    expect(view.myRequestStatus).toBe('PENDING');
+    expect(view.myQueuePosition).toBe(1);
+    // Solo el admin ve quién está en la cola.
+    expect(view.pendingRequests).toBeNull();
+    expect(view.pendingRequestCount).toBe(1);
+  });
+
+  it('al desapuntarse alguien entra la solicitud más antigua', async () => {
+    const { event, admin } = await eventWithCapacity(1);
+    const { ctx: ana } = await makeUser('ana');
+    const { ctx: pepe } = await makeUser('pepe');
+    const { ctx: marta } = await makeUser('marta');
+    await attend(event.id, ana);
+    await attend(event.id, pepe);
+    await attend(event.id, marta);
+
+    await attend(event.id, ana, false);
+    const forPepe = (await Query.upcomingTortilla(null, {}, pepe)) as EventView;
+    expect(forPepe.isAttending).toBe(true);
+    const forAdmin = (await Query.upcomingTortilla(null, {}, admin)) as EventView;
+    expect(forAdmin.pendingRequests?.map((r) => r.userName)).toEqual(['marta']);
+  });
+
+  it('el admin aprueba por encima del tope o rechaza sin vuelta atrás', async () => {
+    const { event, admin } = await eventWithCapacity(1);
+    const { ctx: ana } = await makeUser('ana');
+    const { doc: pepeDoc, ctx: pepe } = await makeUser('pepe');
+    const { doc: martaDoc, ctx: marta } = await makeUser('marta');
+    await attend(event.id, ana);
+    await attend(event.id, pepe);
+    await attend(event.id, marta);
+
+    await expect(
+      Mutation.reviewSpotRequest(
+        null,
+        { eventId: event.id, userId: pepeDoc._id.toString(), approve: true },
+        pepe
+      )
+    ).rejects.toThrow(/administrador/i);
+
+    const approved = (await Mutation.reviewSpotRequest(
+      null,
+      { eventId: event.id, userId: pepeDoc._id.toString(), approve: true },
+      admin
+    )) as EventView;
+    expect(approved.attendeeCount).toBe(2);
+    expect(approved.capacity).toBe(1);
+
+    await Mutation.reviewSpotRequest(
+      null,
+      { eventId: event.id, userId: martaDoc._id.toString(), approve: false },
+      admin
+    );
+    const forMarta = (await Query.upcomingTortilla(null, {}, marta)) as EventView;
+    expect(forMarta.myRequestStatus).toBe('REJECTED');
+    await expect(attend(event.id, marta)).rejects.toThrow(/no ha aprobado/);
+  });
+
+  it('dos personas a la vez por la última plaza: una entra y otra a la cola', async () => {
+    const { event } = await eventWithCapacity(1);
+    const { ctx: ana } = await makeUser('ana');
+    const { ctx: pepe } = await makeUser('pepe');
+    const [a, b] = await Promise.all([attend(event.id, ana), attend(event.id, pepe)]);
+    const joined = [a, b].filter((v) => v.isAttending);
+    const queued = [a, b].filter((v) => v.myRequestStatus === 'PENDING');
+    expect(joined).toHaveLength(1);
+    expect(queued).toHaveLength(1);
+  });
+
+  it('el tope por defecto es 12 y se valida al convocar', async () => {
+    const { ctx: admin } = await makeUser('jefa', 'admin');
+    await expect(
+      Mutation.announceTortilla(null, { input: { capacity: 0 } }, admin)
+    ).rejects.toThrow(/plazas/);
+    const event = (await Mutation.announceTortilla(
+      null,
+      { input: {} },
+      admin
+    )) as EventView;
+    expect(event.capacity).toBe(12);
+  });
+});
