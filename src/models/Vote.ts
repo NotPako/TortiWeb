@@ -7,6 +7,11 @@ export const REACTIONS: Reaction[] = ['fire', 'yummy', 'meh', 'cringe'];
 export interface VoteDocument extends Document {
   tortilla: Types.ObjectId;
   /**
+   * Redundante (la tortilla ya sabe su grupo), pero permite sacar lo de un
+   * grupo sin resolver antes la lista de tortillas.
+   */
+  group: Types.ObjectId;
+  /**
    * Autor del voto. Es la referencia buena: el nombre puede cambiar, el id no.
    * Ausente en los votos históricos de gente que nunca tuvo cuenta.
    */
@@ -27,6 +32,7 @@ const VoteSchema = new Schema<VoteDocument>(
       required: true,
       index: true,
     },
+    group: { type: Schema.Types.ObjectId, ref: 'Group', required: true },
     user: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     userName: { type: String, required: true, trim: true },
     userKey: { type: String, required: true, trim: true, lowercase: true },
@@ -52,6 +58,8 @@ const VoteSchema = new Schema<VoteDocument>(
 // Un voto por persona y tortilla (se actualiza en lugar de duplicarse). Con
 // cuenta manda el id: si alguien se renombra y otro coge su nombre antiguo,
 // por nombre chocarían. Los votos sin cuenta se siguen acotando por nombre.
+// Estadísticas y logros de alguien dentro de un grupo.
+VoteSchema.index({ group: 1, user: 1 });
 VoteSchema.index(
   { tortilla: 1, user: 1 },
   { unique: true, partialFilterExpression: { user: { $exists: true } } }

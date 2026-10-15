@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext';
-import { isActive, navLinks, usePendingRequestCount } from './navLinks';
+import { isActive, useNavLinks } from './navLinks';
 import styles from './MobileTabBar.module.css';
 
 /**
@@ -13,15 +13,15 @@ import styles from './MobileTabBar.module.css';
  */
 export function MobileTabBar() {
   const pathname = usePathname();
-  const { userName, isReady, isAdmin } = useUser();
+  const { userName, isReady } = useUser();
   const { t } = useLanguage();
-  const pendingRequests = usePendingRequestCount(isAdmin);
+  const { links } = useNavLinks();
 
   if (!isReady || !userName) return null;
 
   return (
     <nav className={styles.bar} aria-label={t('nav.sections')}>
-      {navLinks(isAdmin).map((l) => {
+      {links.map((l) => {
         const active = isActive(pathname, l.href);
         return (
           <Link
@@ -32,13 +32,11 @@ export function MobileTabBar() {
           >
             <span className={styles.icon} aria-hidden>
               {l.icon}
-              {l.href === '/admin' && pendingRequests > 0 ? (
-                <span className={styles.badge}>{pendingRequests}</span>
-              ) : null}
+              {l.badge ? <span className={styles.badge}>{l.badge}</span> : null}
             </span>
-            {l.href === '/admin' && pendingRequests > 0 ? (
+            {l.badge ? (
               <span className={styles.srOnly}>
-                {t('nav.adminPending', { n: pendingRequests })}
+                {t('nav.adminPending', { n: l.badge })}
               </span>
             ) : null}
             <span className={styles.label}>{t(l.labelKey)}</span>

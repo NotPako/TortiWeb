@@ -7,6 +7,7 @@ import {
 } from '@/lib/allergens';
 import type { Birthday } from '@/lib/birthday';
 
+/** @deprecated El rol vive ahora en `Membership.role`, por grupo. */
 export type UserRole = 'user' | 'admin';
 
 export interface UserDocument extends Document {
@@ -14,7 +15,12 @@ export interface UserDocument extends Document {
   usernameKey: string; // normalizado (lowercase, trim) — coincide con Vote.userKey
   email: string;
   emailKey: string; // normalizado para unicidad case-insensitive
-  role: UserRole; // 'admin' habilita crear/cerrar/borrar tortillas
+  /**
+   * @deprecated Rol global anterior a los grupos. Ya no se lee: los permisos
+   * salen de `Membership.role`. Se conserva hasta validar en producción la
+   * migración, que lo copia a las membresías.
+   */
+  role?: UserRole;
   passwordHash?: string;
   googleId?: string;
   image?: string; // URL externa (Google) — fallback si no hay imageKey
@@ -33,12 +39,6 @@ export interface UserDocument extends Document {
    * `MAX_NICKNAME_CHANGES`; corregir mayúsculas no cuenta.
    */
   nicknameChanges: number;
-  /**
-   * Logros cuyo aviso de "logro desbloqueado" ya se ha mostrado. `undefined`
-   * = aún no se ha fijado la línea base: la primera consulta marca como vistos
-   * los que ya tuviera, para no celebrar de golpe todo el historial.
-   */
-  seenAchievements?: string[];
   /**
    * Cumpleaños (solo día y mes), opcional. No se muestra en el perfil: solo
    * sirve para poner el gorro de fiesta en el avatar ese día.
@@ -68,12 +68,7 @@ const UserSchema = new Schema<UserDocument>(
       unique: true,
       index: true,
     },
-    role: {
-      type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
-      required: true,
-    },
+    role: { type: String, enum: ['user', 'admin'] },
     passwordHash: { type: String },
     googleId: { type: String, sparse: true, index: true },
     image: { type: String },
@@ -89,8 +84,6 @@ const UserSchema = new Schema<UserDocument>(
       maxlength: MAX_ALLERGY_NOTES_LENGTH,
     },
     nicknameChanges: { type: Number, required: true, default: 0, min: 0 },
-    // Sin default: Mongoose pondría [] y no distinguiríamos "sin línea base".
-    seenAchievements: { type: [String], default: undefined },
     birthday: {
       type: new Schema(
         {

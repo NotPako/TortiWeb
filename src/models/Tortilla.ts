@@ -1,6 +1,8 @@
-import mongoose, { Schema, Model, Document } from 'mongoose';
+import mongoose, { Schema, Model, Document, Types } from 'mongoose';
 
 export interface TortillaDocument extends Document {
+  /** Grupo (peña) al que pertenece. */
+  group: Types.ObjectId;
   name: string;
   description?: string;
   date: Date;
@@ -15,6 +17,7 @@ export interface TortillaDocument extends Document {
 
 const TortillaSchema = new Schema<TortillaDocument>(
   {
+    group: { type: Schema.Types.ObjectId, ref: 'Group', required: true },
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     date: { type: Date, required: true, default: () => new Date() },
@@ -25,7 +28,8 @@ const TortillaSchema = new Schema<TortillaDocument>(
   { timestamps: true }
 );
 
-TortillaSchema.index({ date: -1 });
+// Historial y jornada en curso de un grupo.
+TortillaSchema.index({ group: 1, date: -1 });
 
 export const Tortilla: Model<TortillaDocument> =
   mongoose.models.Tortilla ||

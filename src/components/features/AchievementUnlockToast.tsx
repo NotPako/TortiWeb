@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@apollo/client';
 import { useLanguage } from '@/components/LanguageContext';
 import { useUser } from '@/components/UserContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
+import { groupPath } from '@/lib/groups';
 import {
   MARK_ACHIEVEMENTS_SEEN_MUTATION,
   NEW_ACHIEVEMENTS_QUERY,
@@ -49,35 +51,45 @@ function playUnlockSound() {
 }
 
 /**
- * Aviso de "logro desbloqueado" al estilo Xbox. Vive en el layout: consulta
- * los logros nuevos al cargar y cada vez que se vota (`castVote` refresca
- * `NewAchievements`), y los muestra de uno en uno.
+ * Aviso de "logro desbloqueado" al estilo Xbox. Vive en el layout y solo
+ * actúa dentro de un grupo, porque los logros son por grupo: consulta los
+ * nuevos al entrar y cada vez que se vota, comenta o se apunta (esas
+ * mutations refrescan `NewAchievements`), y los muestra de uno en uno.
  */
 export function AchievementUnlockToast() {
   const { userName } = useUser();
+  const { slug } = useCurrentGroup();
   const { t } = useLanguage();
   const router = useRouter();
-  const [queue, setQueue] = useState<AchievementItem[]>([]);
-  // Lo ya encolado en esta pestaña: la consulta puede volver a traerlo antes
-  // de que el servidor registre que se ha visto.
+  // Cada aviso recuerda su grupo: al pulsarlo lleva al perfil de ese grupo.
+  const [queue, setQueue] = useState<(AchievementItem & { slug: string })[]>([]);
+  // Lo ya encolado en esta pestaña ("grupo:logro"): la consulta puede volver
+  // a traerlo antes de que el servidor registre que se ha visto.
   const handled = useRef(new Set<string>());
 
   const { data } = useQuery<{ newAchievements: AchievementItem[] }>(
     NEW_ACHIEVEMENTS_QUERY,
-    { skip: !userName, fetchPolicy: 'network-only' }
+    {
+      variables: { groupSlug: slug ?? '' },
+      skip: !userName || !slug,
+      fetchPolicy: 'network-only',
+    }
   );
   const [markSeen] = useMutation(MARK_ACHIEVEMENTS_SEEN_MUTATION);
 
   useEffect(() => {
+    if (!slug) return;
     const fresh = (data?.newAchievements ?? []).filter(
-      (a) => !handled.current.has(a.id)
+      (a) => !handled.current.has(`${slug}:${a.id}`)
     );
     if (fresh.length === 0) return;
-    fresh.forEach((a) => handled.current.add(a.id));
-    setQueue((q) => [...q, ...fresh]);
+    fresh.forEach((a) => handled.current.add(`${slug}:${a.id}`));
+    setQueue((q) => [...q, ...fresh.map((a) => ({ ...a, slug }))]);
     // Se marca al encolar: si cierra la pestaña a medias, no se repite.
-    markSeen({ variables: { ids: fresh.map((a) => a.id) } }).catch(() => {});
-  }, [data, markSeen]);
+    markSeen({
+      variables: { groupSlug: slug, ids: fresh.map((a) => a.id) },
+    }).catch(() => {});
+  }, [data, markSeen, slug]);
 
   const current = queue[0];
 
@@ -107,7 +119,7 @@ export function AchievementUnlockToast() {
         onAnimationEnd={handleAnimationEnd}
         onClick={() => {
           next();
-          router.push('/profile');
+          router.push(groupPath(current.slug, 'profile'));
         }}
       >
         <span className={styles.badge} aria-hidden>

@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
-import { useUser } from '@/components/UserContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import { useLanguage } from '@/components/LanguageContext';
 import { UpcomingTortillaCard } from '@/components/features/UpcomingTortillaCard';
 import { NextTortillaHero } from '@/components/features/NextTortillaHero';
@@ -16,18 +15,15 @@ import { CURRENT_TORTILLAS_QUERY } from '@/graphql/operations';
 import styles from './VotePage.module.css';
 
 export default function VotePage() {
-  const { userName, isReady, isAdmin } = useUser();
+  // Sesión y pertenencia ya las garantiza GroupGate en el layout del grupo.
+  const { slug, isAdmin } = useCurrentGroup();
   const { t, locale } = useLanguage();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isReady && !userName) router.replace('/login');
-  }, [isReady, userName, router]);
 
   const { data, loading, error, refetch } = useQuery<{
     currentTortillas: VotableTortilla[];
   }>(CURRENT_TORTILLAS_QUERY, {
-    skip: !userName,
+    variables: { groupSlug: slug },
+    skip: !slug,
   });
 
   const tortillas = useMemo(
@@ -55,7 +51,7 @@ export default function VotePage() {
     }
   }, [tortillas, locale]);
 
-  if (!isReady || !userName) return null;
+  if (!slug) return null;
 
   if (loading && !data) {
     return <VotePageSkeleton />;

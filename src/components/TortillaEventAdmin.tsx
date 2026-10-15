@@ -15,6 +15,7 @@ import {
   MIN_EVENT_CAPACITY,
 } from '@/lib/eventSpots';
 import { useLanguage } from './LanguageContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import { UserChip } from './features/UserChip';
 import {
   AttendeeAllergiesAlert,
@@ -47,26 +48,32 @@ function nextWednesdayInputValue(): string {
 
 export function TortillaEventAdmin() {
   const { t, locale } = useLanguage();
+  const { slug } = useCurrentGroup();
   const [note, setNote] = useState('');
   const [date, setDate] = useState<string>(nextWednesdayInputValue());
   const [capacity, setCapacity] = useState<string>(String(DEFAULT_EVENT_CAPACITY));
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const { data, loading } = useQuery<{ upcomingTortilla: TortillaEvent | null }>(
-    UPCOMING_TORTILLA_QUERY
+    UPCOMING_TORTILLA_QUERY,
+    { variables: { groupSlug: slug }, skip: !slug }
   );
+  const refetchUpcoming = {
+    refetchQueries: [{ query: UPCOMING_TORTILLA_QUERY, variables: { groupSlug: slug } }],
+    awaitRefetchQueries: true,
+  };
   const event = data?.upcomingTortilla ?? null;
 
   const [announce, { loading: announcing }] = useMutation(
     ANNOUNCE_TORTILLA_MUTATION,
-    { refetchQueries: [{ query: UPCOMING_TORTILLA_QUERY }], awaitRefetchQueries: true }
+    refetchUpcoming
   );
   const [reviewRequest, { loading: reviewing }] = useMutation(
     REVIEW_SPOT_REQUEST_MUTATION
   );
   const [closeEvent, { loading: closing }] = useMutation(
     CLOSE_TORTILLA_EVENT_MUTATION,
-    { refetchQueries: [{ query: UPCOMING_TORTILLA_QUERY }], awaitRefetchQueries: true }
+    refetchUpcoming
   );
 
   function formatDate(d: string) {
@@ -88,6 +95,7 @@ export function TortillaEventAdmin() {
       await announce({
         variables: {
           input: {
+            groupSlug: slug,
             date: date ? new Date(date).toISOString() : null,
             note: note.trim() || null,
             capacity: Number(capacity),

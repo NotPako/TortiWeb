@@ -10,6 +10,144 @@ export const ME_QUERY = gql`
   }
 `;
 
+export const GROUP_FIELDS = gql`
+  fragment GroupFields on Group {
+    id
+    name
+    slug
+    description
+    myRole
+    isAdmin
+    memberCount
+  }
+`;
+
+export const MY_GROUPS_QUERY = gql`
+  ${GROUP_FIELDS}
+  query MyGroups {
+    myGroups {
+      ...GroupFields
+    }
+  }
+`;
+
+/** Lo usa la puerta de `/g/[slug]` y cualquier vista que necesite el rol. */
+export const GROUP_QUERY = gql`
+  ${GROUP_FIELDS}
+  query Group($slug: String!) {
+    group(slug: $slug) {
+      ...GroupFields
+    }
+  }
+`;
+
+export const GROUP_INVITE_FIELDS = gql`
+  fragment GroupInviteFields on GroupInvite {
+    id
+    code
+    createdAt
+    expiresAt
+    maxUses
+    uses
+    revokedAt
+    status
+  }
+`;
+
+export const GROUP_MEMBERS_QUERY = gql`
+  ${GROUP_INVITE_FIELDS}
+  query GroupMembers($slug: String!) {
+    group(slug: $slug) {
+      id
+      isAdmin
+      memberCount
+      members {
+        userId
+        userName
+        imageUrl
+        role
+        joinedAt
+        isMe
+      }
+      invites {
+        ...GroupInviteFields
+      }
+    }
+  }
+`;
+
+export const INVITE_PREVIEW_QUERY = gql`
+  query InvitePreview($code: String!) {
+    invitePreview(code: $code) {
+      groupName
+      groupSlug
+      status
+      alreadyMember
+    }
+  }
+`;
+
+export const CREATE_GROUP_MUTATION = gql`
+  ${GROUP_FIELDS}
+  mutation CreateGroup($input: CreateGroupInput!) {
+    createGroup(input: $input) {
+      ...GroupFields
+    }
+  }
+`;
+
+export const REDEEM_INVITE_MUTATION = gql`
+  ${GROUP_FIELDS}
+  mutation RedeemInvite($code: String!) {
+    redeemInvite(code: $code) {
+      ...GroupFields
+    }
+  }
+`;
+
+export const CREATE_INVITE_MUTATION = gql`
+  ${GROUP_INVITE_FIELDS}
+  mutation CreateInvite($input: CreateInviteInput!) {
+    createInvite(input: $input) {
+      ...GroupInviteFields
+    }
+  }
+`;
+
+export const REVOKE_INVITE_MUTATION = gql`
+  ${GROUP_INVITE_FIELDS}
+  mutation RevokeInvite($id: ID!) {
+    revokeInvite(id: $id) {
+      ...GroupInviteFields
+    }
+  }
+`;
+
+export const SET_MEMBER_ROLE_MUTATION = gql`
+  mutation SetMemberRole(
+    $groupSlug: String!
+    $userId: ID!
+    $role: GroupRole!
+  ) {
+    setMemberRole(groupSlug: $groupSlug, userId: $userId, role: $role) {
+      userId
+      role
+    }
+  }
+`;
+
+export const REMOVE_MEMBER_MUTATION = gql`
+  mutation RemoveMember($groupSlug: String!, $userId: ID!) {
+    removeMember(groupSlug: $groupSlug, userId: $userId)
+  }
+`;
+
+export const LEAVE_GROUP_MUTATION = gql`
+  mutation LeaveGroup($groupSlug: String!) {
+    leaveGroup(groupSlug: $groupSlug)
+  }
+`;
+
 export const TORTILLA_FIELDS = gql`
   fragment TortillaFields on Tortilla {
     id
@@ -38,8 +176,8 @@ export const COMMENT_FIELDS = gql`
 export const CURRENT_TORTILLAS_QUERY = gql`
   ${TORTILLA_FIELDS}
   ${COMMENT_FIELDS}
-  query CurrentTortillas {
-    currentTortillas {
+  query CurrentTortillas($groupSlug: String!) {
+    currentTortillas(groupSlug: $groupSlug) {
       ...TortillaFields
       myVote {
         id
@@ -55,8 +193,8 @@ export const CURRENT_TORTILLAS_QUERY = gql`
 
 /** Solo fechas: para saber si la jornada de hoy ya pasó, sin traer votos. */
 export const TORTILLA_DATES_QUERY = gql`
-  query TortillaDates {
-    tortillas {
+  query TortillaDates($groupSlug: String!) {
+    tortillas(groupSlug: $groupSlug) {
       id
       date
     }
@@ -65,8 +203,8 @@ export const TORTILLA_DATES_QUERY = gql`
 
 export const TORTILLAS_QUERY = gql`
   ${TORTILLA_FIELDS}
-  query Tortillas {
-    tortillas {
+  query Tortillas($groupSlug: String!) {
+    tortillas(groupSlug: $groupSlug) {
       ...TortillaFields
       myVote {
         id
@@ -157,16 +295,16 @@ const USER_STATS_FIELDS = `
 `;
 
 export const MY_STATS_QUERY = gql`
-  query MyStats {
-    myStats {
+  query MyStats($groupSlug: String!) {
+    myStats(groupSlug: $groupSlug) {
       ${USER_STATS_FIELDS}
     }
   }
 `;
 
 export const NEW_ACHIEVEMENTS_QUERY = gql`
-  query NewAchievements {
-    newAchievements {
+  query NewAchievements($groupSlug: String!) {
+    newAchievements(groupSlug: $groupSlug) {
       id
       emoji
       unlocked
@@ -176,14 +314,14 @@ export const NEW_ACHIEVEMENTS_QUERY = gql`
 `;
 
 export const MARK_ACHIEVEMENTS_SEEN_MUTATION = gql`
-  mutation MarkAchievementsSeen($ids: [String!]!) {
-    markAchievementsSeen(ids: $ids)
+  mutation MarkAchievementsSeen($groupSlug: String!, $ids: [String!]!) {
+    markAchievementsSeen(groupSlug: $groupSlug, ids: $ids)
   }
 `;
 
 export const USER_STATS_QUERY = gql`
-  query UserStats($username: String!) {
-    userStats(username: $username) {
+  query UserStats($groupSlug: String!, $username: String!) {
+    userStats(groupSlug: $groupSlug, username: $username) {
       ${USER_STATS_FIELDS}
     }
   }
@@ -265,8 +403,8 @@ const RANKED_VOTER_FIELDS = `
 `;
 
 export const RANKING_QUERY = gql`
-  query Ranking {
-    ranking {
+  query Ranking($groupSlug: String!) {
+    ranking(groupSlug: $groupSlug) {
       year
       minVotesPerTortilla
       minVotesPerVoter
@@ -403,8 +541,8 @@ export const REVIEW_SPOT_REQUEST_MUTATION = gql`
 
 export const UPCOMING_TORTILLA_QUERY = gql`
   ${TORTILLA_EVENT_FIELDS}
-  query UpcomingTortilla {
-    upcomingTortilla {
+  query UpcomingTortilla($groupSlug: String!) {
+    upcomingTortilla(groupSlug: $groupSlug) {
       ...TortillaEventFields
     }
   }

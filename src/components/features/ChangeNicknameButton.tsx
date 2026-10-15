@@ -10,7 +10,6 @@ import {
   CHANGE_NICKNAME_MUTATION,
   ME_QUERY,
   MY_NICKNAME_QUERY,
-  MY_STATS_QUERY,
 } from '@/graphql/operations';
 import { MAX_NICKNAME_CHANGES, NICKNAME_RE } from '@/lib/nickname';
 
@@ -39,7 +38,8 @@ export function ChangeNicknameButton() {
 
   const [changeNickname, { loading }] = useMutation(CHANGE_NICKNAME_MUTATION, {
     // El nombre aparece en la navbar, en las estadísticas y en cada voto.
-    refetchQueries: [{ query: ME_QUERY }, { query: MY_STATS_QUERY }],
+    // Por nombre: las stats son por grupo y solo se refrescan si están en pantalla.
+    refetchQueries: [{ query: ME_QUERY }, 'MyStats'],
     awaitRefetchQueries: true,
   });
 

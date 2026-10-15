@@ -2,6 +2,8 @@
 
 import { useId, useState } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { groupProfilePath } from '@/lib/groups';
 import { Avatar, Image } from 'antd';
 import { useIsBirthday } from '@/components/BirthdayContext';
 import { useLanguage } from '@/components/LanguageContext';
@@ -24,7 +26,8 @@ type Props = {
   /** `false` deja solo el avatar (navbar, cabecera de perfil). */
   showName?: boolean;
   /**
-   * Destino del enlace. Por defecto, el perfil público de `userName`.
+   * Destino del enlace. Por defecto, el perfil de `userName` dentro del grupo
+   * de la ruta actual (fuera de un grupo, sin enlace).
    * `null` renderiza el chip sin enlazar (p. ej. en el propio perfil).
    */
   href?: string | null;
@@ -88,10 +91,6 @@ function BirthdayHat({ size, label }: { size: number; label: string }) {
   );
 }
 
-export function profileHref(userName: string): string {
-  return `/profile/${encodeURIComponent(userName)}`;
-}
-
 export function UserChip({
   userName,
   imageUrl,
@@ -104,7 +103,12 @@ export function UserChip({
   ariaLabel,
   className,
 }: Props) {
-  const target = href === undefined ? profileHref(userName) : href;
+  // Por defecto, su perfil dentro del grupo de la ruta actual. Fuera de un
+  // grupo no se enlaza: los perfiles solo existen dentro de un grupo.
+  const params = useParams<{ slug?: string | string[] }>();
+  const groupSlug = typeof params?.slug === 'string' ? params.slug : null;
+  const defaultHref = groupSlug ? groupProfilePath(groupSlug, userName) : null;
+  const target = href === undefined ? defaultHref : href;
   const [previewOpen, setPreviewOpen] = useState(false);
   const canPreview = previewable && Boolean(imageUrl);
   const isBirthday = useIsBirthday(userName);

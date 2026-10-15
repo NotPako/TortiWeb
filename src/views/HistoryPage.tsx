@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@apollo/client';
 import {
   CommentsSection,
@@ -12,7 +11,7 @@ import { TortillaImage } from '@/components/features/TortillaImage';
 import { HistoryPageSkeleton } from '@/components/features/PageSkeletons';
 import { Input, List, Modal, Pagination, Segmented, Skeleton, Tag } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { useUser } from '@/components/UserContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import { useLanguage } from '@/components/LanguageContext';
 import { matchesAllTokens, toSearchTokens } from '@/lib/search';
 import {
@@ -90,21 +89,17 @@ function tagColorForScore(score: number): string {
 const PAGE_SIZE = 12;
 
 export default function HistoryPage() {
-  const { userName, isReady } = useUser();
+  // Sesión y pertenencia ya las garantiza GroupGate en el layout del grupo.
+  const { slug } = useCurrentGroup();
   const { t, locale } = useLanguage();
-  const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    if (isReady && !userName) router.replace('/login');
-  }, [isReady, userName, router]);
-
   const { data, loading, error } = useQuery<{ tortillas: Tortilla[] }>(
     TORTILLAS_QUERY,
-    { skip: !userName }
+    { variables: { groupSlug: slug }, skip: !slug }
   );
 
   const {
@@ -115,7 +110,7 @@ export default function HistoryPage() {
     tortilla: TortillaDetail | null;
   }>(TORTILLA_DETAIL_QUERY, {
     variables: { id: selectedId },
-    skip: !selectedId || !userName,
+    skip: !selectedId || !slug,
   });
 
   const detail = detailData?.tortilla ?? null;
@@ -182,7 +177,7 @@ export default function HistoryPage() {
     }
   }
 
-  if (!isReady || !userName) return null;
+  if (!slug) return null;
 
   if (loading && !data) {
     return <HistoryPageSkeleton />;

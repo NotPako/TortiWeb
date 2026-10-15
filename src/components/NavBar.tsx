@@ -9,7 +9,7 @@ import { useLanguage } from './LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Brand } from './Brand';
 import { useTheme } from './ThemeContext';
-import { isActive, navLinks, usePendingRequestCount } from './navLinks';
+import { isActive, useNavLinks } from './navLinks';
 import { UserChip } from './features/UserChip';
 import { ME_QUERY } from '@/graphql/operations';
 import styles from './NavBar.module.css';
@@ -20,10 +20,11 @@ type MeQueryResult = {
 
 export function NavBar() {
   const pathname = usePathname();
-  const { userName, userImage, signOut, isReady, isAdmin } = useUser();
+  const { userName, userImage, signOut, isReady } = useUser();
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const pendingRequests = usePendingRequestCount(isAdmin);
+  // Dentro de /g/<slug> los enlaces apuntan a ese grupo; fuera, a la lista.
+  const { links, profileHref } = useNavLinks();
 
   const { data: meData } = useQuery<MeQueryResult>(ME_QUERY, {
     skip: !isReady || !userName,
@@ -54,7 +55,7 @@ export function NavBar() {
 
         {isReady && userName ? (
           <nav className={styles.nav}>
-            {navLinks(isAdmin).map((l) => {
+            {links.map((l) => {
               const active = isActive(pathname, l.href);
               const linkClass = active
                 ? `${styles.navLink} ${styles.navLinkActive}`
@@ -67,12 +68,12 @@ export function NavBar() {
                   aria-current={active ? 'page' : undefined}
                 >
                   {t(l.labelKey)}
-                  {l.href === '/admin' && pendingRequests > 0 ? (
+                  {l.badge ? (
                     <span
                       className={styles.badge}
-                      aria-label={t('nav.adminPending', { n: pendingRequests })}
+                      aria-label={t('nav.adminPending', { n: l.badge })}
                     >
-                      {pendingRequests}
+                      {l.badge}
                     </span>
                   ) : null}
                 </Link>
@@ -95,7 +96,7 @@ export function NavBar() {
                 imageUrl={avatarSrc}
                 size={34}
                 showName={false}
-                href="/profile"
+                href={profileHref}
                 ariaLabel={t('profile.title')}
                 className={styles.avatarLink}
               />

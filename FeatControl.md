@@ -1,5 +1,39 @@
 # FeatControl
 
+## [2026-10-15] - Multi-grupo: cada peña con sus tortillas, votos y admins
+**Descripción**: TortiWeb deja de ser una app de un solo grupo. Cualquier usuario puede crear un **grupo**, del que queda como admin, e invitar a gente con un enlace o un código dictable (`ABCD-EFGH`, sin 0/O ni 1/I/L). Tortillas, votos, comentarios, convocatorias (con su tope de plazas y cola), rachas, **logros**, **ranking** y avisos de logro son **por grupo** y están aislados del resto. Tras iniciar sesión se aterriza en `/groups`, y todo lo del grupo vive bajo `/g/<slug>/…` (votar, historial, ranking, perfil, admin y miembros). `/profile` pasa a ser **"Mi cuenta"**: foto, nombre, cumpleaños y alergias, comunes a todos los grupos.
+
+Rehace sobre `main` la PR #24 (rama `feature/0016-Multi-group`), que se había quedado 14 merges atrás y aún identificaba a las personas por nombre. Diferencias con aquella:
+- **Todo va por id de cuenta**: membresías (`Membership.user`), creador de grupo e invitaciones. Renombrarse no te saca de tus grupos; el nombre de la membresía es una copia que se refresca, como en votos y comentarios. Las mutations de miembros (`setMemberRole`, `removeMember`) reciben `userId`.
+- **Logros por grupo**: "Centenario" son 100 votos en ese grupo. Los logros vistos pasan de `User` a `Membership.seenAchievements`, así que el aviso estilo Xbox salta en el grupo donde lo consigues. Al entrar en un grupo donde ya votaste antes de tener cuenta, la primera visita fija la línea base sin celebrar.
+- **Cumpleaños**: `birthdaysToday` solo devuelve gente con la que compartes algún grupo.
+- **Convocatorias**: expulsar a alguien o que se vaya lo saca de la convocatoria abierta y de su cola, y entra la siguiente solicitud.
+- La pestaña Admin (contador de solicitudes incluido) y la de pestañas en móvil siguen al grupo de la URL.
+
+**Roles por grupo**: `User.role` global se sustituye por `Membership.role`, así que se puede ser admin de una peña y miembro de otra. El rol se lee de la BD en cada petición y ya no viaja en el JWT. Un grupo nunca se queda sin admins: no se puede degradar, expulsar ni dejar salir al último.
+
+**Autorización**: todo pasa por `requireGroupAccess` / `requireGroupAdmin` (`src/graphql/resolvers/access.ts`). El id del grupo con el que se filtra sale de esos helpers, nunca directamente de los argumentos. A quien no es miembro, el grupo y su contenido le responden igual que si no existieran ("no encontrado", nunca "prohibido"). Los invariantes que eran globales pasan a ser por grupo: la jornada votable, una convocatoria abierta a la vez y el auto-cierre al subir tortilla. Las **alergias** las ven los admins *de ese grupo* y los apuntados. Los **perfiles** solo existen dentro de un grupo compartido: `userStats` exige ser miembro y solo cuenta actividad de ese grupo, para no revelar en qué otras peñas está nadie.
+
+**Invitaciones**: caducidad (1-90 días) y máximo de usos opcionales; el uso se consume de forma atómica, así que dos canjes simultáneos no superan el máximo. Canjear dos veces es idempotente. Revocar no borra la invitación. Sin sesión, `/join/<code>` manda a login o registro conservando el enlace en `callbackUrl`, que solo admite rutas internas.
+
+**Refactor**: `resolvers.ts` (1.595 líneas) se divide por dominio en `src/graphql/resolvers/` (tortillas, comentarios, convocatorias, usuarios, perfiles, ranking, grupos, más `access`, `payloads`, `stats`, `spots` y `media`).
+**Archivos principales**:
+- `src/models/Group.ts`, `Membership.ts`, `GroupInvite.ts` (nuevos); `group` requerido e indexado en `Tortilla`, `TortillaEvent`, `Vote` y `Comment`; `User.role` opcional y deprecado; `User.seenAchievements` → `Membership.seenAchievements`
+- `src/lib/groups.ts`, `invites.ts`, `navigation.ts` + tests
+- `src/graphql/resolvers/*`, `typeDefs.ts` (tipos `Group`, `GroupMember`, `GroupInvite`, `InvitePreview`; `groupSlug` en queries e inputs), `operations.ts`
+- Tests: `resolvers.test.ts` adaptado a un grupo, y de la #24 `tortillas`, `events`, `groups`, `isolation` (un test por resolver accediendo desde otro grupo, ampliado con ranking, logros y solicitudes) y `schema` (ApolloServer real)
+- `src/hooks/useCurrentGroup.ts`, `src/components/navLinks.tsx` (navegación según el grupo de la URL)
+- `src/components/features/GroupGate.tsx`, `GroupMembersList.tsx`, `GroupInvitesPanel.tsx`, `ProfileHeader.tsx`
+- `src/views/GroupsPage.tsx`, `CreateGroupPage.tsx`, `JoinGroupPage.tsx`, `MembersPage.tsx`, `AccountPage.tsx` (nuevas); vistas existentes adaptadas al grupo actual
+- `src/app/g/[slug]/…`, `src/app/groups/…`, `src/app/join/[code]`; `/vote`, `/history`, `/ranking`, `/admin` y `/profile/[username]` redirigen a `/groups`
+- `scripts/migrate-to-groups.mjs` y `scripts/migrate-votes-to-user-id.mjs` (este último es el de la 0017, que no estaba en el repo); `scripts/` deja de estar en `.gitignore`
+- `src/lib/i18n.ts` (claves `groups.*`, `group.*`, `members.*`, `invites.*`, `join.*`, `account.*`, ES + CA)
+**Tecnologías**: Mongoose (índices únicos compuestos, `findOneAndUpdate` atómico con `$expr`), Next.js App Router (layouts anidados, `useParams`), ANTD Result / List / Popconfirm / Select / Typography copyable
+**Notas**: **Requiere migración antes de usar la nueva versión**, en este orden (los dos son idempotentes y por defecto solo muestran el plan):
+1. `node scripts/migrate-votes-to-user-id.mjs` y después `--execute` (la de la 0017; si ya se aplicó, no hace nada).
+2. `node scripts/migrate-to-groups.mjs` y después `--execute [--slug=… --name="…"]`. Crea el grupo por defecto, da membresía a todos los usuarios con nombre elegido copiando su rol y sus logros vistos, asigna el grupo a los datos existentes, cambia los índices y verifica que no queda nada sin grupo. Se niega a seguir si la 0017 no está aplicada. Conviene relanzarlo justo después de desplegar.
+Mientras no se ejecute, los datos antiguos no aparecen en ningún grupo. `User.role` y `User.seenAchievements` no se borran hasta validar en producción. Las cuentas que entraron con Google y aún no han elegido nombre no reciben membresía: necesitarán una invitación.
+
 ## [2026-10-15] - Logros ocultos
 **Descripción**: Cinco logros secretos que **no aparecen en el perfil hasta desbloquearlos** (ni siquiera como casilla bloqueada; el contador solo cuenta los visibles y los secretos ya descubiertos):
 - 🌿 **420**: escribir la palabra "Canut" en un comentario. Palabra exacta, sin distinguir mayúsculas: "Canut!" o "CANUT" sí; "canuto" o "escanut" no.
