@@ -109,3 +109,24 @@
   color: var(--c-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* Móvil: con 20 logros, a dos por fila la cuadrícula pasaba de una pantalla. */
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .badge {
+    padding: 10px 4px;
+    gap: 5px;
+  }
+
+  .emoji {
+    font-size: 26px;
+  }
+
+  .label {
+    font-size: 10.5px;
+  }
+}

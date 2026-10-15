@@ -16,7 +16,6 @@ import {
   computeAchievements,
   isAchievementId,
   unseenAchievements,
-  type VoteForAchievements,
 } from '@/lib/achievements';
 import { isSameDay, nextWednesday } from '@/lib/dates';
 import { computeStreaks } from '@/lib/streak';
@@ -259,6 +258,88 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * renombrarse no pierde el historial. Sin cuenta (votos históricos anteriores
  * al registro) solo queda el nombre.
  */
+/**
+ * Reúne lo que necesitan los logros: los votos y comentarios de los demás en
+ * las mismas tortillas (para "el más duro", "Oráculo", "Madrugador"…), qué
+ * tortillas ya cerraron y a cuántas convocatorias se apuntó.
+ */
+async function achievementsFor(args: {
+  userId: Types.ObjectId | null;
+  userKey: string;
+  voteDocs: {
+    _id: unknown;
+    score: number;
+    reaction?: Reaction | null;
+    tortilla: TortillaDocument | null;
+  }[];
+  tortillaList: Pick<TortillaDocument, '_id' | 'date' | 'closedAt'>[];
+  totalVotes: number;
+  bestStreak: number;
+}) {
+  const { userId, userKey, tortillaList } = args;
+  const voteDocs = args.voteDocs.filter(
+    (v): v is typeof v & { tortilla: TortillaDocument } => Boolean(v.tortilla)
+  );
+  const myVoteIds = new Set(voteDocs.map((v) => String(v._id)));
+  const userTortillaIds = voteDocs.map((v) => v.tortilla._id as Types.ObjectId);
+
+  // Igual que con los votos: por cuenta o, sin cuenta, por nombre.
+  const ownFilter = userId
+    ? { user: userId }
+    : { userKey, user: { $exists: false } };
+  const myComments = await Comment.find(ownFilter).select('_id tortilla').exec();
+  const myCommentIds = new Set(myComments.map((c) => String(c._id)));
+  const commentedTortillaIds = [...new Set(myComments.map((c) => String(c.tortilla)))];
+
+  const [relevantVoteDocs, relevantCommentDocs, attendedEvents] = await Promise.all([
+    userTortillaIds.length
+      ? Vote.find({ tortilla: { $in: userTortillaIds } })
+          .select('_id tortilla score createdAt')
+          .exec()
+      : [],
+    commentedTortillaIds.length
+      ? Comment.find({ tortilla: { $in: commentedTortillaIds } })
+          .select('_id tortilla createdAt')
+          .exec()
+      : [],
+    TortillaEvent.countDocuments(
+      userId
+        ? { 'attendees.user': userId }
+        : { attendees: { $elemMatch: { userKey, user: { $exists: false } } } }
+    ).exec(),
+  ]);
+
+  // La votación terminó si se cerró a mano o si ya hay una jornada posterior.
+  const latest = tortillaList[0];
+  const finishedTortillaIds = tortillaList
+    .filter((t) => t.closedAt || (latest && !isSameDay(t.date, latest.date)))
+    .map((t) => String(t._id));
+
+  return computeAchievements({
+    totalVotes: args.totalVotes,
+    bestStreak: args.bestStreak,
+    userVotes: voteDocs.map((v) => ({
+      tortillaId: String(v.tortilla._id),
+      score: v.score,
+      reaction: v.reaction ?? null,
+      tortillaDate: v.tortilla.date,
+    })),
+    allRelevantVotes: relevantVoteDocs.map((v) => ({
+      tortillaId: String(v.tortilla),
+      score: v.score,
+      createdAt: v.createdAt,
+      mine: myVoteIds.has(String(v._id)),
+    })),
+    finishedTortillaIds,
+    relevantComments: relevantCommentDocs.map((c) => ({
+      tortillaId: String(c.tortilla),
+      createdAt: c.createdAt,
+      mine: myCommentIds.has(String(c._id)),
+    })),
+    attendedEvents,
+  });
+}
+
 async function computeUserStats(target: {
   userId: Types.ObjectId | null;
   userKey: string;
@@ -315,7 +396,7 @@ async function computeUserStats(target: {
 
   const tortillaList = await Tortilla.find({})
     .sort({ date: -1 })
-    .select('_id date')
+    .select('_id date closedAt')
     .exec();
 
   const votedIds = new Set(
@@ -334,30 +415,13 @@ async function computeUserStats(target: {
     votedTortillaIds: votedIds,
   });
 
-  // Logros: necesitamos min/max por tortilla en las que votó el usuario.
-  const userTortillaIds = voteDocs
-    .filter((v) => v.tortilla)
-    .map((v) => v.tortilla._id as Types.ObjectId);
-  const userVotes: VoteForAchievements[] = voteDocs
-    .filter((v) => v.tortilla)
-    .map((v) => ({
-      tortillaId: (v.tortilla._id as Types.ObjectId).toString(),
-      score: v.score,
-    }));
-  const allRelevantVotesRaw = userTortillaIds.length
-    ? await Vote.find({ tortilla: { $in: userTortillaIds } })
-        .select('tortilla score')
-        .exec()
-    : [];
-  const allRelevantVotes = allRelevantVotesRaw.map((v) => ({
-    tortillaId: (v.tortilla as Types.ObjectId).toString(),
-    score: v.score,
-  }));
-  const achievements = computeAchievements({
+  const achievements = await achievementsFor({
+    userId,
+    userKey,
+    voteDocs,
+    tortillaList,
     totalVotes,
     bestStreak,
-    userVotes,
-    allRelevantVotes,
   });
 
   return {
