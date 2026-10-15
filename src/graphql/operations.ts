@@ -152,6 +152,7 @@ const USER_STATS_FIELDS = `
     unlocked
     progress
     goal
+    hidden
   }
 `;
 
@@ -169,6 +170,7 @@ export const NEW_ACHIEVEMENTS_QUERY = gql`
       id
       emoji
       unlocked
+      hidden
     }
   }
 `;

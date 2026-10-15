@@ -1050,9 +1050,20 @@ describe('logros con comentarios y convocatorias', () => {
       imageContentType: 'image/png',
     });
 
-    await Mutation.addComment(null, { input: { tortillaId: t._id.toString(), text: 'Primera' } }, ana);
-    await Mutation.addComment(null, { input: { tortillaId: t._id.toString(), text: 'Segundo' } }, pepe);
-    await Mutation.addComment(null, { input: { tortillaId: t._id.toString(), text: 'Otra más' } }, ana);
+    // Hora fija por comentario: dos en el mismo milisegundo serían un empate
+    // y "Rompehielos" no sería para nadie.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const comment = async (ctx: unknown, text: string, minute: number) => {
+      vi.setSystemTime(new Date(Date.UTC(2026, 5, 10, 12, minute)));
+      await Mutation.addComment(null, { input: { tortillaId: t._id.toString(), text } }, ctx);
+    };
+    try {
+      await comment(ana, 'Primera', 0);
+      await comment(pepe, 'Segundo', 1);
+      await comment(ana, 'Otra más', 2);
+    } finally {
+      vi.useRealTimers();
+    }
 
     const event = (await Mutation.announceTortilla(null, { input: {} }, admin)) as { id: string };
     await Mutation.setAttendance(null, { id: event.id, attending: true }, ana);
@@ -1065,5 +1076,36 @@ describe('logros con comentarios y convocatorias', () => {
     const forPepe = byId(await Query.myStats(null, {}, pepe));
     expect(forPepe.get('icebreaker')?.unlocked).toBe(false);
     expect(forPepe.get('eventRegular')?.progress).toBe(0);
+  });
+});
+
+describe('logros ocultos', () => {
+  type Item = { id: string; unlocked: boolean; hidden: boolean };
+  const ids = (stats: unknown) =>
+    (stats as { achievements: Item[] }).achievements.map((a) => a.id);
+
+  it('no llegan al cliente hasta desbloquearse y entonces se celebran', async () => {
+    const { ctx } = await makeUser('ana');
+    const t = await Tortilla.create({
+      name: 'De patata',
+      date: new Date(2026, 5, 10),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+    // Línea base de avisos.
+    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
+    expect(ids(await Query.myStats(null, {}, ctx))).not.toContain('canut');
+
+    await Mutation.addComment(
+      null,
+      { input: { tortillaId: t._id.toString(), text: 'Vaya canut de tortilla' } },
+      ctx
+    );
+
+    expect(ids(await Query.myStats(null, {}, ctx))).toContain('canut');
+    const fresh = (await Query.newAchievements(null, {}, ctx)) as Item[];
+    expect(fresh).toContainEqual(
+      expect.objectContaining({ id: 'canut', hidden: true, unlocked: true })
+    );
   });
 });

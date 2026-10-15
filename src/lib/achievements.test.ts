@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   ACHIEVEMENT_IDS,
   computeAchievements,
+  containsWord,
   unseenAchievements,
+  visibleAchievements,
   type AchievementId,
   type RelevantVote,
   type VoteForAchievements,
@@ -18,6 +20,7 @@ const empty: Args = {
   allRelevantVotes: [],
   finishedTortillaIds: [],
   relevantComments: [],
+  myCommentTexts: [],
   attendedEvents: 0,
 };
 
@@ -36,7 +39,13 @@ function myVote(
   score: number,
   extra: Partial<VoteForAchievements> = {}
 ): VoteForAchievements {
-  return { tortillaId, score, tortillaDate: day('2026-10-14'), ...extra };
+  return {
+    tortillaId,
+    score,
+    tortillaDate: day('2026-10-14'),
+    castAt: [],
+    ...extra,
+  } as VoteForAchievements;
 }
 
 function relVote(
@@ -59,9 +68,10 @@ function soloVote(score: number): Args {
 }
 
 describe('computeAchievements', () => {
-  it('devuelve los 20 logros, todos bloqueados sin actividad', () => {
+  it('devuelve los 25 logros (5 ocultos), todos bloqueados sin actividad', () => {
     const result = computeAchievements(empty);
-    expect(result).toHaveLength(20);
+    expect(result).toHaveLength(25);
+    expect(result.filter((a) => a.hidden)).toHaveLength(5);
     expect(result.every((a) => !a.unlocked)).toBe(true);
   });
 
@@ -290,5 +300,63 @@ describe('traducciones', () => {
         }
       }
     }
+  });
+});
+
+describe('logros ocultos', () => {
+  const withComments = (...texts: string[]): Args => ({ ...empty, myCommentTexts: texts });
+  const unlocked = (args: Args, id: AchievementId) => unlockedMap(args).get(id);
+
+  it('no se ven hasta desbloquearlos', () => {
+    const visible = visibleAchievements(computeAchievements(empty));
+    expect(visible).toHaveLength(20);
+    expect(visible.some((a) => a.hidden)).toBe(false);
+
+    const afterCanut = visibleAchievements(
+      computeAchievements(withComments('Esto es un canut'))
+    );
+    expect(afterCanut.map((a) => a.id)).toContain('canut');
+    expect(afterCanut.some((a) => a.id === 'pi')).toBe(false);
+  });
+
+  it('420: la palabra "Canut" exacta, en mayúsculas o minúsculas', () => {
+    expect(unlocked(withComments('Canut'), 'canut')).toBe(true);
+    expect(unlocked(withComments('vaya CANUT, tío!'), 'canut')).toBe(true);
+    expect(unlocked(withComments('un canuto'), 'canut')).toBe(false);
+    expect(unlocked(withComments('escanut'), 'canut')).toBe(false);
+  });
+
+  it('Cebollista: "cebolla" o "ceba" como palabra', () => {
+    expect(unlocked(withComments('Con CEBOLLA, siempre'), 'onionLover')).toBe(true);
+    expect(unlocked(withComments('Sense ceba no és truita'), 'onionLover')).toBe(true);
+    expect(unlocked(withComments('sabe a cebada'), 'onionLover')).toBe(false);
+  });
+
+  it('Novelista: un comentario de la longitud máxima', () => {
+    expect(unlocked(withComments('a'.repeat(280)), 'novelist')).toBe(true);
+    expect(unlocked(withComments('a'.repeat(279)), 'novelist')).toBe(false);
+  });
+
+  it('Pi: exactamente un 3,1', () => {
+    expect(unlockedMap(soloVote(3.1)).get('pi')).toBe(true);
+    expect(unlockedMap(soloVote(3.2)).get('pi')).toBe(false);
+  });
+
+  it('Noctámbulo: votar entre las 00:00 y las 05:00 de Madrid', () => {
+    const votedAt = (iso: string): Args => ({
+      ...empty,
+      userVotes: [myVote('t1', 7, { castAt: [new Date(iso)] })],
+    });
+    // 23:30 UTC en octubre = 01:30 en Madrid.
+    expect(unlocked(votedAt('2026-10-14T23:30:00Z'), 'nightOwl')).toBe(true);
+    // 03:30 UTC = 05:30 en Madrid: ya no.
+    expect(unlocked(votedAt('2026-10-15T03:30:00Z'), 'nightOwl')).toBe(false);
+    // 21:30 UTC = 23:30 en Madrid: aún no.
+    expect(unlocked(votedAt('2026-10-14T21:30:00Z'), 'nightOwl')).toBe(false);
+  });
+
+  it('containsWord respeta letras con tilde como parte de la palabra', () => {
+    expect(containsWord('canutó', ['canut'])).toBe(false);
+    expect(containsWord('¡canut!', ['canut'])).toBe(true);
   });
 });

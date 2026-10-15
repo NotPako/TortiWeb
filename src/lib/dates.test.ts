@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { daysUntil, isSameDay, nextWednesday } from './dates';
+import { daysUntil, hourIn, isSameDay, nextWednesday } from './dates';
 
 // 2026-06-10 es miércoles; 2026-06-11 jueves; 2026-06-17 el siguiente miércoles.
 describe('nextWednesday', () => {
@@ -57,5 +57,14 @@ describe('daysUntil', () => {
     // El 25 de octubre de 2026 el día dura 25 h en Madrid.
     const from = new Date('2026-10-24T12:00:00Z');
     expect(daysUntil(new Date('2026-10-28T12:00:00Z'), from)).toBe(4);
+  });
+});
+
+describe('hourIn', () => {
+  it('da la hora de Madrid, con su cambio de hora', () => {
+    // Verano (UTC+2) e invierno (UTC+1).
+    expect(hourIn(new Date('2026-10-14T23:30:00Z'))).toBe(1);
+    expect(hourIn(new Date('2026-12-14T23:30:00Z'))).toBe(0);
+    expect(hourIn(new Date('2026-10-14T22:00:00Z'))).toBe(0);
   });
 });

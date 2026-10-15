@@ -30,7 +30,10 @@ export function UpcomingTortillaCard() {
     UPCOMING_TORTILLA_QUERY,
     { fetchPolicy: 'cache-and-network' }
   );
-  const [setAttendance, { loading }] = useMutation(SET_ATTENDANCE_MUTATION);
+  const [setAttendance, { loading }] = useMutation(SET_ATTENDANCE_MUTATION, {
+    // "Fiel a la cita" se consigue al apuntarse.
+    refetchQueries: ['NewAchievements'],
+  });
   const [error, setError] = useState<string | null>(null);
 
   const event = data?.upcomingTortilla ?? null;

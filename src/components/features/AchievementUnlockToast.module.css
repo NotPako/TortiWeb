@@ -119,6 +119,19 @@
   text-overflow: ellipsis;
 }
 
+/* Secreto: el círculo y el texto pasan a violeta. */
+.toastSecret .badge {
+  background: radial-gradient(circle at 35% 30%, #c4a1ff, #7c3aed 60%, #4c1d95);
+}
+
+.toastSecret .ring {
+  border-color: #c4a1ff;
+}
+
+.toastSecret .kicker {
+  color: #c4a1ff;
+}
+
 @keyframes toastLife {
   0% {
     opacity: 0;

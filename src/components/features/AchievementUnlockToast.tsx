@@ -101,7 +101,9 @@ export function AchievementUnlockToast() {
       <button
         key={current.id}
         type="button"
-        className={styles.toast}
+        className={
+          current.hidden ? `${styles.toast} ${styles.toastSecret}` : styles.toast
+        }
         onAnimationEnd={handleAnimationEnd}
         onClick={() => {
           next();
@@ -114,7 +116,9 @@ export function AchievementUnlockToast() {
         </span>
         <span className={styles.text}>
           <span className={styles.kicker}>
-            🏆 {t('achievement.unlockedToast')}
+            {current.hidden
+              ? `🤫 ${t('achievement.secretUnlockedToast')}`
+              : `🏆 ${t('achievement.unlockedToast')}`}
           </span>
           <span className={styles.title}>{title}</span>
         </span>

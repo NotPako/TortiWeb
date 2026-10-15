@@ -237,6 +237,8 @@ export const typeDefs = gql`
     progress: Int
     """Umbral del logro; null en los de sí/no."""
     goal: Int
+    """Logro oculto. Solo se envía una vez desbloqueado."""
+    hidden: Boolean!
   }
 
   type Query {

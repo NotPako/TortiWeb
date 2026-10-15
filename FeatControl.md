@@ -1,5 +1,26 @@
 # FeatControl
 
+## [2026-10-15] - Logros ocultos
+**Descripción**: Cinco logros secretos que **no aparecen en el perfil hasta desbloquearlos** (ni siquiera como casilla bloqueada; el contador solo cuenta los visibles y los secretos ya descubiertos):
+- 🌿 **420**: escribir la palabra "Canut" en un comentario. Palabra exacta, sin distinguir mayúsculas: "Canut!" o "CANUT" sí; "canuto" o "escanut" no.
+- 🧅 **Cebollista**: escribir "cebolla" o "ceba" (palabras exactas; "cebada" no).
+- 📜 **Novelista**: un comentario de la longitud máxima (280).
+- 🥧 **Pi**: poner exactamente un 3,1.
+- 🦉 **Noctámbulo**: votar entre las 00:00 y las 05:00 (hora de Madrid), al votar o al cambiar el voto.
+
+Al desbloquearlos se ven con un tono violeta y la etiqueta "Secreto", y el aviso estilo Xbox sale en violeta con "🤫 Logro secreto desbloqueado".
+
+Además, el aviso de logro nuevo ahora también se comprueba **al comentar y al apuntarse** a la convocatoria (antes solo al votar o al cargar la página), así que los logros de comentarios se celebran al momento.
+**Archivos principales**:
+- `src/lib/achievements.ts` (`hidden`, `visibleAchievements`, `containsWord`) + tests
+- `src/lib/dates.ts` (`hourIn`)
+- `src/graphql/resolvers.ts` (textos de comentarios y horas de voto; los ocultos bloqueados no se envían)
+- `src/components/features/AchievementsGrid.tsx`, `AchievementUnlockToast.tsx` (+ CSS)
+- `src/components/features/CommentsSection.tsx`, `UpcomingTortillaCard.tsx` (refresco de logros nuevos)
+- `src/app/globals.css` (`--c-secret*`), `src/lib/i18n.ts`
+**Tecnologías**: RegExp Unicode (`\p{L}`) para límites de palabra con tildes
+**Notas**: El servidor no envía los ocultos bloqueados, pero los títulos y descripciones viven en las traducciones del cliente: alguien que lea el JavaScript de la web podría encontrarlos. Para un juego entre compañeros no compensa moverlos al servidor.
+
 ## [2026-10-15] - 11 logros nuevos (20 en total)
 **Descripción**: Se añaden logros de votos, constancia y participación:
 - 🏛️ **Centenario**: 100 tortillas votadas. 🐉 **Leyenda**: racha de 20 jornadas.

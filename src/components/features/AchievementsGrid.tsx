@@ -11,6 +11,8 @@ export type AchievementItem = {
   unlocked: boolean;
   progress?: number | null;
   goal?: number | null;
+  /** Oculto: solo llega una vez desbloqueado. */
+  hidden?: boolean;
 };
 
 type Props = {
@@ -66,13 +68,20 @@ export function AchievementsGrid({ achievements }: Props) {
               }
             >
               <div
-                className={
-                  a.unlocked
-                    ? styles.badge
-                    : `${styles.badge} ${styles.badgeLocked}`
-                }
+                className={[
+                  styles.badge,
+                  a.unlocked ? null : styles.badgeLocked,
+                  a.hidden ? styles.badgeSecret : null,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 aria-label={title}
               >
+                {a.hidden ? (
+                  <span className={styles.secretTag}>
+                    {t('profile.achievementSecret')}
+                  </span>
+                ) : null}
                 <span className={styles.emoji} aria-hidden>
                   {a.emoji}
                 </span>
