@@ -7,7 +7,7 @@ import {
   expect,
   vi,
 } from 'vitest';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // La conexión real lanza si falta MONGODB_URI y abriría Atlas: la sustituimos
@@ -26,7 +26,9 @@ vi.mock('@/lib/r2', () => ({
 
 import { resolvers } from './resolvers';
 import { User } from '@/models/User';
-import { Tortilla } from '@/models/Tortilla';
+import { Group } from '@/models/Group';
+import { Membership } from '@/models/Membership';
+import { Tortilla, type TortillaDocument } from '@/models/Tortilla';
 import { TortillaEvent } from '@/models/TortillaEvent';
 import { Vote } from '@/models/Vote';
 import { Comment } from '@/models/Comment';
@@ -37,10 +39,23 @@ const Mutation = resolvers.Mutation as Record<string, AnyResolver>;
 
 let mongod: MongoMemoryServer;
 
-/** Crea un usuario y devuelve un ctx de sesión con su rol. */
+/** Slug del grupo por defecto de estos tests. */
+const G = 'g';
+
+/** El grupo por defecto, creado la primera vez que se pide en cada test. */
+async function defaultGroup() {
+  const existing = await Group.findOne({ slug: G }).exec();
+  if (existing) return existing;
+  return Group.create({ name: 'Grupo', slug: G, createdBy: new Types.ObjectId() });
+}
+
+/**
+ * Crea un usuario, lo mete en el grupo por defecto con ese rol y devuelve un
+ * ctx de sesión. `role: null` lo deja fuera de cualquier grupo.
+ */
 async function makeUser(
   username: string,
-  role: 'user' | 'admin' = 'user'
+  role: 'user' | 'admin' | null = 'user'
 ) {
   const usernameKey = username.toLowerCase();
   const doc = await User.create({
@@ -48,8 +63,16 @@ async function makeUser(
     usernameKey,
     email: `${usernameKey}@test.dev`,
     emailKey: `${usernameKey}@test.dev`,
-    role,
   });
+  if (role) {
+    const group = await defaultGroup();
+    await Membership.create({
+      group: group._id,
+      user: doc._id,
+      userName: username,
+      role: role === 'admin' ? 'admin' : 'member',
+    });
+  }
   const id = doc._id.toString();
   const ctx = {
     session: {
@@ -59,11 +82,28 @@ async function makeUser(
         usernameKey,
         email: `${usernameKey}@test.dev`,
         needsUsername: false,
-        role,
       },
     },
   };
   return { doc, ctx };
+}
+
+/** Tortilla del grupo por defecto. */
+async function newTortilla(fields: {
+  name: string;
+  date: Date;
+  imageKey: string;
+  imageContentType: string;
+  closedAt?: Date;
+}): Promise<TortillaDocument> {
+  const group = await defaultGroup();
+  return Tortilla.create({ group: group._id, ...fields });
+}
+
+/** Votos directos a BD en el grupo por defecto. */
+async function insertVotes(votes: Record<string, unknown>[]) {
+  const group = await defaultGroup();
+  return Vote.insertMany(votes.map((v) => ({ group: group._id, ...v })));
 }
 
 beforeAll(async () => {
@@ -87,7 +127,7 @@ describe('announceTortilla (roles + invariantes)', () => {
   it('rechaza a usuarios no admin', async () => {
     const { ctx } = await makeUser('pepe', 'user');
     await expect(
-      Mutation.announceTortilla(null, { input: {} }, ctx)
+      Mutation.announceTortilla(null, { input: { groupSlug: G } }, ctx)
     ).rejects.toThrow(/administrador/i);
   });
 
@@ -95,7 +135,7 @@ describe('announceTortilla (roles + invariantes)', () => {
     const { ctx } = await makeUser('jefa', 'admin');
     const event = (await Mutation.announceTortilla(
       null,
-      { input: { note: 'traed pan' } },
+      { input: { groupSlug: G, note: 'traed pan' } },
       ctx
     )) as { open: boolean; note: string; attendeeCount: number };
 
@@ -103,15 +143,15 @@ describe('announceTortilla (roles + invariantes)', () => {
     expect(event.note).toBe('traed pan');
     expect(event.attendeeCount).toBe(0);
 
-    const upcoming = await Query.upcomingTortilla(null, {}, ctx);
+    const upcoming = await Query.upcomingTortilla(null, { groupSlug: G }, ctx);
     expect(upcoming).not.toBeNull();
   });
 
   it('no permite dos convocatorias abiertas a la vez', async () => {
     const { ctx } = await makeUser('jefa', 'admin');
-    await Mutation.announceTortilla(null, { input: {} }, ctx);
+    await Mutation.announceTortilla(null, { input: { groupSlug: G } }, ctx);
     await expect(
-      Mutation.announceTortilla(null, { input: {} }, ctx)
+      Mutation.announceTortilla(null, { input: { groupSlug: G } }, ctx)
     ).rejects.toThrow(/ya hay una convocatoria/i);
   });
 });
@@ -122,7 +162,7 @@ describe('setAttendance (apuntarse / desapuntarse)', () => {
     const { ctx: user } = await makeUser('pepe', 'user');
     const event = (await Mutation.announceTortilla(
       null,
-      { input: {} },
+      { input: { groupSlug: G } },
       admin
     )) as { id: string };
 
@@ -156,7 +196,7 @@ describe('setAttendance (apuntarse / desapuntarse)', () => {
     const { ctx: user } = await makeUser('pepe', 'user');
     const event = (await Mutation.announceTortilla(
       null,
-      { input: {} },
+      { input: { groupSlug: G } },
       admin
     )) as { id: string };
     await Mutation.closeTortillaEvent(null, { id: event.id }, admin);
@@ -170,12 +210,13 @@ describe('setAttendance (apuntarse / desapuntarse)', () => {
 describe('createTortilla auto-cierra la convocatoria abierta', () => {
   it('al subir la tortilla cocinada, la convocatoria se cierra', async () => {
     const { ctx: admin } = await makeUser('jefa', 'admin');
-    await Mutation.announceTortilla(null, { input: {} }, admin);
+    await Mutation.announceTortilla(null, { input: { groupSlug: G } }, admin);
 
     await Mutation.createTortilla(
       null,
       {
         input: {
+          groupSlug: G,
           name: 'De patata',
           imageBase64: 'aGVsbG8=', // "hello"
           imageContentType: 'image/png',
@@ -192,13 +233,13 @@ describe('createTortilla auto-cierra la convocatoria abierta', () => {
 describe('castVote solo permite votar la jornada en curso', () => {
   it('rechaza votar una tortilla antigua', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
-    const older = await Tortilla.create({
+    const older = await newTortilla({
       name: 'Vieja',
       date: new Date(2026, 0, 1),
       imageKey: 'k1',
       imageContentType: 'image/png',
     });
-    await Tortilla.create({
+    await newTortilla({
       name: 'Nueva',
       date: new Date(2026, 5, 10),
       imageKey: 'k2',
@@ -216,7 +257,7 @@ describe('castVote solo permite votar la jornada en curso', () => {
 
   it('permite votar la más reciente', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
-    const latest = await Tortilla.create({
+    const latest = await newTortilla({
       name: 'Nueva',
       date: new Date(2026, 5, 10),
       imageKey: 'k2',
@@ -235,13 +276,13 @@ describe('castVote solo permite votar la jornada en curso', () => {
   it('permite votar cualquiera de las dos tortillas del mismo día', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
     // Mismo día natural, subidas a horas distintas.
-    const a = await Tortilla.create({
+    const a = await newTortilla({
       name: 'De patata',
       date: new Date(2026, 5, 10, 12, 0),
       imageKey: 'k1',
       imageContentType: 'image/png',
     });
-    const b = await Tortilla.create({
+    const b = await newTortilla({
       name: 'De calabacín',
       date: new Date(2026, 5, 10, 14, 30),
       imageKey: 'k2',
@@ -266,13 +307,13 @@ describe('castVote solo permite votar la jornada en curso', () => {
 
   it('subir una tortilla de un día posterior cierra la jornada anterior', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
-    const ayer = await Tortilla.create({
+    const ayer = await newTortilla({
       name: 'De ayer',
       date: new Date(2026, 5, 10),
       imageKey: 'k1',
       imageContentType: 'image/png',
     });
-    await Tortilla.create({
+    await newTortilla({
       name: 'De hoy',
       date: new Date(2026, 5, 17),
       imageKey: 'k2',
@@ -292,20 +333,20 @@ describe('castVote solo permite votar la jornada en curso', () => {
 describe('currentTortillas devuelve la jornada completa', () => {
   it('devuelve las dos tortillas del mismo día', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
-    await Tortilla.create({
+    await newTortilla({
       name: 'De patata',
       date: new Date(2026, 5, 10, 12, 0),
       imageKey: 'k1',
       imageContentType: 'image/png',
     });
-    await Tortilla.create({
+    await newTortilla({
       name: 'De calabacín',
       date: new Date(2026, 5, 10, 14, 30),
       imageKey: 'k2',
       imageContentType: 'image/png',
     });
 
-    const list = (await Query.currentTortillas(null, {}, user)) as Array<{
+    const list = (await Query.currentTortillas(null, { groupSlug: G }, user)) as Array<{
       name: string;
     }>;
     expect(list).toHaveLength(2);
@@ -317,20 +358,20 @@ describe('currentTortillas devuelve la jornada completa', () => {
 
   it('excluye las de días anteriores', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
-    await Tortilla.create({
+    await newTortilla({
       name: 'Vieja',
       date: new Date(2026, 5, 3),
       imageKey: 'k0',
       imageContentType: 'image/png',
     });
-    await Tortilla.create({
+    await newTortilla({
       name: 'De hoy',
       date: new Date(2026, 5, 10),
       imageKey: 'k1',
       imageContentType: 'image/png',
     });
 
-    const list = (await Query.currentTortillas(null, {}, user)) as Array<{
+    const list = (await Query.currentTortillas(null, { groupSlug: G }, user)) as Array<{
       name: string;
     }>;
     expect(list).toHaveLength(1);
@@ -339,13 +380,13 @@ describe('currentTortillas devuelve la jornada completa', () => {
 
   it('excluye la cerrada a mano pero conserva la otra del día', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
-    await Tortilla.create({
+    await newTortilla({
       name: 'Abierta',
       date: new Date(2026, 5, 10, 12, 0),
       imageKey: 'k1',
       imageContentType: 'image/png',
     });
-    await Tortilla.create({
+    await newTortilla({
       name: 'Cerrada',
       date: new Date(2026, 5, 10, 14, 0),
       imageKey: 'k2',
@@ -353,7 +394,7 @@ describe('currentTortillas devuelve la jornada completa', () => {
       closedAt: new Date(),
     });
 
-    const list = (await Query.currentTortillas(null, {}, user)) as Array<{
+    const list = (await Query.currentTortillas(null, { groupSlug: G }, user)) as Array<{
       name: string;
     }>;
     expect(list).toHaveLength(1);
@@ -362,7 +403,7 @@ describe('currentTortillas devuelve la jornada completa', () => {
 
   it('sin tortillas devuelve lista vacía', async () => {
     const { ctx: user } = await makeUser('pepe', 'user');
-    const list = (await Query.currentTortillas(null, {}, user)) as unknown[];
+    const list = (await Query.currentTortillas(null, { groupSlug: G }, user)) as unknown[];
     expect(list).toEqual([]);
   });
 });
@@ -387,7 +428,7 @@ describe('alergias: guardado y visibilidad en la convocatoria', () => {
     );
     const event = (await Mutation.announceTortilla(
       null,
-      { input: {} },
+      { input: { groupSlug: G } },
       admin
     )) as EventOut;
     await Mutation.setAttendance(null, { id: event.id, attending: true }, ana);
@@ -445,7 +486,7 @@ describe('alergias: guardado y visibilidad en la convocatoria', () => {
 
   it('el admin ve las alergias de los apuntados', async () => {
     const { admin } = await setup();
-    const event = (await Query.upcomingTortilla(null, {}, admin)) as EventOut;
+    const event = (await Query.upcomingTortilla(null, { groupSlug: G }, admin)) as EventOut;
     expect(event.attendees[0]).toMatchObject({
       userName: 'ana',
       allergens: ['gluten', 'milk'],
@@ -455,28 +496,37 @@ describe('alergias: guardado y visibilidad en la convocatoria', () => {
 
   it('un apuntado ve las alergias del resto de apuntados', async () => {
     const { admin, curioso } = await setup();
-    const event = (await Query.upcomingTortilla(null, {}, admin)) as EventOut;
+    const event = (await Query.upcomingTortilla(null, { groupSlug: G }, admin)) as EventOut;
     await Mutation.setAttendance(
       null,
       { id: event.id, attending: true },
       curioso
     );
-    const seen = (await Query.upcomingTortilla(null, {}, curioso)) as EventOut;
+    const seen = (await Query.upcomingTortilla(null, { groupSlug: G }, curioso)) as EventOut;
     const ana = seen.attendees.find((a) => a.userName === 'ana');
     expect(ana?.allergens).toEqual(['gluten', 'milk']);
   });
 
   it('quien no está apuntado ni es admin recibe null (no "sin alergias")', async () => {
     const { curioso } = await setup();
-    const seen = (await Query.upcomingTortilla(null, {}, curioso)) as EventOut;
+    const seen = (await Query.upcomingTortilla(null, { groupSlug: G }, curioso)) as EventOut;
     expect(seen.attendees[0].allergens).toBeNull();
     expect(seen.attendees[0].allergyNotes).toBeNull();
   });
 
-  it('sin sesión tampoco se ven', async () => {
+  it('sin sesión ni siquiera se ve la convocatoria', async () => {
     await setup();
-    const seen = (await Query.upcomingTortilla(null, {}, { session: null })) as EventOut;
-    expect(seen.attendees[0].allergens).toBeNull();
+    await expect(
+      Query.upcomingTortilla(null, { groupSlug: G }, { session: null })
+    ).rejects.toThrow(/sesión/i);
+  });
+
+  it('quien no es del grupo tampoco', async () => {
+    await setup();
+    const { ctx: fuera } = await makeUser('fuera', null);
+    await expect(
+      Query.upcomingTortilla(null, { groupSlug: G }, fuera)
+    ).rejects.toThrow(/no encontrado/i);
   });
 
   it('el rol de admin se lee de la BD, no de la sesión', async () => {
@@ -485,7 +535,7 @@ describe('alergias: guardado y visibilidad en la convocatoria', () => {
     const forged = {
       session: { user: { ...curioso.session.user, role: 'admin' } },
     };
-    const seen = (await Query.upcomingTortilla(null, {}, forged)) as EventOut;
+    const seen = (await Query.upcomingTortilla(null, { groupSlug: G }, forged)) as EventOut;
     expect(seen.attendees[0].allergens).toBeNull();
   });
 });
@@ -494,7 +544,7 @@ describe('changeNickname', () => {
   /** Ana vota una tortilla y comenta; devuelve su ctx y la tortilla. */
   async function anaWithHistory() {
     const { ctx: ana, doc } = await makeUser('Ana');
-    const tortilla = await Tortilla.create({
+    const tortilla = await newTortilla({
       name: 'De patata',
       date: new Date(2026, 5, 10),
       imageKey: 'k1',
@@ -531,7 +581,7 @@ describe('changeNickname', () => {
     const { ana } = await anaWithHistory();
     await change(ana, 'Anita');
 
-    const stats = (await Query.myStats(null, {}, ana)) as {
+    const stats = (await Query.myStats(null, { groupSlug: G }, ana)) as {
       username: string;
       totalVotes: number;
       averageGiven: number;
@@ -548,7 +598,7 @@ describe('changeNickname', () => {
     const { ctx: admin } = await makeUser('jefa', 'admin');
     const event = (await Mutation.announceTortilla(
       null,
-      { input: {} },
+      { input: { groupSlug: G } },
       admin
     )) as { id: string };
     await Mutation.setAttendance(null, { id: event.id, attending: true }, ana);
@@ -561,7 +611,7 @@ describe('changeNickname', () => {
     expect((await Comment.findOne({ userKey: 'anita' }).exec())?.userName).toBe(
       'Anita'
     );
-    const seen = (await Query.upcomingTortilla(null, {}, admin)) as {
+    const seen = (await Query.upcomingTortilla(null, { groupSlug: G }, admin)) as {
       attendees: { userName: string }[];
     };
     expect(seen.attendees.map((a) => a.userName)).toContain('Anita');
@@ -617,6 +667,13 @@ describe('changeNickname', () => {
       { session: null }
     );
     const suplantadora = await User.findOne({ usernameKey: 'ana' }).exec();
+    // Entra en el mismo grupo (p. ej. con una invitación).
+    await Membership.create({
+      group: (await defaultGroup())._id,
+      user: suplantadora!._id,
+      userName: 'Ana',
+      role: 'member',
+    });
     const ctx = {
       session: {
         user: {
@@ -625,11 +682,10 @@ describe('changeNickname', () => {
           usernameKey: 'ana',
           email: 'otra@test.dev',
           needsUsername: false,
-          role: 'user',
         },
       },
     };
-    const stats = (await Query.myStats(null, {}, ctx)) as { totalVotes: number };
+    const stats = (await Query.myStats(null, { groupSlug: G }, ctx)) as { totalVotes: number };
     expect(stats.totalVotes).toBe(0);
     // Y el voto sigue siendo de Ana (ahora Anita).
     const vote = await Vote.findOne({}).exec();
@@ -637,19 +693,16 @@ describe('changeNickname', () => {
   });
 
   it('al registrarse sí se recuperan los votos previos sin cuenta', async () => {
-    const tortilla = await Tortilla.create({
+    const tortilla = await newTortilla({
       name: 'Vieja',
       date: new Date(2026, 0, 1),
       imageKey: 'k0',
       imageContentType: 'image/png',
     });
     // Voto histórico: solo nombre, sin cuenta (como los del Excel).
-    await Vote.create({
-      tortilla: tortilla._id,
-      userKey: 'legacy',
-      userName: 'Legacy',
-      score: 7,
-    });
+    await insertVotes([
+      { tortilla: tortilla._id, userKey: 'legacy', userName: 'Legacy', score: 7 },
+    ]);
 
     await Mutation.register(
       null,
@@ -667,31 +720,31 @@ describe('changeNickname', () => {
     const vote = await Vote.findOne({ userKey: 'legacy' }).exec();
     expect(vote?.user?.toString()).toBe(user!._id.toString());
 
+    // Lo ve otro miembro del grupo donde están esos votos.
+    const { ctx: viewer } = await makeUser('mirona');
     const stats = (await Query.userStats(
       null,
-      { username: 'Legacy' },
-      { session: null }
+      { groupSlug: G, username: 'Legacy' },
+      viewer
     )) as { totalVotes: number };
     expect(stats.totalVotes).toBe(1);
   });
 
   it('userStats encuentra a quien votó sin llegar a registrarse', async () => {
-    const tortilla = await Tortilla.create({
+    const tortilla = await newTortilla({
       name: 'Vieja',
       date: new Date(2026, 0, 1),
       imageKey: 'k0',
       imageContentType: 'image/png',
     });
-    await Vote.create({
-      tortilla: tortilla._id,
-      userKey: 'fantasma',
-      userName: 'Fantasma',
-      score: 5,
-    });
+    await insertVotes([
+      { tortilla: tortilla._id, userKey: 'fantasma', userName: 'Fantasma', score: 5 },
+    ]);
+    const { ctx: viewer } = await makeUser('mirona');
     const stats = (await Query.userStats(
       null,
-      { username: 'Fantasma' },
-      { session: null }
+      { groupSlug: G, username: 'Fantasma' },
+      viewer
     )) as { username: string; totalVotes: number };
     expect(stats).toMatchObject({ username: 'Fantasma', totalVotes: 1 });
   });
@@ -702,7 +755,7 @@ describe('avisos de logros nuevos', () => {
   const ids = (list: unknown) => (list as Item[]).map((a) => a.id);
 
   async function votableTortilla() {
-    return Tortilla.create({
+    return newTortilla({
       name: 'De patata',
       date: new Date(2026, 5, 10),
       imageKey: 'k1',
@@ -711,7 +764,7 @@ describe('avisos de logros nuevos', () => {
   }
 
   it('sin sesión devuelve vacío', async () => {
-    expect(await Query.newAchievements(null, {}, { session: null })).toEqual([]);
+    expect(await Query.newAchievements(null, { groupSlug: G }, { session: null })).toEqual([]);
   });
 
   it('la primera consulta fija la línea base sin celebrar lo que ya tenía', async () => {
@@ -723,18 +776,18 @@ describe('avisos de logros nuevos', () => {
       ctx
     );
 
-    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
-    const user = await User.findById(doc._id).lean();
-    expect(user?.seenAchievements).toEqual(
+    expect(await Query.newAchievements(null, { groupSlug: G }, ctx)).toEqual([]);
+    const membership = await Membership.findOne({ user: doc._id }).lean();
+    expect(membership?.seenAchievements).toEqual(
       expect.arrayContaining(['firstVote', 'perfectScore'])
     );
     // Y ya no hay nada pendiente.
-    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
+    expect(await Query.newAchievements(null, { groupSlug: G }, ctx)).toEqual([]);
   });
 
   it('devuelve lo desbloqueado después hasta que se marca como visto', async () => {
     const { ctx } = await makeUser('pepe');
-    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
+    expect(await Query.newAchievements(null, { groupSlug: G }, ctx)).toEqual([]);
 
     const t = await votableTortilla();
     await Mutation.castVote(
@@ -743,30 +796,30 @@ describe('avisos de logros nuevos', () => {
       ctx
     );
 
-    const fresh = ids(await Query.newAchievements(null, {}, ctx));
+    const fresh = ids(await Query.newAchievements(null, { groupSlug: G }, ctx));
     expect(fresh).toContain('firstVote');
     expect(fresh).not.toContain('perfectScore');
 
     await Mutation.markAchievementsSeen(
       null,
-      { ids: [...fresh, 'inventado'] },
+      { groupSlug: G, ids: [...fresh, 'inventado'] },
       ctx
     );
-    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
+    expect(await Query.newAchievements(null, { groupSlug: G }, ctx)).toEqual([]);
   });
 
   it('markAchievementsSeen ignora ids desconocidos y exige sesión', async () => {
     const { doc, ctx } = await makeUser('pepe');
     await Mutation.markAchievementsSeen(
       null,
-      { ids: ['firstVote', 'firstVote', 'hackeado'] },
+      { groupSlug: G, ids: ['firstVote', 'firstVote', 'hackeado'] },
       ctx
     );
-    const user = await User.findById(doc._id).lean();
-    expect(user?.seenAchievements).toEqual(['firstVote']);
+    const membership = await Membership.findOne({ user: doc._id }).lean();
+    expect(membership?.seenAchievements).toEqual(['firstVote']);
 
     await expect(
-      Mutation.markAchievementsSeen(null, { ids: ['firstVote'] }, { session: null })
+      Mutation.markAchievementsSeen(null, { groupSlug: G, ids: ['firstVote'] }, { session: null })
     ).rejects.toThrow(/sesión/i);
   });
 });
@@ -839,20 +892,37 @@ describe('cumpleaños', () => {
       vi.useRealTimers();
     });
 
-    async function withBirthday(name: string, day: number, month: number) {
-      const { doc } = await makeUser(name);
+    async function withBirthday(
+      name: string,
+      day: number,
+      month: number,
+      role: 'user' | null = 'user'
+    ) {
+      const { doc } = await makeUser(name, role);
       await User.updateOne({ _id: doc._id }, { $set: { birthday: { day, month } } });
     }
 
     it('devuelve solo a quien cumple hoy en Madrid', async () => {
       await withBirthday('Ana', 14, 10);
       await withBirthday('Luis', 13, 10);
-      await makeUser('Pepe');
+      const { ctx: pepe } = await makeUser('Pepe');
       // 23:30 UTC del 13 = ya es 14 en Madrid.
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(new Date(Date.UTC(2026, 9, 13, 23, 30)));
 
-      expect(await Query.birthdaysToday(null, {}, {})).toEqual(['Ana']);
+      expect(await Query.birthdaysToday(null, {}, pepe)).toEqual(['Ana']);
+    });
+
+    it('solo gente con la que compartes grupo, y nada sin sesión', async () => {
+      await withBirthday('Ana', 14, 10);
+      // Cumple hoy, pero no comparte grupo con Pepe.
+      await withBirthday('Extraña', 14, 10, null);
+      const { ctx: pepe } = await makeUser('Pepe');
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(Date.UTC(2026, 9, 14, 12)));
+
+      expect(await Query.birthdaysToday(null, {}, pepe)).toEqual(['Ana']);
+      expect(await Query.birthdaysToday(null, {}, { session: null })).toEqual([]);
     });
 
     it('el 28 de febrero no bisiesto incluye a quien nació el 29', async () => {
@@ -861,7 +931,8 @@ describe('cumpleaños', () => {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(new Date(Date.UTC(2027, 1, 28, 12)));
 
-      const names = (await Query.birthdaysToday(null, {}, {})) as string[];
+      const { ctx: viewer } = await makeUser('Mirona');
+      const names = (await Query.birthdaysToday(null, {}, viewer)) as string[];
       expect(names.sort()).toEqual(['Bisi', 'Normal']);
     });
   });
@@ -869,10 +940,10 @@ describe('cumpleaños', () => {
 
 describe('ranking', () => {
   it('agrupa por cuenta, pone el nombre actual y cuenta los votos históricos', async () => {
-    const { doc: ana } = await makeUser('Ana');
+    const { doc: ana, ctx: anaCtx } = await makeUser('Ana');
     const tortillas = await Promise.all(
       [3, 10, 17, 24, 31].map((d) =>
-        Tortilla.create({
+        newTortilla({
           name: `T${d}`,
           date: new Date(2026, 6, d),
           imageKey: `k${d}`,
@@ -881,7 +952,7 @@ describe('ranking', () => {
       )
     );
     // Ana vota las cinco con su cuenta; un votante histórico sin cuenta, tres.
-    await Vote.insertMany([
+    await insertVotes([
       ...tortillas.map((t, i) => ({
         tortilla: t._id,
         user: ana._id,
@@ -897,7 +968,7 @@ describe('ranking', () => {
       })),
     ]);
 
-    const ranking = (await Query.ranking(null, {}, {})) as {
+    const ranking = (await Query.ranking(null, { groupSlug: G }, anaCtx)) as {
       mostVotes: { userName: string; value: number }[];
       generous: { userName: string }[];
       bestTortillas: { tortilla: { name: string } }[];
@@ -931,7 +1002,7 @@ describe('plazas de la convocatoria', () => {
     const { ctx: admin } = await makeUser('jefa', 'admin');
     const event = (await Mutation.announceTortilla(
       null,
-      { input: { capacity } },
+      { input: { groupSlug: G, capacity } },
       admin
     )) as EventView;
     return { admin, event };
@@ -966,9 +1037,9 @@ describe('plazas de la convocatoria', () => {
     await attend(event.id, marta);
 
     await attend(event.id, ana, false);
-    const forPepe = (await Query.upcomingTortilla(null, {}, pepe)) as EventView;
+    const forPepe = (await Query.upcomingTortilla(null, { groupSlug: G }, pepe)) as EventView;
     expect(forPepe.isAttending).toBe(true);
-    const forAdmin = (await Query.upcomingTortilla(null, {}, admin)) as EventView;
+    const forAdmin = (await Query.upcomingTortilla(null, { groupSlug: G }, admin)) as EventView;
     expect(forAdmin.pendingRequests?.map((r) => r.userName)).toEqual(['marta']);
   });
 
@@ -1002,7 +1073,7 @@ describe('plazas de la convocatoria', () => {
       { eventId: event.id, userId: martaDoc._id.toString(), approve: false },
       admin
     );
-    const forMarta = (await Query.upcomingTortilla(null, {}, marta)) as EventView;
+    const forMarta = (await Query.upcomingTortilla(null, { groupSlug: G }, marta)) as EventView;
     expect(forMarta.myRequestStatus).toBe('REJECTED');
     await expect(attend(event.id, marta)).rejects.toThrow(/no ha aprobado/);
   });
@@ -1021,11 +1092,11 @@ describe('plazas de la convocatoria', () => {
   it('el tope por defecto es 12 y se valida al convocar', async () => {
     const { ctx: admin } = await makeUser('jefa', 'admin');
     await expect(
-      Mutation.announceTortilla(null, { input: { capacity: 0 } }, admin)
+      Mutation.announceTortilla(null, { input: { groupSlug: G, capacity: 0 } }, admin)
     ).rejects.toThrow(/plazas/);
     const event = (await Mutation.announceTortilla(
       null,
-      { input: {} },
+      { input: { groupSlug: G } },
       admin
     )) as EventView;
     expect(event.capacity).toBe(12);
@@ -1043,7 +1114,7 @@ describe('logros con comentarios y convocatorias', () => {
     const { ctx: admin } = await makeUser('jefa', 'admin');
     const { ctx: ana } = await makeUser('ana');
     const { ctx: pepe } = await makeUser('pepe');
-    const t = await Tortilla.create({
+    const t = await newTortilla({
       name: 'De patata',
       date: new Date(2026, 5, 10),
       imageKey: 'k1',
@@ -1065,15 +1136,15 @@ describe('logros con comentarios y convocatorias', () => {
       vi.useRealTimers();
     }
 
-    const event = (await Mutation.announceTortilla(null, { input: {} }, admin)) as { id: string };
+    const event = (await Mutation.announceTortilla(null, { input: { groupSlug: G } }, admin)) as { id: string };
     await Mutation.setAttendance(null, { id: event.id, attending: true }, ana);
 
-    const forAna = byId(await Query.myStats(null, {}, ana));
+    const forAna = byId(await Query.myStats(null, { groupSlug: G }, ana));
     expect(forAna.get('icebreaker')?.unlocked).toBe(true);
     expect(forAna.get('commenter')?.progress).toBe(2);
     expect(forAna.get('eventRegular')?.progress).toBe(1);
 
-    const forPepe = byId(await Query.myStats(null, {}, pepe));
+    const forPepe = byId(await Query.myStats(null, { groupSlug: G }, pepe));
     expect(forPepe.get('icebreaker')?.unlocked).toBe(false);
     expect(forPepe.get('eventRegular')?.progress).toBe(0);
   });
@@ -1086,15 +1157,15 @@ describe('logros ocultos', () => {
 
   it('no llegan al cliente hasta desbloquearse y entonces se celebran', async () => {
     const { ctx } = await makeUser('ana');
-    const t = await Tortilla.create({
+    const t = await newTortilla({
       name: 'De patata',
       date: new Date(2026, 5, 10),
       imageKey: 'k1',
       imageContentType: 'image/png',
     });
     // Línea base de avisos.
-    expect(await Query.newAchievements(null, {}, ctx)).toEqual([]);
-    expect(ids(await Query.myStats(null, {}, ctx))).not.toContain('canut');
+    expect(await Query.newAchievements(null, { groupSlug: G }, ctx)).toEqual([]);
+    expect(ids(await Query.myStats(null, { groupSlug: G }, ctx))).not.toContain('canut');
 
     await Mutation.addComment(
       null,
@@ -1102,8 +1173,8 @@ describe('logros ocultos', () => {
       ctx
     );
 
-    expect(ids(await Query.myStats(null, {}, ctx))).toContain('canut');
-    const fresh = (await Query.newAchievements(null, {}, ctx)) as Item[];
+    expect(ids(await Query.myStats(null, { groupSlug: G }, ctx))).toContain('canut');
+    const fresh = (await Query.newAchievements(null, { groupSlug: G }, ctx)) as Item[];
     expect(fresh).toContainEqual(
       expect.objectContaining({ id: 'canut', hidden: true, unlocked: true })
     );

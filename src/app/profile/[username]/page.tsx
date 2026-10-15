@@ -1,11 +1,6 @@
-import ProfilePage from '@/views/ProfilePage';
+import { redirect } from 'next/navigation';
 
-type Params = { username: string };
-
-export const metadata = {
-  title: 'Perfil · TortiWeb',
-};
-
-export default function Page({ params }: { params: Params }) {
-  return <ProfilePage username={decodeURIComponent(params.username)} />;
+/** Los perfiles ajenos ahora solo se ven dentro de un grupo compartido. */
+export default function Page() {
+  redirect('/groups');
 }

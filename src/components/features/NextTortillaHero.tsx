@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useQuery } from '@apollo/client';
 import { useLanguage } from '@/components/LanguageContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import {
   TORTILLA_DATES_QUERY,
   UPCOMING_TORTILLA_QUERY,
@@ -19,13 +20,16 @@ type UpcomingEvent = { id: string; date: string; open: boolean };
  */
 export function NextTortillaHero() {
   const { t, locale } = useLanguage();
+  const { slug, pathFor } = useCurrentGroup();
+  const groupVars = { variables: { groupSlug: slug }, skip: !slug };
   // Misma consulta que `UpcomingTortillaCard`: Apollo la sirve de caché.
   const { data } = useQuery<{ upcomingTortilla: UpcomingEvent | null }>(
     UPCOMING_TORTILLA_QUERY,
-    { fetchPolicy: 'cache-and-network' }
+    { ...groupVars, fetchPolicy: 'cache-and-network' }
   );
   const { data: dates } = useQuery<{ tortillas: { id: string; date: string }[] }>(
-    TORTILLA_DATES_QUERY
+    TORTILLA_DATES_QUERY,
+    groupVars
   );
   const event = data?.upcomingTortilla?.open ? data.upcomingTortilla : null;
 
@@ -77,7 +81,7 @@ export function NextTortillaHero() {
         </span>
       </div>
 
-      <Link href="/history" className={styles.historyLink}>
+      <Link href={pathFor('history')} className={styles.historyLink}>
         {t('vote.empty.historyLink')} →
       </Link>
     </section>

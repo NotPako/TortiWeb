@@ -1,9 +1,6 @@
-import RankingPage from '@/views/RankingPage';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Ranking · TortiWeb',
-};
-
+/** Ruta anterior a los grupos: ahora cada sección vive en /g/<slug>/…. */
 export default function Page() {
-  return <RankingPage />;
+  redirect('/groups');
 }

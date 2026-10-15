@@ -79,7 +79,7 @@ export const typeDefs = gql`
     """URL del avatar del apuntado, si está disponible."""
     imageUrl: String
     """
-    Alérgenos del apuntado. Solo visible para admins y para quien esté apuntado
+    Alérgenos del apuntado. Solo visible para los admins del grupo y para quien esté apuntado
     a la misma convocatoria; null para el resto (no significa "sin alergias").
     """
     allergens: [Allergen!]
@@ -130,6 +130,72 @@ export const typeDefs = gql`
     userName: String!
     imageUrl: String
     requestedAt: Date!
+  }
+
+  """Rol dentro de un grupo. Se puede ser admin de uno y miembro de otro."""
+  enum GroupRole {
+    member
+    admin
+  }
+
+  """
+  Grupo (peña): tortillas, votos, comentarios y convocatorias aislados del
+  resto de grupos. Solo lo ven sus miembros.
+  """
+  type Group {
+    id: ID!
+    name: String!
+    """Identificador en la URL (/g/<slug>)."""
+    slug: String!
+    description: String
+    """Rol del usuario autenticado en este grupo."""
+    myRole: GroupRole!
+    isAdmin: Boolean!
+    memberCount: Int!
+    """Miembros por orden de llegada."""
+    members: [GroupMember!]!
+    """Invitaciones del grupo (más recientes primero). Null si no eres admin."""
+    invites: [GroupInvite!]
+  }
+
+  type GroupMember {
+    userId: ID!
+    userName: String!
+    imageUrl: String
+    role: GroupRole!
+    joinedAt: Date!
+    """True si es el usuario autenticado."""
+    isMe: Boolean!
+  }
+
+  enum InviteStatus {
+    active
+    revoked
+    expired
+    exhausted
+  }
+
+  type GroupInvite {
+    id: ID!
+    """Código para el enlace /join/<code> o para dictarlo."""
+    code: String!
+    createdAt: Date!
+    """Null = no caduca."""
+    expiresAt: Date
+    """Null = usos ilimitados."""
+    maxUses: Int
+    uses: Int!
+    revokedAt: Date
+    status: InviteStatus!
+  }
+
+  """Lo que ve quien abre un enlace de invitación antes de aceptarlo."""
+  type InvitePreview {
+    groupName: String!
+    groupSlug: String!
+    status: InviteStatus!
+    """True si ya es miembro: basta con llevarle al grupo."""
+    alreadyMember: Boolean!
   }
 
   """Usuario autenticado."""
@@ -241,40 +307,55 @@ export const typeDefs = gql`
     hidden: Boolean!
   }
 
+  """
+  Todas las queries y mutations sobre tortillas, votos, comentarios,
+  convocatorias, perfiles y ranking exigen ser miembro del grupo. Para quien
+  no lo es, el grupo y lo que contiene se comportan como si no existieran.
+  """
   type Query {
-    """Lista de todas las tortillas, ordenadas por fecha descendente."""
-    tortillas: [Tortilla!]!
-    """Una tortilla concreta por ID."""
+    """Grupos del usuario autenticado, por nombre."""
+    myGroups: [Group!]!
+    """Un grupo por slug, o null si no existe o no eres miembro."""
+    group(slug: String!): Group
+    """Datos de una invitación por código, o null si no existe. Requiere sesión."""
+    invitePreview(code: String!): InvitePreview
+    """Tortillas del grupo, ordenadas por fecha descendente."""
+    tortillas(groupSlug: String!): [Tortilla!]!
+    """Una tortilla concreta por ID (null si es de un grupo ajeno)."""
     tortilla(id: ID!): Tortilla
     """
-    Tortillas de la jornada en curso, abiertas a votación. Normalmente una,
-    pero pueden ser varias si ese día se cocinó más de una.
+    Tortillas de la jornada en curso del grupo, abiertas a votación.
+    Normalmente una, pero pueden ser varias si ese día se cocinó más de una.
     """
-    currentTortillas: [Tortilla!]!
+    currentTortillas(groupSlug: String!): [Tortilla!]!
     """Información del usuario autenticado, o null si no hay sesión."""
     me: User
-    """Estadísticas y votos del usuario autenticado."""
-    myStats: UserStats
+    """Estadísticas del usuario autenticado dentro del grupo."""
+    myStats(groupSlug: String!): UserStats
     """
-    Logros desbloqueados del usuario autenticado cuyo aviso aún no se ha
-    mostrado. Vacío sin sesión. La primera vez fija la línea base y devuelve
-    vacío, para no celebrar los logros que ya tenía.
+    Logros del grupo desbloqueados por el usuario autenticado cuyo aviso aún
+    no se ha mostrado. La primera vez fija la línea base y devuelve vacío,
+    para no celebrar los logros que ya tenía.
     """
-    newAchievements: [Achievement!]!
+    newAchievements(groupSlug: String!): [Achievement!]!
     """
-    Nombres de quienes cumplen años hoy (hora de Madrid), para el gorro de
-    fiesta. No revela la fecha de nadie más.
+    Nombres de quienes cumplen años hoy (hora de Madrid) entre la gente con
+    la que compartes algún grupo, para el gorro de fiesta.
     """
     birthdaysToday: [String!]!
     """Podios del grupo: mejores tortillas del año, más duro, más generoso…"""
-    ranking: Ranking!
-    """Estadísticas y votos de cualquier usuario por nombre de usuario."""
-    userStats(username: String!): UserStats
-    """Convocatoria abierta de la próxima tortilla, o null si no hay ninguna."""
-    upcomingTortilla: TortillaEvent
+    ranking(groupSlug: String!): Ranking!
+    """
+    Estadísticas de un usuario dentro del grupo. Null si nunca ha sido miembro
+    ni ha votado en él.
+    """
+    userStats(groupSlug: String!, username: String!): UserStats
+    """Convocatoria abierta del grupo, o null si no hay ninguna."""
+    upcomingTortilla(groupSlug: String!): TortillaEvent
   }
 
   input CreateTortillaInput {
+    groupSlug: String!
     name: String!
     description: String
     """Imagen en base64 (data URL o cadena pura)."""
@@ -324,7 +405,21 @@ export const typeDefs = gql`
     allergyNotes: String
   }
 
+  input CreateGroupInput {
+    name: String!
+    description: String
+  }
+
+  input CreateInviteInput {
+    groupSlug: String!
+    """Días hasta que caduca (1-90). Null = no caduca."""
+    expiresInDays: Int
+    """Usos máximos (1-100). Null = ilimitados."""
+    maxUses: Int
+  }
+
   input AnnounceTortillaInput {
+    groupSlug: String!
     """Fecha del miércoles; si no se indica, se usa el próximo miércoles."""
     date: Date
     """Nota opcional para los apuntados."""
@@ -334,11 +429,25 @@ export const typeDefs = gql`
   }
 
   type Mutation {
+    """Crea un grupo; quien lo crea queda como admin."""
+    createGroup(input: CreateGroupInput!): Group!
+    """Crea una invitación. Requiere ser admin del grupo."""
+    createInvite(input: CreateInviteInput!): GroupInvite!
+    """Revoca una invitación (no se borra). Requiere ser admin del grupo."""
+    revokeInvite(id: ID!): GroupInvite!
+    """Canjea una invitación. Idempotente si ya eres miembro."""
+    redeemInvite(code: String!): Group!
+    """Cambia el rol de un miembro. Un grupo nunca se queda sin admins."""
+    setMemberRole(groupSlug: String!, userId: ID!, role: GroupRole!): GroupMember!
+    """Expulsa a un miembro. Sus votos y comentarios se conservan."""
+    removeMember(groupSlug: String!, userId: ID!): Boolean!
+    """Sale del grupo. El último admin no puede salir."""
+    leaveGroup(groupSlug: String!): Boolean!
     createTortilla(input: CreateTortillaInput!): Tortilla!
     castVote(input: CastVoteInput!): Vote!
-    """Elimina una tortilla y todos sus votos. Requiere rol de admin."""
+    """Elimina una tortilla y todos sus votos. Requiere ser admin del grupo."""
     deleteTortilla(id: ID!): Boolean!
-    """Cierra manualmente la votación de una tortilla. Requiere rol de admin."""
+    """Cierra manualmente la votación de una tortilla. Requiere ser admin del grupo."""
     closeTortillaVoting(id: ID!): Tortilla!
     """Crea una cuenta con usuario+contraseña. Devuelve el usuario."""
     register(input: RegisterInput!): User!
@@ -355,16 +464,16 @@ export const typeDefs = gql`
     """Guarda los alérgenos y observaciones del usuario autenticado."""
     setAllergies(input: SetAllergiesInput!): User!
     """Marca como vistos los avisos de esos logros. Ignora ids desconocidos."""
-    markAchievementsSeen(ids: [String!]!): Boolean!
+    markAchievementsSeen(groupSlug: String!, ids: [String!]!): Boolean!
     """Guarda el cumpleaños del usuario autenticado. null lo borra."""
     setBirthday(birthday: BirthdayInput): User!
     """Añade un comentario a una tortilla. Requiere sesión."""
     addComment(input: AddCommentInput!): Comment!
     """Elimina un comentario propio."""
     deleteComment(id: ID!): Boolean!
-    """Convoca la tortilla del próximo miércoles. Requiere rol de admin."""
+    """Convoca la tortilla del próximo miércoles. Requiere ser admin del grupo."""
     announceTortilla(input: AnnounceTortillaInput!): TortillaEvent!
-    """Cierra manualmente una convocatoria. Requiere rol de admin."""
+    """Cierra manualmente una convocatoria. Requiere ser admin del grupo."""
     closeTortillaEvent(id: ID!): TortillaEvent!
     """
     Apuntarse o desapuntarse. Con la convocatoria llena, apuntarse deja una
@@ -372,7 +481,7 @@ export const typeDefs = gql`
     más antigua.
     """
     setAttendance(id: ID!, attending: Boolean!): TortillaEvent!
-    """Aprueba (entra aunque se pase del tope) o rechaza una solicitud. Requiere rol de admin."""
+    """Aprueba (entra aunque se pase del tope) o rechaza una solicitud. Requiere ser admin del grupo."""
     reviewSpotRequest(eventId: ID!, userId: ID!, approve: Boolean!): TortillaEvent!
   }
 `;

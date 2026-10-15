@@ -7,7 +7,6 @@ type UseUserResult = {
   userImage: string | null;
   isReady: boolean;
   needsUsername: boolean;
-  isAdmin: boolean;
   signOut: () => void;
 };
 
@@ -21,7 +20,6 @@ export function useUser(): UseUserResult {
     userImage: user && !needsUsername ? user.image ?? null : null,
     isReady,
     needsUsername,
-    isAdmin: Boolean(user && !needsUsername && user.role === 'admin'),
     signOut: () => nextSignOut({ callbackUrl: '/login' }),
   };
 }

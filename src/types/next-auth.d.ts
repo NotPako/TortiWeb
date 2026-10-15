@@ -9,7 +9,6 @@ declare module 'next-auth' {
       usernameKey: string;
       email: string;
       needsUsername: boolean;
-      role: 'user' | 'admin';
       name?: string | null;
       image?: string | null;
     };
@@ -22,6 +21,5 @@ declare module 'next-auth/jwt' {
     username?: string;
     usernameKey?: string;
     needsUsername?: boolean;
-    role?: 'user' | 'admin';
   }
 }

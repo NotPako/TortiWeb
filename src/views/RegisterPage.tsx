@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { safeCallbackUrl, withCallbackUrl } from '@/lib/navigation';
 import { useMutation } from '@apollo/client';
 import { signIn, useSession } from 'next-auth/react';
 import { Alert, Button, Form, Input } from 'antd';
@@ -23,6 +24,8 @@ export default function RegisterPage() {
   const { t } = useLanguage();
   const { status, data } = useSession();
   const router = useRouter();
+  // Conserva el destino (p. ej. un enlace de invitación) durante el registro.
+  const callbackUrl = safeCallbackUrl(useSearchParams().get('callbackUrl'));
 
   const [error, setError] = useState<string | null>(null);
   const [register, { loading }] = useMutation(REGISTER_MUTATION);
@@ -30,12 +33,12 @@ export default function RegisterPage() {
   useEffect(() => {
     if (status === 'authenticated') {
       if (data?.user?.needsUsername) {
-        router.replace('/auth/setup-username');
+        router.replace(withCallbackUrl('/auth/setup-username', callbackUrl));
       } else {
-        router.replace('/vote');
+        router.replace(callbackUrl);
       }
     }
-  }, [status, data, router]);
+  }, [status, data, router, callbackUrl]);
 
   async function handleSubmit(values: RegisterValues) {
     setError(null);
@@ -58,7 +61,7 @@ export default function RegisterPage() {
       if (res?.error) {
         setError(t('auth.errors.invalidCredentials'));
       } else {
-        router.replace('/vote');
+        router.replace(callbackUrl);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.errorPrefix'));
@@ -130,7 +133,10 @@ export default function RegisterPage() {
 
         <p className={styles.footer}>
           {t('auth.register.haveAccount')}{' '}
-          <Link href="/login" className={styles.link}>
+          <Link
+            href={withCallbackUrl('/login', callbackUrl)}
+            className={styles.link}
+          >
             {t('auth.register.loginLink')}
           </Link>
         </p>

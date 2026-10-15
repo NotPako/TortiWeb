@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client';
-import { useUser } from '@/components/UserContext';
+import { useCurrentGroup } from '@/hooks/useCurrentGroup';
 import { useLanguage } from '@/components/LanguageContext';
 import { UserChip } from '@/components/features/UserChip';
 import { TortillaImage } from '@/components/features/TortillaImage';
@@ -97,20 +95,16 @@ function VoterBoard({
 }
 
 export default function RankingPage() {
-  const { userName, isReady } = useUser();
+  // Sesión y pertenencia ya las garantiza GroupGate en el layout del grupo.
+  const { slug } = useCurrentGroup();
   const { t, locale } = useLanguage();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isReady && !userName) router.replace('/login');
-  }, [isReady, userName, router]);
 
   const { data, loading, error } = useQuery<{ ranking: Ranking }>(
     RANKING_QUERY,
-    { skip: !userName, fetchPolicy: 'cache-and-network' }
+    { variables: { groupSlug: slug }, skip: !slug, fetchPolicy: 'cache-and-network' }
   );
 
-  if (!isReady || !userName) return null;
+  if (!slug) return null;
   if (loading && !data) return <RankingPageSkeleton />;
   if (error || !data) {
     return (
