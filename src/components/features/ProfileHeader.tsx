@@ -54,6 +54,7 @@ export function ProfileHeader({
         href={null}
         previewable
         previewLabel={t('profile.viewPhoto')}
+        className={styles.avatar}
       />
       <div className={styles.headerText}>
         <h1 className={styles.title}>{title}</h1>
