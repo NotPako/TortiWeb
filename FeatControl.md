@@ -1,5 +1,25 @@
 # FeatControl
 
+## [2026-10-15] - 11 logros nuevos (20 en total)
+**Descripción**: Se añaden logros de votos, constancia y participación:
+- 🏛️ **Centenario**: 100 tortillas votadas. 🐉 **Leyenda**: racha de 20 jornadas.
+- 🧊 **Sin piedad**: poner un 2 o menos.
+- 🎯 **Oráculo**: tu nota clavó la media final (±0,2) en 3 tortillas. Solo cuentan tortillas con la votación terminada y al menos 3 votos; si no, la "media" sería tu propia nota.
+- 🌅 **Madrugador**: ser el primero en votar 3 tortillas. 🗨️ **Rompehielos**: ser el primero en comentar una tortilla. Solo si eres estrictamente el primero: con empate en la hora no cuenta para nadie, para que los votos importados del Excel (misma fecha de alta) no lo regalen.
+- 🍳 **Doblete**: votar las dos tortillas de un mismo día. 🎂 **Aniversario**: un año entre la primera y la última tortilla votada. Ambos usan la fecha de la tortilla, no la del voto, por la misma razón.
+- 📅 **Fiel a la cita**: apuntarse a 5 convocatorias. 💬 **Tertuliano**: 10 comentarios. 🎭 **Expresivo**: haber usado las cuatro reacciones rápidas.
+
+Los que se cuentan (Centenario, Leyenda, Oráculo, Madrugador, Fiel a la cita, Tertuliano, Expresivo) muestran barra de progreso. Quien ya los cumpla por su historial verá el aviso estilo Xbox la próxima vez que entre (no se añaden a la línea base). Se descartaron a propósito logros basados en alergias o cumpleaños: los logros se ven en el perfil público.
+
+En móvil la cuadrícula pasa a tres columnas: con 20 logros, a dos por fila ocupaba más de una pantalla.
+**Archivos principales**:
+- `src/lib/achievements.ts` (definiciones, nuevos datos de entrada) + test reescrito, incluida una comprobación de que todos tienen traducción
+- `src/graphql/resolvers.ts` (`achievementsFor`: votos y comentarios de las mismas tortillas, tortillas terminadas, convocatorias)
+- `src/components/features/AchievementsGrid.module.css`
+- `src/lib/i18n.ts` (títulos y descripciones, ES + CA)
+**Tecnologías**: —
+**Notas**: No requiere migración. El cálculo de estadísticas hace tres consultas más (comentarios propios, comentarios de esas tortillas y convocatorias).
+
 ## [2026-10-14] - Tope de plazas en la convocatoria y solicitudes al admin
 **Descripción**: Cada convocatoria tiene un número de plazas que el admin elige al convocar (12 por defecto, entre 1 y 100). Mientras quede hueco, apuntarse entra directamente. Lleno, el botón pasa a **"Solicitar plaza"** y la solicitud queda en una cola por orden de llegada; quien la envía ve su puesto ("eres el n.º 2 de la cola") y puede retirarla.
 

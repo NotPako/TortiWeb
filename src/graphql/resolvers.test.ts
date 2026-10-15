@@ -1031,3 +1031,39 @@ describe('plazas de la convocatoria', () => {
     expect(event.capacity).toBe(12);
   });
 });
+
+describe('logros con comentarios y convocatorias', () => {
+  type Stats = {
+    achievements: { id: string; unlocked: boolean; progress: number | null }[];
+  };
+  const byId = (stats: unknown) =>
+    new Map((stats as Stats).achievements.map((a) => [a.id, a]));
+
+  it('cuenta comentarios, el primero de una tortilla y las convocatorias', async () => {
+    const { ctx: admin } = await makeUser('jefa', 'admin');
+    const { ctx: ana } = await makeUser('ana');
+    const { ctx: pepe } = await makeUser('pepe');
+    const t = await Tortilla.create({
+      name: 'De patata',
+      date: new Date(2026, 5, 10),
+      imageKey: 'k1',
+      imageContentType: 'image/png',
+    });
+
+    await Mutation.addComment(null, { input: { tortillaId: t._id.toString(), text: 'Primera' } }, ana);
+    await Mutation.addComment(null, { input: { tortillaId: t._id.toString(), text: 'Segundo' } }, pepe);
+    await Mutation.addComment(null, { input: { tortillaId: t._id.toString(), text: 'Otra más' } }, ana);
+
+    const event = (await Mutation.announceTortilla(null, { input: {} }, admin)) as { id: string };
+    await Mutation.setAttendance(null, { id: event.id, attending: true }, ana);
+
+    const forAna = byId(await Query.myStats(null, {}, ana));
+    expect(forAna.get('icebreaker')?.unlocked).toBe(true);
+    expect(forAna.get('commenter')?.progress).toBe(2);
+    expect(forAna.get('eventRegular')?.progress).toBe(1);
+
+    const forPepe = byId(await Query.myStats(null, {}, pepe));
+    expect(forPepe.get('icebreaker')?.unlocked).toBe(false);
+    expect(forPepe.get('eventRegular')?.progress).toBe(0);
+  });
+});
