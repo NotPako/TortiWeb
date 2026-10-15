@@ -37,3 +37,14 @@ export function daysUntil(
   const toUtcDay = (d: Date) => Date.parse(`${dayKey(d, tz)}T00:00:00Z`);
   return Math.round((toUtcDay(target) - toUtcDay(from)) / 86_400_000);
 }
+
+/** Hora (0–23) de `d` en la zona de la app. */
+export function hourIn(d: Date, tz: string = APP_TIMEZONE): number {
+  return Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).format(d)
+  );
+}

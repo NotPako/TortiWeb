@@ -7,7 +7,8 @@
  * (clave i18n `achievement.<id>.title|description`).
  */
 
-import { dayKey, daysUntil } from './dates';
+import { dayKey, daysUntil, hourIn } from './dates';
+import { MAX_COMMENT_LENGTH } from './comments';
 
 export type AchievementId =
   | 'firstVote'
@@ -29,7 +30,13 @@ export type AchievementId =
   | 'eventRegular'
   | 'commenter'
   | 'expressive'
-  | 'icebreaker';
+  | 'icebreaker'
+  // Ocultos: no aparecen hasta que se desbloquean.
+  | 'canut'
+  | 'nightOwl'
+  | 'pi'
+  | 'onionLover'
+  | 'novelist';
 
 export type Achievement = {
   id: AchievementId;
@@ -42,6 +49,8 @@ export type Achievement = {
    */
   progress: number | null;
   goal: number | null;
+  /** Oculto: invisible hasta desbloquearlo (ver `visibleAchievements`). */
+  hidden: boolean;
 };
 
 export type VoteForAchievements = {
@@ -53,6 +62,8 @@ export type VoteForAchievements = {
    * comparten fecha de alta y falsearían "Doblete" y "Aniversario".
    */
   tortillaDate: Date;
+  /** Cuándo se votó: alta y, si se cambió, última modificación. */
+  castAt: Date[];
 };
 
 /** Un voto de cualquiera en una tortilla que el usuario también votó. */
@@ -77,6 +88,10 @@ export const ORACLE_TOLERANCE = 0.2;
 export const ORACLE_MIN_VOTES = 3;
 /** "Sin piedad": nota máxima que cuenta. */
 export const NO_MERCY_MAX_SCORE = 2;
+/** "Noctámbulo": votar desde las 00:00 hasta antes de esta hora (Madrid). */
+export const NIGHT_OWL_UNTIL_HOUR = 5;
+/** "Pi": la nota exacta. */
+export const PI_SCORE = 3.1;
 /** Las cuatro reacciones rápidas (ver `REACTIONS` en el modelo de voto). */
 const REACTION_COUNT = 4;
 
@@ -97,7 +112,20 @@ type Input = {
   commentCount: number;
   firstComments: number;
   reactionsUsed: number;
+  myCommentTexts: string[];
+  castTimes: Date[];
 };
+
+/**
+ * Si el texto contiene alguna de las palabras sueltas, sin distinguir
+ * mayúsculas: "Canut!" sí, "canuto" o "escanut" no. Los límites de palabra
+ * cuentan letras con tilde (`\b` de JS solo entiende ASCII).
+ */
+export function containsWord(text: string, words: string[]): boolean {
+  return words.some((word) =>
+    new RegExp(`(?<![\\p{L}\\p{N}])${word}(?![\\p{L}\\p{N}])`, 'iu').test(text)
+  );
+}
 
 const FLOAT_EPSILON = 1e-9;
 
@@ -171,6 +199,7 @@ type Def = {
   check: (i: Input) => boolean;
   /** Solo en los logros por umbral: qué se cuenta y cuánto hace falta. */
   counter?: { goal: number; value: (i: Input) => number };
+  hidden?: boolean;
 };
 
 /** Logro por umbral: se desbloquea al llegar a `goal` y enseña el avance. */
@@ -213,6 +242,40 @@ const DEFS: Def[] = [
   threshold('commenter', '💬', 10, (i) => i.commentCount),
   threshold('expressive', '🎭', REACTION_COUNT, (i) => i.reactionsUsed),
   { id: 'icebreaker', emoji: '🗨️', check: (i) => i.firstComments > 0 },
+
+  // --- Ocultos ---
+  {
+    id: 'canut',
+    emoji: '🌿',
+    hidden: true,
+    check: (i) => i.myCommentTexts.some((t) => containsWord(t, ['canut'])),
+  },
+  {
+    id: 'nightOwl',
+    emoji: '🦉',
+    hidden: true,
+    check: (i) => i.castTimes.some((d) => hourIn(d) < NIGHT_OWL_UNTIL_HOUR),
+  },
+  {
+    id: 'pi',
+    emoji: '🥧',
+    hidden: true,
+    check: (i) => i.scores.some((s) => Math.abs(s - PI_SCORE) < FLOAT_EPSILON),
+  },
+  {
+    id: 'onionLover',
+    emoji: '🧅',
+    hidden: true,
+    // Castellano y catalán.
+    check: (i) =>
+      i.myCommentTexts.some((t) => containsWord(t, ['cebolla', 'ceba'])),
+  },
+  {
+    id: 'novelist',
+    emoji: '📜',
+    hidden: true,
+    check: (i) => i.myCommentTexts.some((t) => t.length >= MAX_COMMENT_LENGTH),
+  },
 ];
 
 /** Ids válidos, en el orden en que se muestran. */
@@ -245,6 +308,8 @@ export function computeAchievements(args: {
   finishedTortillaIds: Iterable<string>;
   /** Todos los comentarios de las tortillas que el usuario comentó. */
   relevantComments: RelevantComment[];
+  /** Texto de los comentarios del propio usuario (para los ocultos). */
+  myCommentTexts: string[];
   /** Convocatorias a las que se apuntó. */
   attendedEvents: number;
 }): Achievement[] {
@@ -293,6 +358,8 @@ export function computeAchievements(args: {
     reactionsUsed: new Set(
       args.userVotes.map((v) => v.reaction).filter((r): r is string => Boolean(r))
     ).size,
+    myCommentTexts: args.myCommentTexts,
+    castTimes: args.userVotes.flatMap((v) => v.castAt),
   };
   return DEFS.map((d) => ({
     id: d.id,
@@ -302,5 +369,11 @@ export function computeAchievements(args: {
       ? Math.min(d.counter.value(input), d.counter.goal)
       : null,
     goal: d.counter?.goal ?? null,
+    hidden: Boolean(d.hidden),
   }));
+}
+
+/** Lo que se enseña en el perfil: los ocultos solo una vez desbloqueados. */
+export function visibleAchievements(list: Achievement[]): Achievement[] {
+  return list.filter((a) => !a.hidden || a.unlocked);
 }

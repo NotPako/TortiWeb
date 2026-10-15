@@ -23,6 +23,10 @@
   /* Texto sobre ámbar: el blanco no llega a 3:1, la tinta sí (y en ambos modos). */
   --c-on-amber: #1c1407;
   --c-on-success: #ffffff;
+  /* Logros secretos. */
+  --c-secret: #7c3aed;
+  --c-secret-bg: #f3ecff;
+  --c-on-secret: #ffffff;
   /* Hueco para la barra de pestañas inferior en móvil (0 en escritorio). */
   --tabbar-h: 0px;
 
@@ -93,6 +97,9 @@
   --c-success: #4ade80;
   --c-on-ink: #1c1407;
   --c-on-success: #0b2a16;
+  --c-secret: #b794f6;
+  --c-secret-bg: #2a1d40;
+  --c-on-secret: #1a1033;
 
   --color-tortilla-300: #8a5a12;
   --color-tortilla-900: #ffd88c;

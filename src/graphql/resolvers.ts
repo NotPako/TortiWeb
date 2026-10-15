@@ -16,6 +16,7 @@ import {
   computeAchievements,
   isAchievementId,
   unseenAchievements,
+  visibleAchievements,
 } from '@/lib/achievements';
 import { isSameDay, nextWednesday } from '@/lib/dates';
 import { computeStreaks } from '@/lib/streak';
@@ -270,6 +271,8 @@ async function achievementsFor(args: {
     _id: unknown;
     score: number;
     reaction?: Reaction | null;
+    createdAt: Date;
+    updatedAt: Date;
     tortilla: TortillaDocument | null;
   }[];
   tortillaList: Pick<TortillaDocument, '_id' | 'date' | 'closedAt'>[];
@@ -287,7 +290,9 @@ async function achievementsFor(args: {
   const ownFilter = userId
     ? { user: userId }
     : { userKey, user: { $exists: false } };
-  const myComments = await Comment.find(ownFilter).select('_id tortilla').exec();
+  const myComments = await Comment.find(ownFilter)
+    .select('_id tortilla text')
+    .exec();
   const myCommentIds = new Set(myComments.map((c) => String(c._id)));
   const commentedTortillaIds = [...new Set(myComments.map((c) => String(c.tortilla)))];
 
@@ -323,6 +328,7 @@ async function achievementsFor(args: {
       score: v.score,
       reaction: v.reaction ?? null,
       tortillaDate: v.tortilla.date,
+      castAt: [v.createdAt, v.updatedAt],
     })),
     allRelevantVotes: relevantVoteDocs.map((v) => ({
       tortillaId: String(v.tortilla),
@@ -336,6 +342,7 @@ async function achievementsFor(args: {
       createdAt: c.createdAt,
       mine: myCommentIds.has(String(c._id)),
     })),
+    myCommentTexts: myComments.map((c) => c.text),
     attendedEvents,
   });
 }
@@ -415,7 +422,8 @@ async function computeUserStats(target: {
     votedTortillaIds: votedIds,
   });
 
-  const achievements = await achievementsFor({
+  // Los ocultos no se mandan hasta desbloquearlos: ni siquiera su existencia.
+  const allAchievements = await achievementsFor({
     userId,
     userKey,
     voteDocs,
@@ -423,6 +431,7 @@ async function computeUserStats(target: {
     totalVotes,
     bestStreak,
   });
+  const achievements = visibleAchievements(allAchievements);
 
   return {
     username,

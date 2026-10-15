@@ -32,7 +32,10 @@ export function CommentsSection({ tortillaId, comments, onChanged }: Props) {
   const { userName } = useUser();
   const { t, locale } = useLanguage();
   const [draft, setDraft] = useState('');
-  const [addComment, { loading: adding }] = useMutation(ADD_COMMENT_MUTATION);
+  const [addComment, { loading: adding }] = useMutation(ADD_COMMENT_MUTATION, {
+    // Hay logros por comentar (Tertuliano, Rompehielos, varios secretos).
+    refetchQueries: ['NewAchievements'],
+  });
   // El borrado de comentarios se reactivará cuando exista el rol admin.
 
   async function handleSubmit() {
